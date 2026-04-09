@@ -2,9 +2,11 @@ package folio
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/akkaraponph/folio/internal/pdfcore"
+	"github.com/akkaraponph/folio/internal/resources"
 )
 
 // serialize builds the complete PDF byte stream.
@@ -105,18 +107,192 @@ func (d *Document) putPages(w *pdfcore.Writer) []int {
 // putFonts writes font objects for all registered fonts.
 func (d *Document) putFonts(w *pdfcore.Writer) {
 	for _, fe := range d.fonts.All() {
-		n := w.NewObj()
-		fe.ObjNum = n
-		w.Put("<<")
-		w.Put("/Type /Font")
-		w.Put("/Subtype /Type1")
-		w.Putf("/BaseFont /%s", fe.Name)
-		if fe.Name != "Symbol" && fe.Name != "ZapfDingbats" {
-			w.Put("/Encoding /WinAnsiEncoding")
+		if fe.Type == "TTF" {
+			d.putTTFFont(w, fe)
+		} else {
+			d.putCoreFont(w, fe)
 		}
-		w.Put(">>")
-		w.EndObj()
 	}
+}
+
+func (d *Document) putCoreFont(w *pdfcore.Writer, fe *resources.FontEntry) {
+	n := w.NewObj()
+	fe.ObjNum = n
+	w.Put("<<")
+	w.Put("/Type /Font")
+	w.Put("/Subtype /Type1")
+	w.Putf("/BaseFont /%s", fe.Name)
+	if fe.Name != "Symbol" && fe.Name != "ZapfDingbats" {
+		w.Put("/Encoding /WinAnsiEncoding")
+	}
+	w.Put(">>")
+	w.EndObj()
+}
+
+// putTTFFont writes CIDFont Type2 objects for an embedded TrueType font.
+// Uses the gofpdf approach: Unicode code points as CIDs with a custom
+// CIDToGIDMap stream that maps Unicode→GlyphID.
+//
+// PDF structure:
+//
+//	Type0 font (/Encoding /Identity-H) → DescendantFonts → CIDFont
+//	                                    → ToUnicode CMap
+//	CIDFont → FontDescriptor → FontFile2 (subset TTF)
+//	        → CIDToGIDMap stream (Unicode → GlyphID)
+func (d *Document) putTTFFont(w *pdfcore.Writer, fe *resources.FontEntry) {
+	ttf := fe.TTF
+
+	// Generate subset font
+	subsetData, runeToGlyph := ttf.Subset(fe.UsedRunes)
+	fe.SubsetData = subsetData
+	fe.RuneToGlyph = runeToGlyph
+
+	// 1. Font file stream (subset TTF)
+	fileFontObj := w.NewObj()
+	fe.FileFontObjNum = fileFontObj
+	if d.compress {
+		w.PutCompressedStream(subsetData)
+	} else {
+		w.Putf("<</Length %d /Length1 %d>>", len(subsetData), len(subsetData))
+		w.PutStream(subsetData)
+	}
+	w.EndObj()
+
+	// 2. FontDescriptor
+	descObj := w.NewObj()
+	fe.DescObjNum = descObj
+	w.Put("<<")
+	w.Put("/Type /FontDescriptor")
+	w.Putf("/FontName /%s", fe.Name)
+	w.Putf("/Ascent %d", ttf.Ascent)
+	w.Putf("/Descent %d", ttf.Descent)
+	w.Putf("/CapHeight %d", ttf.CapHeight)
+	w.Putf("/Flags %d", ttf.Flags)
+	w.Putf("/FontBBox [%d %d %d %d]", ttf.Bbox[0], ttf.Bbox[1], ttf.Bbox[2], ttf.Bbox[3])
+	w.Putf("/ItalicAngle %d", ttf.ItalicAngle)
+	w.Putf("/StemV %d", ttf.StemV)
+	w.Putf("/MissingWidth %.0f", ttf.DefaultWidth)
+	w.Putf("/FontFile2 %d 0 R", fileFontObj)
+	w.Put(">>")
+	w.EndObj()
+
+	// 3. Build /W (widths) array keyed by Unicode code points (CID = Unicode)
+	wArray := buildCIDWidthArray(fe)
+
+	// 4. CIDFont (DescendantFont) — references CIDToGIDMap as next+2 object
+	cidFontObj := w.NewObj()
+	fe.CIDFontObjNum = cidFontObj
+	cidToGidObjNum := cidFontObj + 3 // ToUnicode, Type0, then CIDToGIDMap
+	w.Put("<<")
+	w.Put("/Type /Font")
+	w.Put("/Subtype /CIDFontType2")
+	w.Putf("/BaseFont /%s", fe.Name)
+	w.Put("/CIDSystemInfo <</Registry (Adobe) /Ordering (Identity) /Supplement 0>>")
+	w.Putf("/FontDescriptor %d 0 R", descObj)
+	w.Putf("/DW %.0f", ttf.DefaultWidth)
+	w.Putf("/W %s", wArray)
+	w.Putf("/CIDToGIDMap %d 0 R", cidToGidObjNum)
+	w.Put(">>")
+	w.EndObj()
+
+	// 5. ToUnicode CMap (identity: CID = Unicode code point)
+	toUnicodeObj := w.NewObj()
+	fe.ToUnicodeObjNum = toUnicodeObj
+	cmapData := []byte(resources.ToUnicodeCMap)
+	if d.compress {
+		w.PutCompressedStream(cmapData)
+	} else {
+		w.Putf("<</Length %d>>", len(cmapData))
+		w.PutStream(cmapData)
+	}
+	w.EndObj()
+
+	// 6. Type0 font (top-level reference)
+	fontObj := w.NewObj()
+	fe.ObjNum = fontObj
+	w.Put("<<")
+	w.Put("/Type /Font")
+	w.Put("/Subtype /Type0")
+	w.Putf("/BaseFont /%s", fe.Name)
+	w.Put("/Encoding /Identity-H")
+	w.Putf("/DescendantFonts [%d 0 R]", cidFontObj)
+	w.Putf("/ToUnicode %d 0 R", toUnicodeObj)
+	w.Put(">>")
+	w.EndObj()
+
+	// 7. CIDToGIDMap stream (maps Unicode code points → glyph IDs)
+	cidToGidMap := buildCIDToGIDMap(fe)
+	w.NewObj()
+	if d.compress {
+		w.PutCompressedStream(cidToGidMap)
+	} else {
+		w.Putf("<</Length %d>>", len(cidToGidMap))
+		w.PutStream(cidToGidMap)
+	}
+	w.EndObj()
+}
+
+// buildCIDWidthArray builds the /W array for a CIDFont.
+// Format: [cid1 [w1 w2 ...] cid2 [w3 w4 ...] ...]
+// CID = Unicode code point (custom CIDToGIDMap maps Unicode→GlyphID).
+func buildCIDWidthArray(fe *resources.FontEntry) string {
+	if fe.TTF == nil {
+		return "[]"
+	}
+
+	// Collect all used Unicode code points and their widths
+	type cidWidth struct {
+		cid   int
+		width int
+	}
+	var cws []cidWidth
+	for _, ch := range fe.UsedRunes {
+		w := fe.TTF.CharWidths[ch]
+		cws = append(cws, cidWidth{cid: ch, width: w})
+	}
+	sort.Slice(cws, func(i, j int) bool { return cws[i].cid < cws[j].cid })
+
+	if len(cws) == 0 {
+		return "[]"
+	}
+
+	// Group consecutive CIDs
+	s := "["
+	i := 0
+	for i < len(cws) {
+		start := i
+		// Find consecutive run
+		for i+1 < len(cws) && cws[i+1].cid == cws[i].cid+1 {
+			i++
+		}
+		s += fmt.Sprintf(" %d [", cws[start].cid)
+		for j := start; j <= i; j++ {
+			if j > start {
+				s += " "
+			}
+			s += fmt.Sprintf("%d", cws[j].width)
+		}
+		s += "]"
+		i++
+	}
+	s += "]"
+	return s
+}
+
+// buildCIDToGIDMap builds a binary CIDToGIDMap stream that maps Unicode code
+// points (used as CIDs) to glyph IDs in the subset font. This is a 128KB
+// array where entry[cid*2 : cid*2+2] contains the big-endian glyph ID.
+func buildCIDToGIDMap(fe *resources.FontEntry) []byte {
+	cidToGid := make([]byte, 256*256*2)
+	if fe.TTF != nil {
+		for ch, gid := range fe.TTF.CharToGlyph {
+			if ch > 0 && ch < 256*256 {
+				cidToGid[ch*2] = byte(gid >> 8)
+				cidToGid[ch*2+1] = byte(gid & 0xFF)
+			}
+		}
+	}
+	return cidToGid
 }
 
 // putImages writes image XObject for all registered images.

@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"os"
 	"strings"
 	"testing"
 )
@@ -402,5 +403,306 @@ func TestBytes(t *testing.T) {
 	}
 	if !strings.HasPrefix(string(b), "%PDF") {
 		t.Error("Bytes() not a valid PDF")
+	}
+}
+
+func loadTTFFont(t *testing.T) []byte {
+	t.Helper()
+	paths := []string{
+		"/System/Library/Fonts/Supplemental/Georgia.ttf",
+		"/System/Library/Fonts/Supplemental/Trebuchet MS Italic.ttf",
+		"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+	}
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err == nil {
+			return data
+		}
+	}
+	t.Skip("no suitable TTF font found on this system")
+	return nil
+}
+
+func TestUTF8Font(t *testing.T) {
+	data := loadTTFFont(t)
+
+	doc := New(WithCompression(false))
+	err := doc.AddUTF8Font("georgia", "", data)
+	if err != nil {
+		t.Fatalf("AddUTF8Font: %v", err)
+	}
+
+	doc.SetFont("georgia", "", 14)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Hello UTF-8 World")
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("WriteTo: %v", err)
+	}
+	s := buf.String()
+
+	// Verify CIDFont Type2 structure
+	if !strings.Contains(s, "/Subtype /Type0") {
+		t.Error("missing Type0 font")
+	}
+	if !strings.Contains(s, "/Subtype /CIDFontType2") {
+		t.Error("missing CIDFontType2")
+	}
+	if !strings.Contains(s, "/Encoding /Identity-H") {
+		t.Error("missing Identity-H encoding")
+	}
+	if !strings.Contains(s, "/Type /FontDescriptor") {
+		t.Error("missing FontDescriptor")
+	}
+	if !strings.Contains(s, "/FontFile2") {
+		t.Error("missing FontFile2")
+	}
+	if !strings.Contains(s, "/CIDToGIDMap") {
+		t.Error("missing CIDToGIDMap")
+	}
+	if !strings.Contains(s, "CIDInit") {
+		t.Error("missing ToUnicode CMap")
+	}
+
+	// Text should be hex-encoded, not ASCII
+	if !strings.Contains(s, "Tj") {
+		t.Error("missing Tj operator")
+	}
+	// Hex string should use angle brackets
+	if !strings.Contains(s, "<") {
+		t.Error("missing hex string in text output")
+	}
+
+	// Verify PDF structure
+	if !strings.HasPrefix(s, "%PDF-1.4") {
+		t.Error("missing PDF header")
+	}
+	if !strings.Contains(s, "%%EOF") {
+		t.Error("missing EOF marker")
+	}
+}
+
+func TestUTF8FontWidth(t *testing.T) {
+	data := loadTTFFont(t)
+
+	doc := New(WithCompression(false))
+	doc.AddUTF8Font("georgia", "", data)
+	doc.SetFont("georgia", "", 12)
+	page := doc.AddPage(A4)
+
+	w := page.GetStringWidth("Hello")
+	if w <= 0 {
+		t.Fatalf("GetStringWidth(Hello) = %f, want > 0", w)
+	}
+	if w < 5 || w > 20 {
+		t.Errorf("GetStringWidth(Hello) = %f, seems unreasonable", w)
+	}
+}
+
+func TestUTF8MultiCell(t *testing.T) {
+	data := loadTTFFont(t)
+
+	doc := New(WithCompression(false))
+	doc.AddUTF8Font("georgia", "", data)
+	doc.SetFont("georgia", "", 10)
+	page := doc.AddPage(A4)
+	page.SetXY(10, 10)
+	page.MultiCell(80, 6, "This is a long UTF-8 text that should wrap into multiple lines when it exceeds the width.", "", "L", false)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("WriteTo: %v", err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "Tj") {
+		t.Error("missing text output from UTF-8 MultiCell")
+	}
+}
+
+func TestMixedFonts(t *testing.T) {
+	data := loadTTFFont(t)
+
+	doc := New(WithCompression(false))
+	doc.AddUTF8Font("georgia", "", data)
+
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 20, "Core font text")
+
+	doc.SetFont("georgia", "", 12)
+	page.TextAt(20, 40, "UTF-8 font text")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("WriteTo: %v", err)
+	}
+	s := buf.String()
+
+	// Should have both core and TTF font objects
+	if !strings.Contains(s, "/Subtype /Type1") {
+		t.Error("missing Type1 font (core)")
+	}
+	if !strings.Contains(s, "/Subtype /Type0") {
+		t.Error("missing Type0 font (TTF)")
+	}
+	// Core font text uses parentheses, TTF uses hex
+	if !strings.Contains(s, "(Core font text)") {
+		t.Error("missing core font text with parenthesis encoding")
+	}
+}
+
+func TestSetFontSize(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	w1 := p1.GetStringWidth("Hello")
+
+	doc.SetFontSize(24)
+	p2 := doc.AddPage(A4)
+	w2 := p2.GetStringWidth("Hello")
+
+	if w2 <= w1 {
+		t.Errorf("expected larger width at 24pt (%f) than 12pt (%f)", w2, w1)
+	}
+	if doc.GetFontSize() != 24 {
+		t.Errorf("GetFontSize() = %f, want 24", doc.GetFontSize())
+	}
+}
+
+func TestSetFontStyle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 20, "Normal")
+
+	doc.SetFontStyle("B")
+	page.TextAt(20, 40, "Bold")
+
+	if doc.GetFontStyle() != "B" {
+		t.Errorf("GetFontStyle() = %q, want %q", doc.GetFontStyle(), "B")
+	}
+	if doc.GetFontFamily() != "helvetica" {
+		t.Errorf("GetFontFamily() = %q, want %q", doc.GetFontFamily(), "helvetica")
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "(Normal)") {
+		t.Error("missing Normal text")
+	}
+	if !strings.Contains(s, "(Bold)") {
+		t.Error("missing Bold text")
+	}
+	// Should have both Helvetica and Helvetica-Bold
+	if !strings.Contains(s, "/BaseFont /Helvetica\n") {
+		t.Error("missing Helvetica font")
+	}
+	if !strings.Contains(s, "/BaseFont /Helvetica-Bold") {
+		t.Error("missing Helvetica-Bold font")
+	}
+}
+
+func TestPageSetFontSize(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.SetFontSize(20)
+	if page.GetFontSize() != 20 {
+		t.Errorf("page.GetFontSize() = %f, want 20", page.GetFontSize())
+	}
+	// Document font size should be unchanged
+	if doc.GetFontSize() != 12 {
+		t.Errorf("doc.GetFontSize() = %f, want 12 (unchanged)", doc.GetFontSize())
+	}
+}
+
+func TestPageSetFontStyle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TextAt(20, 20, "Regular")
+	page.SetFontStyle("I")
+	page.TextAt(20, 40, "Italic")
+
+	if page.GetFontStyle() != "I" {
+		t.Errorf("page.GetFontStyle() = %q, want %q", page.GetFontStyle(), "I")
+	}
+	if page.GetFontFamily() != "helvetica" {
+		t.Errorf("page.GetFontFamily() = %q, want %q", page.GetFontFamily(), "helvetica")
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "(Regular)") {
+		t.Error("missing Regular text")
+	}
+	if !strings.Contains(s, "(Italic)") {
+		t.Error("missing Italic text")
+	}
+}
+
+func TestSetFontSizeNoFont(t *testing.T) {
+	doc := New()
+	doc.SetFontSize(12)
+	if doc.Err() == nil {
+		t.Error("expected error when setting size with no font")
+	}
+}
+
+func TestSetFontStyleNoFont(t *testing.T) {
+	doc := New()
+	doc.SetFontStyle("B")
+	if doc.Err() == nil {
+		t.Error("expected error when setting style with no font")
+	}
+}
+
+func TestAddUTF8FontFromFile(t *testing.T) {
+	paths := []string{
+		"/System/Library/Fonts/Supplemental/Georgia.ttf",
+		"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+	}
+	var fontPath string
+	for _, p := range paths {
+		if _, err := os.Stat(p); err == nil {
+			fontPath = p
+			break
+		}
+	}
+	if fontPath == "" {
+		t.Skip("no suitable TTF font found on this system")
+	}
+
+	doc := New(WithCompression(false))
+	err := doc.AddUTF8FontFromFile("testfont", "", fontPath)
+	if err != nil {
+		t.Fatalf("AddUTF8FontFromFile: %v", err)
+	}
+	doc.SetFont("testfont", "", 14)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "From file")
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatalf("WriteTo: %v", err)
+	}
+	if !strings.Contains(buf.String(), "/Subtype /Type0") {
+		t.Error("missing Type0 font")
 	}
 }

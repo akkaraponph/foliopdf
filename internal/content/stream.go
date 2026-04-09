@@ -89,6 +89,17 @@ func (s *Stream) ShowText(escaped string) {
 	fmt.Fprintf(&s.buf, "(%s) Tj\n", escaped)
 }
 
+// ShowTextHex emits the Tj operator with a hex-encoded string.
+// Used for CIDFont text where each character is encoded as a 2-byte CID.
+func (s *Stream) ShowTextHex(hex string) {
+	fmt.Fprintf(&s.buf, "<%s> Tj\n", hex)
+}
+
+// SetTextRise emits the Ts operator (shift text baseline vertically).
+func (s *Stream) SetTextRise(rise float64) {
+	fmt.Fprintf(&s.buf, "%.2f Ts\n", rise)
+}
+
 // SetTextLeading emits the TL operator.
 func (s *Stream) SetTextLeading(leading float64) {
 	fmt.Fprintf(&s.buf, "%.2f TL\n", leading)

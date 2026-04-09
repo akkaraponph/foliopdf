@@ -56,7 +56,7 @@ func (p *Page) TextAt(x, y float64, text string) {
 	p.stream.BeginText()
 	p.stream.SetFont("F"+fe.Index, p.effectiveFontSizePt())
 	p.stream.MoveText(xPt, yPt)
-	p.stream.ShowText(pdfEscape(text))
+	p.emitText(fe, text)
 	p.stream.EndText()
 
 	if needColor {
@@ -81,13 +81,82 @@ func (p *Page) SetFont(family, style string, size float64) {
 	p.applyFont(fe, size)
 }
 
+// SetFontSize changes the font size for this page without changing the family or style.
+func (p *Page) SetFontSize(size float64) {
+	if p.doc.err != nil {
+		return
+	}
+	fe := p.effectiveFontEntry()
+	if fe == nil {
+		p.doc.err = fmt.Errorf("Page.SetFontSize: no font set")
+		return
+	}
+	p.fontSizePt = size
+	p.applyFont(fe, size)
+}
+
+// SetFontStyle changes the font style for this page (e.g. "B", "I", "BI", "")
+// without changing the family or size. The font family+style must already be registered.
+func (p *Page) SetFontStyle(style string) {
+	if p.doc.err != nil {
+		return
+	}
+	family := p.fontFamily
+	if family == "" {
+		family = p.doc.fontFamily
+	}
+	if family == "" {
+		p.doc.err = fmt.Errorf("Page.SetFontStyle: no font set")
+		return
+	}
+	fe, ok := p.doc.fonts.Get(family, style)
+	if !ok {
+		var err error
+		fe, err = p.doc.fonts.Register(family, style)
+		if err != nil {
+			p.doc.err = fmt.Errorf("Page.SetFontStyle: %w", err)
+			return
+		}
+	}
+	p.fontFamily = family
+	p.fontStyle = style
+	p.fontEntry = fe
+	p.applyFont(fe, p.effectiveFontSizePt())
+}
+
+// GetFontFamily returns the effective font family for this page.
+func (p *Page) GetFontFamily() string {
+	if p.fontFamily != "" {
+		return p.fontFamily
+	}
+	return p.doc.fontFamily
+}
+
+// GetFontStyle returns the effective font style for this page.
+func (p *Page) GetFontStyle() string {
+	if p.fontEntry != nil {
+		return p.fontStyle
+	}
+	return p.doc.fontStyle
+}
+
+// GetFontSize returns the effective font size in points for this page.
+func (p *Page) GetFontSize() float64 {
+	return p.effectiveFontSizePt()
+}
+
 // GetStringWidth returns the width of s in user units using the current font.
 func (p *Page) GetStringWidth(s string) float64 {
 	fe := p.effectiveFontEntry()
 	if fe == nil {
 		return 0
 	}
-	w := resources.StringWidth(fe, s)
+	var w int
+	if fe.Type == "TTF" {
+		w = resources.StringWidthUTF8(fe, s)
+	} else {
+		w = resources.StringWidth(fe, s)
+	}
 	return float64(w) * p.effectiveFontSizePt() / 1000.0 / p.doc.k
 }
 
@@ -174,14 +243,12 @@ func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int)
 		w = p.w - d.rMargin - p.x
 	}
 
-	// Draw fill/border
+	// Draw fill/border (isolated so fill color doesn't leak into text)
 	if fill || border == "1" {
+		p.stream.SaveState()
+		fc := d.fillColor
+		p.stream.SetFillColorRGB(fc.R, fc.G, fc.B)
 		if fill {
-			op := "re f"
-			if border == "1" {
-				op = "re B"
-			}
-			_ = op
 			p.stream.Rect(
 				state.ToPointsX(p.x, k),
 				state.ToPointsY(p.y+h, p.h, k),
@@ -200,6 +267,7 @@ func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int)
 			)
 			p.stream.Stroke()
 		}
+		p.stream.RestoreState()
 	}
 
 	// Individual borders
@@ -242,22 +310,19 @@ func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int)
 		textX := state.ToPointsX(p.x+dx, k)
 		textY := state.ToPointsY(p.y+0.5*h+0.3*fontSizeUser, p.h, k)
 
+		// Always set text color explicitly since fill color may have been
+		// changed by background drawing above.
 		tc := d.textColor
-		needColor := !tc.IsBlack()
-		if needColor {
-			p.stream.SaveState()
-			p.stream.SetFillColorRGB(tc.R, tc.G, tc.B)
-		}
+		p.stream.SaveState()
+		p.stream.SetFillColorRGB(tc.R, tc.G, tc.B)
 
 		p.stream.BeginText()
 		p.stream.SetFont("F"+fe.Index, fontSize)
 		p.stream.MoveText(textX, textY)
-		p.stream.ShowText(pdfEscape(text))
+		p.emitText(fe, text)
 		p.stream.EndText()
 
-		if needColor {
-			p.stream.RestoreState()
-		}
+		p.stream.RestoreState()
 	}
 
 	// Advance cursor
@@ -341,6 +406,21 @@ func (p *Page) wrapText(text string, fe *resources.FontEntry, wmax float64) []st
 	var lines []string
 	paragraphs := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 
+	isTTF := fe.Type == "TTF"
+
+	stringWidth := func(s string) int {
+		if isTTF {
+			return resources.StringWidthUTF8(fe, s)
+		}
+		return resources.StringWidth(fe, s)
+	}
+	spaceWidth := func() int {
+		if isTTF && fe.TTF != nil {
+			return fe.TTF.CharWidths[' ']
+		}
+		return fe.Widths[' ']
+	}
+
 	for _, para := range paragraphs {
 		if para == "" {
 			lines = append(lines, "")
@@ -352,20 +432,20 @@ func (p *Page) wrapText(text string, fe *resources.FontEntry, wmax float64) []st
 
 		words := strings.Fields(para)
 		for i, word := range words {
-			wordWidth := resources.StringWidth(fe, word)
-			spaceWidth := 0
+			wordWidth := stringWidth(word)
+			sw := 0
 			if line != "" {
-				spaceWidth = fe.Widths[' ']
+				sw = spaceWidth()
 			}
 
-			if lineWidth+spaceWidth+wordWidth > int(wmax) && line != "" {
+			if lineWidth+sw+wordWidth > int(wmax) && line != "" {
 				lines = append(lines, line)
 				line = word
 				lineWidth = wordWidth
 			} else {
 				if i > 0 {
 					line += " "
-					lineWidth += spaceWidth
+					lineWidth += sw
 				}
 				line += word
 				lineWidth += wordWidth
@@ -408,6 +488,105 @@ func (p *Page) GetX() float64 { return p.x }
 func (p *Page) GetY() float64 { return p.y }
 
 // --- Internal ---
+
+// emitText writes text to the content stream using the appropriate encoding.
+// For TTF fonts, text is hex-encoded as Unicode code points (CIDs).
+// Thai tone marks that follow above-vowels are raised using the Ts (text-rise) operator.
+func (p *Page) emitText(fe *resources.FontEntry, text string) {
+	if fe.Type != "TTF" {
+		p.stream.ShowText(pdfEscape(text))
+		return
+	}
+
+	fe.AddUsedRunes(text)
+
+	runes := []rune(text)
+	raised := thaiNeedsRaise(runes)
+
+	if len(raised) == 0 {
+		// No Thai tone marks need raising — emit as single hex string
+		p.stream.ShowTextHex(textToHex(text))
+		return
+	}
+
+	// Split text into segments: normal runs and raised tone marks.
+	// Raised marks use the Ts (text rise) operator to shift upward.
+	rise := 0.23 * p.effectiveFontSizePt() * p.doc.k
+	i := 0
+	inRise := false
+	for i < len(runes) {
+		if raised[i] {
+			if !inRise {
+				p.stream.SetTextRise(rise)
+				inRise = true
+			}
+			p.stream.ShowTextHex(runeToHex(runes[i]))
+			i++
+		} else {
+			if inRise {
+				p.stream.SetTextRise(0)
+				inRise = false
+			}
+			// Collect consecutive non-raised runes
+			j := i
+			for j < len(runes) && !raised[j] {
+				j++
+			}
+			p.stream.ShowTextHex(textToHex(string(runes[i:j])))
+			i = j
+		}
+	}
+	if inRise {
+		p.stream.SetTextRise(0)
+	}
+}
+
+// textToHex converts a UTF-8 string to hex-encoded Unicode code points.
+// Each rune becomes a 4-digit hex value (2-byte big-endian).
+func textToHex(s string) string {
+	var buf strings.Builder
+	buf.Grow(len(s) * 4)
+	for _, r := range s {
+		fmt.Fprintf(&buf, "%04X", r)
+	}
+	return buf.String()
+}
+
+// runeToHex converts a single rune to a 4-digit hex string.
+func runeToHex(r rune) string {
+	return fmt.Sprintf("%04X", r)
+}
+
+// Thai combining mark constants.
+var thaiAboveVowels = map[rune]bool{
+	0x0E31: true, // ั mai han akat
+	0x0E34: true, // ิ sara i
+	0x0E35: true, // ี sara ii
+	0x0E36: true, // ึ sara ue
+	0x0E37: true, // ื sara uee
+	0x0E47: true, // ็ mai taikhu
+	0x0E4D: true, // ํ nikhahit
+}
+
+var thaiToneMarks = map[rune]bool{
+	0x0E48: true, // ่ mai ek
+	0x0E49: true, // ้ mai tho
+	0x0E4A: true, // ๊ mai tri
+	0x0E4B: true, // ๋ mai chattawa
+	0x0E4C: true, // ์ thanthakat
+}
+
+// thaiNeedsRaise returns the indices of tone marks that need vertical raising
+// because they follow above-vowels.
+func thaiNeedsRaise(runes []rune) map[int]bool {
+	raised := make(map[int]bool)
+	for i, r := range runes {
+		if thaiToneMarks[r] && i > 0 && thaiAboveVowels[runes[i-1]] {
+			raised[i] = true
+		}
+	}
+	return raised
+}
 
 // applyFont emits the font change to the content stream.
 func (p *Page) applyFont(fe *resources.FontEntry, sizePt float64) {

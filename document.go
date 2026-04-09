@@ -98,19 +98,28 @@ func (d *Document) SetMargins(left, top, right float64) {
 	d.rMargin = right
 }
 
-// SetFont sets the current font. The font is auto-registered if needed.
-// family: "helvetica", "courier", "times", "arial", "zapfdingbats"
+// SetFont sets the current font. Core fonts are auto-registered.
+// For TTF fonts, call AddUTF8Font first, then use the same family name here.
+// family: "helvetica", "courier", "times", "arial", "zapfdingbats", or a TTF family name
 // style: "", "B", "I", "BI"
 // size: font size in points
 func (d *Document) SetFont(family, style string, size float64) {
 	if d.err != nil {
 		return
 	}
-	fe, err := d.fonts.Register(family, style)
-	if err != nil {
-		d.err = fmt.Errorf("SetFont: %w", err)
-		return
+
+	// Try to get existing font first (handles both core and TTF)
+	fe, ok := d.fonts.Get(family, style)
+	if !ok {
+		// Not found: try registering as core font
+		var err error
+		fe, err = d.fonts.Register(family, style)
+		if err != nil {
+			d.err = fmt.Errorf("SetFont: %w", err)
+			return
+		}
 	}
+
 	d.fontFamily = family
 	d.fontStyle = style
 	d.fontSizePt = size
@@ -121,6 +130,67 @@ func (d *Document) SetFont(family, style string, size float64) {
 		d.currentPage.applyFont(fe, size)
 	}
 }
+
+// AddUTF8FontFromFile registers a TrueType font from a file path.
+// family is the name used with SetFont. style is "", "B", "I", or "BI".
+func (d *Document) AddUTF8FontFromFile(family, style, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("AddUTF8FontFromFile: %w", err)
+	}
+	return d.AddUTF8Font(family, style, data)
+}
+
+// SetFontSize changes the font size without changing the family or style.
+func (d *Document) SetFontSize(size float64) {
+	if d.err != nil {
+		return
+	}
+	if d.fontEntry == nil {
+		d.err = fmt.Errorf("SetFontSize: no font set")
+		return
+	}
+	d.fontSizePt = size
+	if d.currentPage != nil {
+		d.currentPage.applyFont(d.fontEntry, size)
+	}
+}
+
+// SetFontStyle changes the font style (e.g. "B", "I", "BI", "") without
+// changing the family or size. The font family+style must already be registered.
+func (d *Document) SetFontStyle(style string) {
+	if d.err != nil {
+		return
+	}
+	if d.fontFamily == "" {
+		d.err = fmt.Errorf("SetFontStyle: no font set")
+		return
+	}
+	fe, ok := d.fonts.Get(d.fontFamily, style)
+	if !ok {
+		// Try registering as core font
+		var err error
+		fe, err = d.fonts.Register(d.fontFamily, style)
+		if err != nil {
+			d.err = fmt.Errorf("SetFontStyle: %w", err)
+			return
+		}
+	}
+	d.fontStyle = style
+	d.fontEntry = fe
+	if d.currentPage != nil {
+		d.currentPage.applyFont(fe, d.fontSizePt)
+	}
+}
+
+// GetFontFamily returns the current font family name.
+func (d *Document) GetFontFamily() string { return d.fontFamily }
+
+// GetFontStyle returns the current font style ("", "B", "I", or "BI").
+func (d *Document) GetFontStyle() string { return d.fontStyle }
+
+// GetFontSize returns the current font size in points.
+func (d *Document) GetFontSize() float64 { return d.fontSizePt }
 
 // SetDrawColor sets the stroke color using 0-255 RGB values.
 func (d *Document) SetDrawColor(r, g, b int) {
@@ -192,6 +262,26 @@ func (d *Document) AddPage(size PageSize) *Page {
 	}
 
 	return p
+}
+
+// AddUTF8Font registers a TrueType font from raw bytes for UTF-8 text support.
+// family is the name used with SetFont (e.g., "thsarabun").
+// style is "", "B", "I", or "BI".
+func (d *Document) AddUTF8Font(family, style string, data []byte) error {
+	if d.err != nil {
+		return d.err
+	}
+	ttf, err := resources.ParseTTF(data)
+	if err != nil {
+		d.err = fmt.Errorf("AddUTF8Font: %w", err)
+		return d.err
+	}
+	_, err = d.fonts.RegisterTTF(family, style, ttf)
+	if err != nil {
+		d.err = fmt.Errorf("AddUTF8Font: %w", err)
+		return d.err
+	}
+	return nil
 }
 
 // RegisterImage registers a JPEG image from a reader for later use.

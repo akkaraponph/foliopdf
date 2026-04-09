@@ -1,3 +1,3 @@
 module github.com/akkaraponph/folio
 
-go 1.24.4
+go 1.26.2
