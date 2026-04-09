@@ -1,0 +1,19 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Output
+*.out
+*.prof
+
+# Dependency
+vendor/
+
+# IDE / tools
+.claude/
+.cursorrules
+.cursor/
