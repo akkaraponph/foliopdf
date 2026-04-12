@@ -340,7 +340,7 @@ func (r *htmlRenderer) renderHeading(n *htmlNode) {
 
 	p = r.page.active()
 	p.x = doc.lMargin
-	p.y += lh * 0.3
+	p.y += lh // advance past the heading line
 
 	doc.SetFont(savedFamily, savedStyle, savedSize)
 }
@@ -349,7 +349,7 @@ func (r *htmlRenderer) renderBlock(n *htmlNode) {
 	r.renderNodes(n.children)
 	p := r.page.active()
 	p.x = p.doc.lMargin
-	p.y += r.lineHeight * 0.5
+	p.y += r.lineHeight // advance past the last text line
 }
 
 func (r *htmlRenderer) renderUL(n *htmlNode) {
@@ -363,7 +363,7 @@ func (r *htmlRenderer) renderUL(n *htmlNode) {
 		}
 		p = r.page.active()
 		p.x = doc.lMargin + indent
-		p.Write(r.lineHeight, "\u2022 ")
+		p.Write(r.lineHeight, "- ")
 		r.renderNodes(child.children)
 		p = r.page.active()
 		p.x = doc.lMargin

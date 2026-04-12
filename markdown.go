@@ -333,7 +333,7 @@ func (r *mdRenderer) renderHeading(b mdBlock) {
 	p.Write(lh, b.content)
 	p = r.page.active()
 	p.x = doc.lMargin
-	p.y += lh * 0.3
+	p.y += lh // advance past the heading line
 
 	doc.SetFont(savedFamily, savedStyle, savedSize)
 }
@@ -344,7 +344,7 @@ func (r *mdRenderer) renderParagraph(b mdBlock) {
 
 	p := r.page.active()
 	p.x = p.doc.lMargin
-	p.y += r.lineHeight * 0.5
+	p.y += r.lineHeight // advance past the last text line
 }
 
 func (r *mdRenderer) renderUnorderedList(b mdBlock) {
@@ -356,8 +356,8 @@ func (r *mdRenderer) renderUnorderedList(b mdBlock) {
 		p = r.page.active()
 		p.x = doc.lMargin + indent
 
-		// Bullet
-		p.Write(r.lineHeight, "\u2022 ")
+		// Bullet (ASCII-safe for core fonts)
+		p.Write(r.lineHeight, "- ")
 
 		// Item content with inline formatting
 		inlines := parseInline(item)
