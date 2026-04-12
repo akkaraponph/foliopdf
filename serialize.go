@@ -35,7 +35,10 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 6. Gradients (shading objects and their functions)
 	d.putGradients(w)
 
-	// 7. Outlines (bookmarks)
+	// 7. Templates (Form XObjects)
+	d.putTemplates(w)
+
+	// 8. Outlines (bookmarks)
 	outlineRootObj := d.putOutlines(w, pageObjNums)
 
 	// 8. Resource dictionary at obj 2
@@ -516,6 +519,24 @@ func (d *Document) putGradients(w *pdfcore.Writer) {
 	}
 }
 
+// putTemplates writes Form XObject entries for all registered templates.
+func (d *Document) putTemplates(w *pdfcore.Writer) {
+	for _, t := range d.templates {
+		n := w.NewObj()
+		t.objNum = n
+		data := t.stream.Bytes()
+		w.Put("<<")
+		w.Put("/Type /XObject")
+		w.Put("/Subtype /Form")
+		w.Putf("/BBox [0 0 %.2f %.2f]", t.size.WidthPt, t.size.HeightPt)
+		w.Put("/Resources 2 0 R")
+		w.Putf("/Length %d", len(data))
+		w.Put(">>")
+		w.PutStream(data)
+		w.EndObj()
+	}
+}
+
 // outlineNode is used during serialization to build the outline tree.
 type outlineNode struct {
 	entry    *outlineEntry
@@ -663,12 +684,15 @@ func (d *Document) putResourceDict(w *pdfcore.Writer) {
 		w.Put(s)
 	}
 
-	// Image references
+	// XObject references (images + templates)
 	images := d.images.All()
-	if len(images) > 0 {
+	if len(images) > 0 || len(d.templates) > 0 {
 		s := "/XObject <<"
 		for _, ie := range images {
 			s += fmt.Sprintf(" /Im%s %d 0 R", ie.Name, ie.ObjNum)
+		}
+		for _, t := range d.templates {
+			s += fmt.Sprintf(" /%s %d 0 R", t.name, t.objNum)
 		}
 		s += " >>"
 		w.Put(s)

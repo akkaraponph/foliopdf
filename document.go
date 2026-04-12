@@ -65,6 +65,9 @@ type Document struct {
 	// gradient shadings
 	gradients []*gradientEntry
 
+	// page templates (Form XObjects)
+	templates []*templateEntry
+
 	// optional text segmenter used by MultiCell / wrapText. When nil, the
 	// default behaviour splits on ASCII whitespace. Set this to plug in a
 	// language-aware segmenter (e.g. a Thai word breaker) so line wrapping

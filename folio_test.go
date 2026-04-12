@@ -3745,3 +3745,290 @@ func TestSVGPathEmptyString(t *testing.T) {
 	}
 	// Should not crash on empty path.
 }
+
+// === Page Templates (F4) ===
+
+func TestTemplateBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(A4)
+	tpl.Rect(10, 10, 100, 50, "D")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name, 0, 0, A4.WidthPt/doc.k, A4.HeightPt/doc.k)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/Type /XObject") {
+		t.Error("missing XObject type in template")
+	}
+	if !strings.Contains(s, "/Subtype /Form") {
+		t.Error("missing Form subtype in template")
+	}
+	if !strings.Contains(s, "/BBox [0 0") {
+		t.Error("missing BBox in template")
+	}
+	if !strings.Contains(s, fmt.Sprintf("/%s Do", name)) {
+		t.Error("missing Do operator for template")
+	}
+}
+
+func TestTemplateInResourceDict(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(A4)
+	tpl.SetFillColorRGB(255, 0, 0)
+	tpl.Rect(0, 0, 50, 50, "F")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name, 10, 10, 50, 50)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Template should be in the XObject resource dict.
+	if !strings.Contains(s, "/"+name) {
+		t.Errorf("template %q not referenced in resource dict", name)
+	}
+}
+
+func TestTemplateText(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(A4)
+	tpl.TextAt(10, 20, "Template Text")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name, 0, 0, 210, 297)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "(Template Text)") {
+		t.Error("template should contain text")
+	}
+}
+
+func TestTemplateWithOwnFont(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(A4)
+	tpl.SetFont("courier", "", 14)
+	tpl.TextAt(10, 20, "Courier in template")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name, 0, 0, 210, 297)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/BaseFont /Courier") {
+		t.Error("template should register Courier font")
+	}
+	if !strings.Contains(s, "(Courier in template)") {
+		t.Error("template should contain text")
+	}
+}
+
+func TestTemplateMultipleStamps(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(PageSize{WidthPt: 100, HeightPt: 50})
+	tpl.Rect(0, 0, 100/doc.k, 50/doc.k, "D")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	// Stamp same template three times at different positions.
+	page.UseTemplate(name, 10, 10, 100/doc.k, 50/doc.k)
+	page.UseTemplate(name, 10, 80, 100/doc.k, 50/doc.k)
+	page.UseTemplate(name, 10, 150, 100/doc.k, 50/doc.k)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	doCount := strings.Count(s, fmt.Sprintf("/%s Do", name))
+	if doCount != 3 {
+		t.Errorf("expected 3 Do operators, got %d", doCount)
+	}
+}
+
+func TestTemplateMultipleTemplates(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl1 := doc.BeginTemplate(A4)
+	tpl1.SetFillColorRGB(255, 0, 0)
+	tpl1.Rect(0, 0, 50, 50, "F")
+	name1 := doc.EndTemplate()
+
+	tpl2 := doc.BeginTemplate(A4)
+	tpl2.SetFillColorRGB(0, 0, 255)
+	tpl2.Rect(0, 0, 50, 50, "F")
+	name2 := doc.EndTemplate()
+
+	if name1 == name2 {
+		t.Error("templates should have unique names")
+	}
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name1, 10, 10, 50, 50)
+	page.UseTemplate(name2, 70, 10, 50, 50)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, fmt.Sprintf("/%s Do", name1)) {
+		t.Errorf("missing Do for %s", name1)
+	}
+	if !strings.Contains(s, fmt.Sprintf("/%s Do", name2)) {
+		t.Errorf("missing Do for %s", name2)
+	}
+}
+
+func TestTemplateNotFound(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.UseTemplate("nonexistent", 0, 0, 100, 100)
+
+	_, err := doc.Bytes()
+	if err == nil {
+		t.Fatal("expected error for nonexistent template")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+}
+
+func TestTemplateDrawing(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(A4)
+	tpl.SetDrawColorRGB(0, 128, 0)
+	tpl.SetLineWidth(2)
+	tpl.Line(10, 10, 100, 100)
+	tpl.SetFillColorRGB(200, 200, 200)
+	tpl.Rect(20, 20, 60, 40, "F")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	page.UseTemplate(name, 0, 0, 210, 297)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should have stroke color, fill color, line width, and rect/line ops.
+	if !strings.Contains(s, "RG") {
+		t.Error("missing stroke color in template")
+	}
+	if !strings.Contains(s, "rg") {
+		t.Error("missing fill color in template")
+	}
+	if !strings.Contains(s, " w\n") {
+		t.Error("missing line width in template")
+	}
+}
+
+func TestTemplateOnMultiplePages(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	// Create a header template.
+	tpl := doc.BeginTemplate(PageSize{WidthPt: A4.WidthPt, HeightPt: 50})
+	tpl.TextAt(10, 10, "Page Header")
+	name := doc.EndTemplate()
+
+	// Stamp on multiple pages.
+	for i := 0; i < 3; i++ {
+		page := doc.AddPage(A4)
+		page.UseTemplate(name, 0, 0, A4.WidthPt/doc.k, 50/doc.k)
+	}
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	doCount := strings.Count(s, fmt.Sprintf("/%s Do", name))
+	if doCount != 3 {
+		t.Errorf("expected 3 Do operators across pages, got %d", doCount)
+	}
+
+	// Only one Form XObject should exist.
+	formCount := strings.Count(s, "/Subtype /Form")
+	if formCount != 1 {
+		t.Errorf("expected 1 Form XObject, got %d", formCount)
+	}
+}
+
+func TestTemplateEndWithNoTemplates(t *testing.T) {
+	doc := New(WithCompression(false))
+	name := doc.EndTemplate()
+	if name != "" {
+		t.Errorf("expected empty string from EndTemplate with no templates, got %q", name)
+	}
+}
+
+func TestTemplateConcatMatrix(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	tpl := doc.BeginTemplate(PageSize{WidthPt: 200, HeightPt: 100})
+	tpl.Rect(0, 0, 200/doc.k, 100/doc.k, "D")
+	name := doc.EndTemplate()
+
+	page := doc.AddPage(A4)
+	// Stamp at scaled size (half).
+	page.UseTemplate(name, 20, 30, 100/doc.k, 50/doc.k)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should contain cm (concat matrix) operator for scaling/positioning.
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing cm operator for template transform")
+	}
+	// Should be wrapped in q/Q save/restore.
+	if !strings.Contains(s, "q\n") {
+		t.Error("missing q (save state) for template")
+	}
+	if !strings.Contains(s, "Q\n") {
+		t.Error("missing Q (restore state) for template")
+	}
+}
