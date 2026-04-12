@@ -4002,6 +4002,232 @@ func TestTemplateEndWithNoTemplates(t *testing.T) {
 	}
 }
 
+// === Table of Contents (F5) ===
+
+func TestTOCBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	// Create content pages.
+	ch1 := doc.AddPage(A4)
+	ch1.TextAt(20, 30, "Chapter 1 content")
+	ch1Y := 30.0
+
+	ch2 := doc.AddPage(A4)
+	ch2.TextAt(20, 30, "Chapter 2 content")
+	ch2Y := 30.0
+
+	// Build TOC.
+	toc := NewTOC(doc)
+	toc.Add("Chapter 1", 0, ch1, ch1Y)
+	toc.Add("Chapter 2", 0, ch2, ch2Y)
+
+	// Insert TOC on a new page (page 3, but typically you'd insert before).
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "(Chapter 1)") {
+		t.Error("TOC should contain 'Chapter 1' text")
+	}
+	if !strings.Contains(s, "(Chapter 2)") {
+		t.Error("TOC should contain 'Chapter 2' text")
+	}
+	// Should have page numbers.
+	if !strings.Contains(s, "(1)") {
+		t.Error("TOC should contain page number 1")
+	}
+	if !strings.Contains(s, "(2)") {
+		t.Error("TOC should contain page number 2")
+	}
+}
+
+func TestTOCWithNestedLevels(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	p1.TextAt(20, 30, "Part 1")
+
+	p2 := doc.AddPage(A4)
+	p2.TextAt(20, 30, "Section 1.1")
+
+	p3 := doc.AddPage(A4)
+	p3.TextAt(20, 30, "Section 1.2")
+
+	toc := NewTOC(doc)
+	toc.Add("Part 1", 0, p1, 30)
+	toc.Add("Section 1.1", 1, p2, 30)
+	toc.Add("Section 1.2", 1, p3, 30)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "(Part 1)") {
+		t.Error("missing Part 1 in TOC")
+	}
+	if !strings.Contains(s, "(Section 1.1)") {
+		t.Error("missing Section 1.1 in TOC")
+	}
+}
+
+func TestTOCCreatesBookmarks(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	p2 := doc.AddPage(A4)
+
+	toc := NewTOC(doc)
+	toc.Add("Chapter 1", 0, p1, 10)
+	toc.Add("Chapter 2", 0, p2, 10)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should produce outline objects.
+	if !strings.Contains(s, "/Type /Outlines") {
+		t.Error("TOC should create PDF outlines")
+	}
+	if !strings.Contains(s, "/Title (Chapter 1)") {
+		t.Error("missing outline title for Chapter 1")
+	}
+	if !strings.Contains(s, "/Title (Chapter 2)") {
+		t.Error("missing outline title for Chapter 2")
+	}
+}
+
+func TestTOCCreatesLinks(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	p2 := doc.AddPage(A4)
+
+	toc := NewTOC(doc)
+	toc.Add("Chapter 1", 0, p1, 20)
+	toc.Add("Chapter 2", 0, p2, 20)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should have link annotations with /Dest.
+	if !strings.Contains(s, "/Subtype /Link") {
+		t.Error("TOC should create link annotations")
+	}
+	if !strings.Contains(s, "/Dest [") {
+		t.Error("TOC links should have /Dest destinations")
+	}
+}
+
+func TestTOCWithOffset(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+
+	toc := NewTOC(doc)
+	toc.Add("Chapter 1", 0, p1, 10)
+
+	tocPage := doc.AddPage(A4)
+	toc.RenderWithPageNums(tocPage, 6, 5) // offset by 5
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Page number should be 1+5 = 6.
+	if !strings.Contains(s, "(6)") {
+		t.Error("expected page number 6 with offset 5")
+	}
+}
+
+func TestTOCDotLeaders(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+
+	toc := NewTOC(doc)
+	toc.Add("Short", 0, p1, 10)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should contain dots in the output.
+	dotCount := strings.Count(s, "(...") + strings.Count(s, "(..") + strings.Count(s, "(.")
+	if dotCount == 0 {
+		// Check for dot sequences in parenthesized strings.
+		if !strings.Contains(s, "..") {
+			t.Error("TOC should contain dot leaders")
+		}
+	}
+}
+
+func TestTOCEmptyEntries(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	toc := NewTOC(doc)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Should not crash with empty TOC.
+}
+
+func TestTOCNoFont(t *testing.T) {
+	doc := New(WithCompression(false))
+
+	p1 := doc.AddPage(A4)
+
+	toc := NewTOC(doc)
+	toc.Add("Chapter 1", 0, p1, 10)
+
+	tocPage := doc.AddPage(A4)
+	toc.Render(tocPage, 6)
+
+	_, err := doc.Bytes()
+	if err == nil {
+		t.Fatal("expected error when no font is set")
+	}
+}
+
 func TestTemplateConcatMatrix(t *testing.T) {
 	doc := New(WithCompression(false))
 	doc.SetFont("helvetica", "", 12)
