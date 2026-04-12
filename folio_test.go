@@ -5266,6 +5266,271 @@ func generateTestCert(t *testing.T) (*x509.Certificate, crypto.Signer) {
 	return cert, keyData
 }
 
+// --------------- F15: HTML-to-PDF ---------------
+
+func TestHTMLParagraph(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Hello World</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Hello World)") {
+		t.Error("expected paragraph text in output")
+	}
+}
+
+func TestHTMLHeadings(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<h1>Title</h1><h2>Subtitle</h2>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Title)") {
+		t.Error("expected h1 text")
+	}
+	if !strings.Contains(out, "(Subtitle)") {
+		t.Error("expected h2 text")
+	}
+}
+
+func TestHTMLBoldItalic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p><b>Bold</b> and <i>Italic</i></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Bold)") {
+		t.Error("expected bold text")
+	}
+	if !strings.Contains(out, "(Italic)") {
+		t.Error("expected italic text")
+	}
+}
+
+func TestHTMLUnderline(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p><u>Underlined</u></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Underlined)") {
+		t.Error("expected underlined text")
+	}
+}
+
+func TestHTMLLineBreak(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Line one<br/>Line two</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Line one)") {
+		t.Error("expected first line")
+	}
+	if !strings.Contains(out, "(Line two)") {
+		t.Error("expected second line")
+	}
+}
+
+func TestHTMLHorizontalRule(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Above</p><hr/><p>Below</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, " l\nS\n") {
+		t.Error("expected line stroke for hr")
+	}
+}
+
+func TestHTMLUnorderedList(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<ul><li>Apple</li><li>Banana</li></ul>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Apple)") {
+		t.Error("expected list item Apple")
+	}
+	if !strings.Contains(out, "(Banana)") {
+		t.Error("expected list item Banana")
+	}
+}
+
+func TestHTMLOrderedList(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<ol><li>First</li><li>Second</li></ol>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(First)") {
+		t.Error("expected ordered list item")
+	}
+}
+
+func TestHTMLLink(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p>Visit <a href="https://example.com">Example</a></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Example)") {
+		t.Error("expected link text")
+	}
+	if !strings.Contains(out, "/URI (https://example.com)") {
+		t.Error("expected URI annotation")
+	}
+}
+
+func TestHTMLTable(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<table>
+		<tr><td>Name</td><td>Age</td></tr>
+		<tr><td>Alice</td><td>30</td></tr>
+	</table>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Name)") {
+		t.Error("expected table header Name")
+	}
+	if !strings.Contains(out, "(Alice)") {
+		t.Error("expected table cell Alice")
+	}
+}
+
+func TestHTMLInlineColor(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p style="color: red">Red text</p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Red text)") {
+		t.Error("expected colored text")
+	}
+	// Red color: 1.000 0.000 0.000 rg
+	if !strings.Contains(out, "1.000 0.000 0.000 rg") {
+		t.Error("expected red text color")
+	}
+}
+
+func TestHTMLParser(t *testing.T) {
+	nodes := parseHTML("<p>Hello <b>World</b></p>")
+
+	if len(nodes) != 1 {
+		t.Fatalf("expected 1 node, got %d", len(nodes))
+	}
+	if nodes[0].tag != "p" {
+		t.Errorf("expected <p>, got <%s>", nodes[0].tag)
+	}
+	if len(nodes[0].children) != 2 {
+		t.Fatalf("expected 2 children, got %d", len(nodes[0].children))
+	}
+	if nodes[0].children[0].text != "Hello " {
+		t.Errorf("expected text 'Hello ', got %q", nodes[0].children[0].text)
+	}
+	if nodes[0].children[1].tag != "b" {
+		t.Errorf("expected <b>, got <%s>", nodes[0].children[1].tag)
+	}
+}
+
+func TestHTMLEntities(t *testing.T) {
+	nodes := parseHTML("<p>&amp; &lt; &gt;</p>")
+	if len(nodes) == 0 || len(nodes[0].children) == 0 {
+		t.Fatal("expected parsed content")
+	}
+	text := nodes[0].children[0].text
+	if text != "& < >" {
+		t.Errorf("expected '& < >', got %q", text)
+	}
+}
+
+func TestCSSColorParser(t *testing.T) {
+	tests := []struct {
+		input    string
+		r, g, b  int
+		ok       bool
+	}{
+		{"red", 255, 0, 0, true},
+		{"#ff0000", 255, 0, 0, true},
+		{"#f00", 255, 0, 0, true},
+		{"invalid", 0, 0, 0, false},
+	}
+	for _, tc := range tests {
+		r, g, b, ok := parseCSSColor(tc.input)
+		if ok != tc.ok || r != tc.r || g != tc.g || b != tc.b {
+			t.Errorf("parseCSSColor(%q) = (%d,%d,%d,%v), want (%d,%d,%d,%v)",
+				tc.input, r, g, b, ok, tc.r, tc.g, tc.b, tc.ok)
+		}
+	}
+}
+
 // --------------- F14: Markdown Renderer ---------------
 
 func TestMarkdownHeadings(t *testing.T) {
