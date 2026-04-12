@@ -2644,3 +2644,365 @@ func TestDashPatternPhase(t *testing.T) {
 		t.Error("phase should be non-zero")
 	}
 }
+
+// --- Typography: Character Spacing ---
+
+func TestSetCharSpacing(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetCharSpacing(2.5)
+	page := doc.AddPage(A4)
+	page.TextAt(10, 20, "Spaced")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "2.50 Tc") {
+		t.Error("expected Tc operator for char spacing")
+	}
+}
+
+func TestCharSpacingZeroReset(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetCharSpacing(3.0)
+	doc.AddPage(A4)
+	doc.SetCharSpacing(0)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "0.00 Tc") {
+		t.Error("expected Tc reset to 0")
+	}
+}
+
+func TestCharSpacingCarriedToNewPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+	doc.SetCharSpacing(1.5)
+	doc.AddPage(A4) // second page should inherit char spacing
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Count occurrences of "1.50 Tc" — should appear at least twice
+	// (once on page 1 when set, once on page 2 carried over).
+	if strings.Count(s, "1.50 Tc") < 2 {
+		t.Error("char spacing should carry to new page")
+	}
+}
+
+// --- Typography: Word Spacing ---
+
+func TestSetWordSpacing(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetWordSpacing(4.0)
+	page := doc.AddPage(A4)
+	page.TextAt(10, 20, "Hello World")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "4.00 Tw") {
+		t.Error("expected Tw operator for word spacing")
+	}
+}
+
+func TestWordSpacingCarriedToNewPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+	doc.SetWordSpacing(2.0)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if strings.Count(s, "2.00 Tw") < 2 {
+		t.Error("word spacing should carry to new page")
+	}
+}
+
+// --- Typography: Text Rise ---
+
+func TestSetTextRise(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	doc.SetTextRise(5.0) // superscript
+	page.TextAt(10, 20, "sup")
+	doc.SetTextRise(0)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "5.00 Ts") {
+		t.Error("expected Ts operator for text rise")
+	}
+}
+
+func TestTextRiseNegative(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	doc.SetTextRise(-3.0) // subscript
+	page.TextAt(10, 20, "sub")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "-3.00 Ts") {
+		t.Error("expected negative Ts for subscript")
+	}
+}
+
+func TestTextRiseCarriedToNewPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+	doc.SetTextRise(4.0)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if strings.Count(s, "4.00 Ts") < 2 {
+		t.Error("text rise should carry to new page")
+	}
+}
+
+// --- Typography: Text Rotation ---
+
+func TestTextRotatedAt(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 14)
+	page := doc.AddPage(A4)
+	page.TextRotatedAt(50, 100, 45, "Rotated!")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should contain q (save), cm (matrix), Tj (text), Q (restore).
+	if !strings.Contains(s, " cm\n") {
+		t.Error("expected cm operator for rotation matrix")
+	}
+	if !strings.Contains(s, "(Rotated!) Tj") {
+		t.Error("expected text to be drawn")
+	}
+}
+
+func TestTextRotatedAtZero(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextRotatedAt(10, 20, 0, "NoRotation")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// With 0 degrees, cos=1, sin=0, so matrix is identity-like.
+	if !strings.Contains(s, "(NoRotation) Tj") {
+		t.Error("expected text output even with zero rotation")
+	}
+}
+
+func TestTextRotatedAt90(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextRotatedAt(50, 50, 90, "Vertical")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// At 90°, cos≈0, sin≈1 → matrix has b≈1.00000 and c≈-1.00000
+	if !strings.Contains(s, "1.00000") {
+		t.Error("expected sin(90)=1 in rotation matrix")
+	}
+}
+
+// --- Typography: Rich Text ---
+
+func TestRichTextBold(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "Normal <b>bold</b> text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Must contain both regular and bold font references.
+	if !strings.Contains(s, "/F1") {
+		t.Error("expected regular font F1")
+	}
+	if !strings.Contains(s, "/F2") {
+		t.Error("expected bold font F2")
+	}
+}
+
+func TestRichTextItalic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "Normal <i>italic</i> text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "(Normal ) Tj") {
+		t.Error("expected normal text segment")
+	}
+	if !strings.Contains(s, "(italic) Tj") {
+		t.Error("expected italic text segment")
+	}
+}
+
+func TestRichTextUnderline(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "Normal <u>underlined</u> text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Underlined text produces a filled rect for decoration.
+	if !strings.Contains(s, "(underlined) Tj") {
+		t.Error("expected underlined text segment")
+	}
+	// Should have decoration rect (re + f operators).
+	reCount := strings.Count(s, " re\n")
+	if reCount < 1 {
+		t.Error("expected decoration rectangle for underline")
+	}
+}
+
+func TestRichTextStrikethrough(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "Normal <s>struck</s> text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "(struck) Tj") {
+		t.Error("expected strikethrough text segment")
+	}
+}
+
+func TestRichTextNested(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "<b><i>bold-italic</i></b>")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should register helvetica BI variant.
+	if !strings.Contains(s, "(bold-italic) Tj") {
+		t.Error("expected bold-italic text")
+	}
+}
+
+func TestRichTextRestoresState(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetUnderline(false)
+	page := doc.AddPage(A4)
+	page.RichText(6, "<b>bold</b>")
+
+	// After RichText, font style and decoration should be restored.
+	if doc.fontStyle != "" {
+		t.Errorf("expected empty style after RichText, got %q", doc.fontStyle)
+	}
+	if doc.underline {
+		t.Error("underline should be restored to false")
+	}
+}
+
+func TestRichTextUnknownTag(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.RichText(6, "Hello <xyz>world")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Unknown tags should be output as literal text.
+	if !strings.Contains(s, "(Hello ) Tj") {
+		t.Error("expected Hello text before unknown tag")
+	}
+}
+
+// --- Typography: State save/restore ---
+
+func TestTypographyStateSaveRestore(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetCharSpacing(2.0)
+	doc.SetWordSpacing(3.0)
+	doc.SetTextRise(1.5)
+
+	saved := doc.saveDocState()
+	doc.SetCharSpacing(0)
+	doc.SetWordSpacing(0)
+	doc.SetTextRise(0)
+
+	if doc.charSpacing != 0 {
+		t.Error("charSpacing should be 0 after reset")
+	}
+
+	doc.restoreDocState(saved)
+	if doc.charSpacing != 2.0 {
+		t.Errorf("charSpacing not restored: got %f", doc.charSpacing)
+	}
+	if doc.wordSpacing != 3.0 {
+		t.Errorf("wordSpacing not restored: got %f", doc.wordSpacing)
+	}
+	if doc.textRise != 1.5 {
+		t.Errorf("textRise not restored: got %f", doc.textRise)
+	}
+}

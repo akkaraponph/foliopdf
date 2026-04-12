@@ -54,6 +54,9 @@ type Document struct {
 	underline     bool
 	strikethrough bool
 	currentAlpha  float64 // current opacity (0.0–1.0), default 1.0
+	charSpacing   float64 // extra space between characters (Tc), in points
+	wordSpacing   float64 // extra space added to ASCII space (Tw), in points
+	textRise      float64 // vertical text baseline shift (Ts), in points
 
 	// alpha transparency states (ExtGState resources)
 	alphaStates  []*alphaEntry
@@ -211,6 +214,9 @@ type docState struct {
 	underline     bool
 	strikethrough bool
 	currentAlpha  float64
+	charSpacing   float64
+	wordSpacing   float64
+	textRise      float64
 }
 
 func (d *Document) saveDocState() docState {
@@ -226,6 +232,9 @@ func (d *Document) saveDocState() docState {
 		underline:     d.underline,
 		strikethrough: d.strikethrough,
 		currentAlpha:  d.currentAlpha,
+		charSpacing:   d.charSpacing,
+		wordSpacing:   d.wordSpacing,
+		textRise:      d.textRise,
 	}
 }
 
@@ -241,6 +250,9 @@ func (d *Document) restoreDocState(s docState) {
 	d.underline = s.underline
 	d.strikethrough = s.strikethrough
 	d.currentAlpha = s.currentAlpha
+	d.charSpacing = s.charSpacing
+	d.wordSpacing = s.wordSpacing
+	d.textRise = s.textRise
 }
 
 // callHeader invokes the header callback on p, wrapped in a graphics-state
@@ -434,6 +446,34 @@ func (d *Document) SetAlpha(alpha float64) {
 	}
 }
 
+// SetCharSpacing sets extra space (in points) inserted between each character
+// (PDF Tc operator). A value of 0 restores normal spacing.
+func (d *Document) SetCharSpacing(spacing float64) {
+	d.charSpacing = spacing
+	if d.currentPage != nil {
+		d.currentPage.stream.SetCharSpacing(spacing)
+	}
+}
+
+// SetWordSpacing sets extra space (in points) added to every ASCII space
+// character (PDF Tw operator). A value of 0 restores normal spacing.
+func (d *Document) SetWordSpacing(spacing float64) {
+	d.wordSpacing = spacing
+	if d.currentPage != nil {
+		d.currentPage.stream.SetWordSpacing(spacing)
+	}
+}
+
+// SetTextRise shifts the text baseline vertically by the given amount in
+// points (PDF Ts operator). Positive values move text up (superscript),
+// negative values move text down (subscript). A value of 0 restores normal.
+func (d *Document) SetTextRise(rise float64) {
+	d.textRise = rise
+	if d.currentPage != nil {
+		d.currentPage.stream.SetTextRise(rise)
+	}
+}
+
 // SetUnderline enables or disables underlining for subsequent text.
 func (d *Document) SetUnderline(on bool) { d.underline = on }
 
@@ -503,6 +543,17 @@ func (d *Document) AddPage(size PageSize) *Page {
 		if entry, ok := d.alphaByKey[key]; ok {
 			p.stream.SetExtGState(entry.name)
 		}
+	}
+
+	// Apply typography state if non-default
+	if d.charSpacing != 0 {
+		p.stream.SetCharSpacing(d.charSpacing)
+	}
+	if d.wordSpacing != 0 {
+		p.stream.SetWordSpacing(d.wordSpacing)
+	}
+	if d.textRise != 0 {
+		p.stream.SetTextRise(d.textRise)
 	}
 
 	// Call header on the new page (skip if inside header/footer).

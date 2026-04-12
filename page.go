@@ -452,6 +452,17 @@ func (p *Page) Translate(tx, ty float64) {
 	p.stream.ConcatMatrix(1, 0, 0, 1, tx*k, -ty*k)
 }
 
+// TextRotatedAt draws text at (x, y) rotated by angleDeg degrees
+// counterclockwise. This is a convenience wrapper around TransformBegin,
+// Rotate, TextAt, and TransformEnd.
+func (p *Page) TextRotatedAt(x, y, angleDeg float64, text string) {
+	p = p.active()
+	p.TransformBegin()
+	p.Rotate(angleDeg, x, y)
+	p.TextAt(x, y, text)
+	p.TransformEnd()
+}
+
 // --- Cell and MultiCell ---
 
 // Cell draws a single-line cell at the current cursor position.
@@ -763,6 +774,114 @@ func (p *Page) Write(h float64, text string) {
 		p = p.active()
 		p.writeSegment(string(runes[j:n]), h)
 	}
+}
+
+// RichText draws inline text with simple HTML-like markup for styling.
+// Supported tags: <b> (bold), <i> (italic), <u> (underline), <s> (strikethrough).
+// Tags can be nested. The current font family and size are preserved; only
+// style (bold/italic) and decoration (underline/strikethrough) change.
+//
+//	page.RichText(6, "This is <b>bold</b> and <i>italic</i> text.")
+func (p *Page) RichText(h float64, markup string) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+
+	// Save initial state to restore after.
+	origStyle := d.fontStyle
+	origUnder := d.underline
+	origStrike := d.strikethrough
+
+	// Parse and render segments.
+	bold := strings.Contains(origStyle, "B")
+	italic := strings.Contains(origStyle, "I")
+	under := origUnder
+	strike := origStrike
+
+	applyState := func() {
+		style := ""
+		if bold {
+			style += "B"
+		}
+		if italic {
+			style += "I"
+		}
+		d.SetFontStyle(style)
+		d.SetUnderline(under)
+		d.SetStrikethrough(strike)
+	}
+
+	i := 0
+	n := len(markup)
+
+	for i < n {
+		// Look for next '<'
+		tagStart := strings.IndexByte(markup[i:], '<')
+		if tagStart < 0 {
+			// No more tags — output remaining text.
+			p = p.active()
+			p.Write(h, markup[i:])
+			break
+		}
+
+		// Output text before the tag.
+		if tagStart > 0 {
+			p = p.active()
+			p.Write(h, markup[i:i+tagStart])
+		}
+		i += tagStart
+
+		// Find closing '>'
+		tagEnd := strings.IndexByte(markup[i:], '>')
+		if tagEnd < 0 {
+			// Malformed — output rest as literal text.
+			p = p.active()
+			p.Write(h, markup[i:])
+			break
+		}
+
+		tagLiteral := markup[i : i+tagEnd+1] // e.g. "<b>" or "<unknown>"
+		tag := strings.ToLower(markup[i+1 : i+tagEnd])
+		i += tagEnd + 1
+
+		switch tag {
+		case "b":
+			bold = true
+			applyState()
+		case "/b":
+			bold = false
+			applyState()
+		case "i":
+			italic = true
+			applyState()
+		case "/i":
+			italic = false
+			applyState()
+		case "u":
+			under = true
+			applyState()
+		case "/u":
+			under = false
+			applyState()
+		case "s":
+			strike = true
+			applyState()
+		case "/s":
+			strike = false
+			applyState()
+		default:
+			// Unknown tag — output as literal text.
+			p = p.active()
+			p.Write(h, tagLiteral)
+		}
+	}
+
+	// Restore original state.
+	d.SetFontStyle(origStyle)
+	d.SetUnderline(origUnder)
+	d.SetStrikethrough(origStrike)
 }
 
 // writeSegment draws text at the current cursor position and advances the

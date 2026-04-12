@@ -124,6 +124,16 @@ func (s *Stream) ShowTextHex(hex string) {
 	fmt.Fprintf(&s.buf, "<%s> Tj\n", hex)
 }
 
+// SetCharSpacing emits the Tc operator (extra space between characters, in points).
+func (s *Stream) SetCharSpacing(spacing float64) {
+	fmt.Fprintf(&s.buf, "%.2f Tc\n", spacing)
+}
+
+// SetWordSpacing emits the Tw operator (extra space added to ASCII space, in points).
+func (s *Stream) SetWordSpacing(spacing float64) {
+	fmt.Fprintf(&s.buf, "%.2f Tw\n", spacing)
+}
+
 // SetTextRise emits the Ts operator (shift text baseline vertically).
 func (s *Stream) SetTextRise(rise float64) {
 	fmt.Fprintf(&s.buf, "%.2f Ts\n", rise)
