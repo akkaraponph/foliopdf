@@ -5266,6 +5266,150 @@ func generateTestCert(t *testing.T) (*x509.Certificate, crypto.Signer) {
 	return cert, keyData
 }
 
+// --------------- F13: Fluent Builder API ---------------
+
+func TestTextBuilder(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Text("Hello Builder").At(20, 30).Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Hello Builder)") {
+		t.Error("expected text in output")
+	}
+}
+
+func TestTextBuilderBoldColor(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Text("Bold Red").Bold().Color(255, 0, 0).At(10, 10).Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Bold Red)") {
+		t.Error("expected text in output")
+	}
+	// Font should be restored to regular after Draw
+	if doc.fontStyle != "" {
+		t.Errorf("expected font style restored to empty, got %q", doc.fontStyle)
+	}
+}
+
+func TestTextBuilderSize(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Text("Big").Size(24).At(10, 10).Draw()
+
+	// Font size should be restored
+	if doc.fontSizePt != 12 {
+		t.Errorf("expected font size restored to 12, got %.1f", doc.fontSizePt)
+	}
+}
+
+func TestShapeBuilderRect(t *testing.T) {
+	doc := New(WithCompression(false))
+	p := doc.AddPage(A4)
+
+	p.Shape().Rect(10, 10, 50, 30).FillColor(255, 0, 0).Fill().Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	// Should contain a filled rect (f operator)
+	if !strings.Contains(out, " re\nf\n") {
+		t.Error("expected filled rectangle in output")
+	}
+}
+
+func TestShapeBuilderCircle(t *testing.T) {
+	doc := New(WithCompression(false))
+	p := doc.AddPage(A4)
+
+	p.Shape().Circle(50, 50, 20).StrokeColor(0, 0, 255).Stroke().Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	// Circle uses cubic bezier curves (c operator)
+	if !strings.Contains(out, " c\n") {
+		t.Error("expected bezier curve in output (circle)")
+	}
+}
+
+func TestShapeBuilderLine(t *testing.T) {
+	doc := New(WithCompression(false))
+	p := doc.AddPage(A4)
+
+	p.Shape().Line(10, 10, 100, 100).LineWidth(2).Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, " l\n") {
+		t.Error("expected line operator in output")
+	}
+	// Line width should be restored
+	if doc.lineWidth != 0.2 {
+		t.Errorf("expected line width restored to 0.2, got %f", doc.lineWidth)
+	}
+}
+
+func TestShapeBuilderFillStroke(t *testing.T) {
+	doc := New(WithCompression(false))
+	p := doc.AddPage(A4)
+
+	p.Shape().Rect(10, 10, 50, 30).
+		FillColor(200, 200, 200).
+		StrokeColor(0, 0, 0).
+		FillStroke().
+		Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	// Should contain fill+stroke rect (B operator)
+	if !strings.Contains(out, " re\nB\n") {
+		t.Error("expected fill+stroke rectangle in output")
+	}
+}
+
+func TestShapeBuilderEllipse(t *testing.T) {
+	doc := New(WithCompression(false))
+	p := doc.AddPage(A4)
+
+	p.Shape().Ellipse(50, 50, 30, 20).Fill().Draw()
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, " c\n") {
+		t.Error("expected bezier curves in output (ellipse)")
+	}
+}
+
 // --------------- F12: PDF/A Compliance ---------------
 
 func TestPDFABasic1b(t *testing.T) {
