@@ -60,6 +60,19 @@ func (s *Stream) ConcatMatrix(a, b, c, d, e, f float64) {
 	fmt.Fprintf(&s.buf, "%.5f %.5f %.5f %.5f %.5f %.5f cm\n", a, b, c, d, e, f)
 }
 
+// SetDash emits the d operator to set the line dash pattern.
+// An empty dashArray produces a solid line.
+func (s *Stream) SetDash(dashArray []float64, phase float64) {
+	s.buf.WriteByte('[')
+	for i, v := range dashArray {
+		if i > 0 {
+			s.buf.WriteByte(' ')
+		}
+		fmt.Fprintf(&s.buf, "%.2f", v)
+	}
+	fmt.Fprintf(&s.buf, "] %.2f d\n", phase)
+}
+
 // --- Color ---
 
 // SetStrokeColorRGB emits the RG operator. Values in 0..1.

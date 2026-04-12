@@ -277,6 +277,71 @@ func (p *Page) Rect(x, y, w, h float64, style string) {
 	}
 }
 
+// Circle draws a circle centered at (x, y) with radius r in user units.
+// style: "D" (stroke), "F" (fill), "DF" or "FD" (fill and stroke).
+func (p *Page) Circle(x, y, r float64, style string) {
+	p.Ellipse(x, y, r, r, style)
+}
+
+// Ellipse draws an ellipse centered at (x, y) with horizontal radius rx
+// and vertical radius ry in user units.
+// style: "D" (stroke), "F" (fill), "DF" or "FD" (fill and stroke).
+func (p *Page) Ellipse(x, y, rx, ry float64, style string) {
+	p = p.active()
+	if p.doc.err != nil {
+		return
+	}
+	k := p.doc.k
+
+	// Centre in PDF points.
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+	rxPt := rx * k
+	ryPt := ry * k
+
+	// Approximate a full ellipse with 4 cubic Bézier arcs.
+	// κ = 4/3 * (√2 − 1) ≈ 0.5522847498
+	const kappa = 0.5522847498
+
+	kx := rxPt * kappa
+	ky := ryPt * kappa
+
+	// Start at the rightmost point.
+	p.stream.MoveTo(cx+rxPt, cy)
+	// Top-right quadrant (0° → 90° in PDF coords, i.e. rightward → upward).
+	p.stream.CurveTo(cx+rxPt, cy+ky, cx+kx, cy+ryPt, cx, cy+ryPt)
+	// Top-left quadrant.
+	p.stream.CurveTo(cx-kx, cy+ryPt, cx-rxPt, cy+ky, cx-rxPt, cy)
+	// Bottom-left quadrant.
+	p.stream.CurveTo(cx-rxPt, cy-ky, cx-kx, cy-ryPt, cx, cy-ryPt)
+	// Bottom-right quadrant.
+	p.stream.CurveTo(cx+kx, cy-ryPt, cx+rxPt, cy-ky, cx+rxPt, cy)
+
+	style = strings.ToUpper(style)
+	switch style {
+	case "F":
+		p.stream.Fill()
+	case "DF", "FD":
+		p.stream.FillStroke()
+	default:
+		p.stream.Stroke()
+	}
+}
+
+// SetDashPattern sets the line dash pattern for subsequent strokes.
+// dashArray contains alternating dash and gap lengths in user units.
+// phase is the offset into the pattern at which the stroke begins.
+// Call with an empty dashArray (or nil) and phase 0 to restore solid lines.
+func (p *Page) SetDashPattern(dashArray []float64, phase float64) {
+	p = p.active()
+	k := p.doc.k
+	pts := make([]float64, len(dashArray))
+	for i, v := range dashArray {
+		pts[i] = v * k
+	}
+	p.stream.SetDash(pts, phase*k)
+}
+
 // DrawImageRect draws a registered image at (x, y) with the given width and height.
 func (p *Page) DrawImageRect(name string, x, y, w, h float64) {
 	p = p.active()

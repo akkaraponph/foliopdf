@@ -2467,3 +2467,180 @@ func TestAlphaClamp(t *testing.T) {
 		t.Errorf("alpha > 1 should be clamped to 1, got %f", doc.currentAlpha)
 	}
 }
+
+// --- Circle/Ellipse + Dash pattern tests ---
+
+func TestCircleStroke(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	page.Circle(105, 148.5, 40, "D")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Circle is 4 Bézier curves: 4 "c" operators + 1 "m" (moveto) + 1 "S" (stroke).
+	if strings.Count(s, " c\n") != 4 {
+		t.Errorf("expected 4 cubic Bézier curves, got %d", strings.Count(s, " c\n"))
+	}
+	if !strings.Contains(s, " m\n") {
+		t.Error("missing moveto operator")
+	}
+	if !strings.Contains(s, "S\n") {
+		t.Error("missing stroke operator")
+	}
+}
+
+func TestCircleFill(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	doc.SetFillColor(255, 0, 0)
+	page.Circle(50, 50, 20, "F")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "f\n") {
+		t.Error("missing fill operator")
+	}
+}
+
+func TestCircleFillStroke(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	doc.SetFillColor(200, 200, 255)
+	page.Circle(80, 80, 30, "DF")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "B\n") {
+		t.Error("missing fill+stroke operator")
+	}
+}
+
+func TestEllipse(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	page.Ellipse(105, 148.5, 60, 30, "D")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if strings.Count(s, " c\n") != 4 {
+		t.Errorf("expected 4 Bézier curves for ellipse, got %d", strings.Count(s, " c\n"))
+	}
+}
+
+func TestDashPattern(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	// Set a dash pattern: 5mm dash, 3mm gap.
+	page.SetDashPattern([]float64{5, 3}, 0)
+	page.Line(20, 50, 190, 50)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Should contain the d operator with a dash array.
+	if !strings.Contains(s, "] ") || !strings.Contains(s, " d\n") {
+		t.Error("missing dash pattern (d operator)")
+	}
+}
+
+func TestDashPatternSolid(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	// Set dashed, then reset to solid.
+	page.SetDashPattern([]float64{3, 2}, 0)
+	page.Line(20, 40, 190, 40)
+	page.SetDashPattern(nil, 0)
+	page.Line(20, 50, 190, 50)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Two d operators: one dashed, one solid (empty array).
+	dCount := strings.Count(s, " d\n")
+	if dCount != 2 {
+		t.Errorf("expected 2 dash operators (set + reset), got %d", dCount)
+	}
+	// The reset should produce "[] 0.00 d".
+	if !strings.Contains(s, "[] 0.00 d") {
+		t.Error("missing solid line reset (empty dash array)")
+	}
+}
+
+func TestDashedCircle(t *testing.T) {
+	// Combine dash pattern with circle.
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	page.SetDashPattern([]float64{2, 2}, 0)
+	page.Circle(105, 148.5, 50, "D")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, " d\n") {
+		t.Error("missing dash pattern")
+	}
+	if strings.Count(s, " c\n") != 4 {
+		t.Error("missing Bézier curves for circle")
+	}
+}
+
+func TestDashPatternPhase(t *testing.T) {
+	doc := New(WithCompression(false))
+	page := doc.AddPage(A4)
+
+	// Phase = 2mm offset into the pattern.
+	page.SetDashPattern([]float64{5, 3}, 2)
+	page.Line(20, 60, 190, 60)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Phase should be non-zero in the output.
+	// k ≈ 2.835, so phase = 2 * 2.835 ≈ 5.67
+	if strings.Contains(s, "] 0.00 d") {
+		t.Error("phase should be non-zero")
+	}
+}
