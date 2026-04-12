@@ -400,6 +400,32 @@ func (p *Page) MultiCell(w, h float64, text, border, align string, fill bool) {
 	p.x = d.lMargin
 }
 
+// thaiIsClusterContinuation reports whether r must stay attached to the
+// preceding base character and therefore cannot start a new line. This
+// covers above/below vowels, tone marks, and trailing vowel/iteration marks.
+func thaiIsClusterContinuation(r rune) bool {
+	switch r {
+	case 0x0E30, 0x0E32, 0x0E33, 0x0E45, 0x0E46: // ะ า ำ ๅ ๆ
+		return true
+	case 0x0E31, 0x0E47, 0x0E4D: // ั ็ ํ
+		return true
+	}
+	if r >= 0x0E34 && r <= 0x0E3A { // ิ ี ึ ื ฺ ุ ู
+		return true
+	}
+	if r >= 0x0E48 && r <= 0x0E4C { // ่ ้ ๊ ๋ ์
+		return true
+	}
+	return false
+}
+
+// thaiIsLeadingVowel reports whether r is a Thai pre-vowel (written to the
+// left of its base consonant). A line must not end on one of these — the
+// pre-vowel has to move to the next line together with its consonant.
+func thaiIsLeadingVowel(r rune) bool {
+	return r >= 0x0E40 && r <= 0x0E44 // เ แ โ ใ ไ
+}
+
 // wrapText splits text by newlines, then wraps each line to fit within wmax
 // (measured in 1/1000 font units).
 func (p *Page) wrapText(text string, fe *resources.FontEntry, wmax float64) []string {
@@ -430,8 +456,98 @@ func (p *Page) wrapText(text string, fe *resources.FontEntry, wmax float64) []st
 		line := ""
 		lineWidth := 0
 
+		// breakLongWord splits a word whose width exceeds wmax at cluster
+		// boundaries. Required for scripts without inter-word spacing (e.g.
+		// Thai) and for accidental unbroken runs. Break points respect Thai
+		// cluster rules: tone marks / above-below vowels stay with their
+		// base consonant, and pre-vowels (เ แ โ ใ ไ) move with their
+		// following consonant.
+		breakLongWord := func(word string) {
+			runes := []rune(word)
+			start := 0
+			curW := 0
+			lastBreak := -1
+
+			for i := 0; i < len(runes); i++ {
+				r := runes[i]
+				rw := stringWidth(string(r))
+
+				// Record a potential break-before-i if valid.
+				if i > start &&
+					!thaiIsClusterContinuation(r) &&
+					!thaiIsLeadingVowel(runes[i-1]) {
+					lastBreak = i
+				}
+
+				if curW+rw > int(wmax) && i > start {
+					breakAt := lastBreak
+					if breakAt <= start {
+						// No cluster-safe break found — force-break at i
+						// (one rune at least already fits).
+						breakAt = i
+					}
+					lines = append(lines, string(runes[start:breakAt]))
+					start = breakAt
+					curW = 0
+					lastBreak = -1
+					// Reprocess runes[breakAt..] on the new line.
+					i = start - 1
+					continue
+				}
+
+				curW += rw
+			}
+
+			if start < len(runes) {
+				line = string(runes[start:])
+				lineWidth = curW
+			}
+		}
+
+		if p.doc.wordBreaker != nil {
+			// Custom segmenter path — segments are joined verbatim. The
+			// segmenter owns whitespace, so no space is inserted between
+			// segments (this is what Thai word breakers want).
+			segments := p.doc.wordBreaker(para)
+			for _, seg := range segments {
+				if seg == "" {
+					continue
+				}
+				segWidth := stringWidth(seg)
+
+				if lineWidth+segWidth > int(wmax) && line != "" {
+					// Trim trailing space on the broken line so justified
+					// text doesn't have a hanging gap.
+					lines = append(lines, strings.TrimRight(line, " "))
+					line = ""
+					lineWidth = 0
+					// Skip a pure-whitespace segment at the start of a line.
+					if strings.TrimSpace(seg) == "" {
+						continue
+					}
+				}
+
+				if segWidth > int(wmax) {
+					if line != "" {
+						lines = append(lines, strings.TrimRight(line, " "))
+						line = ""
+						lineWidth = 0
+					}
+					breakLongWord(seg)
+					continue
+				}
+
+				line += seg
+				lineWidth += segWidth
+			}
+			if line != "" {
+				lines = append(lines, line)
+			}
+			continue
+		}
+
 		words := strings.Fields(para)
-		for i, word := range words {
+		for _, word := range words {
 			wordWidth := stringWidth(word)
 			sw := 0
 			if line != "" {
@@ -440,16 +556,27 @@ func (p *Page) wrapText(text string, fe *resources.FontEntry, wmax float64) []st
 
 			if lineWidth+sw+wordWidth > int(wmax) && line != "" {
 				lines = append(lines, line)
-				line = word
-				lineWidth = wordWidth
-			} else {
-				if i > 0 {
-					line += " "
-					lineWidth += sw
-				}
-				line += word
-				lineWidth += wordWidth
+				line = ""
+				lineWidth = 0
 			}
+
+			// If the word itself is wider than wmax, break it at rune boundaries.
+			if wordWidth > int(wmax) {
+				if line != "" {
+					lines = append(lines, line)
+					line = ""
+					lineWidth = 0
+				}
+				breakLongWord(word)
+				continue
+			}
+
+			if line != "" {
+				line += " "
+				lineWidth += sw
+			}
+			line += word
+			lineWidth += wordWidth
 		}
 		if line != "" {
 			lines = append(lines, line)
@@ -511,7 +638,7 @@ func (p *Page) emitText(fe *resources.FontEntry, text string) {
 
 	// Split text into segments: normal runs and raised tone marks.
 	// Raised marks use the Ts (text rise) operator to shift upward.
-	rise := 0.23 * p.effectiveFontSizePt() * p.doc.k
+	rise := 0.23 * p.effectiveFontSizePt()
 	i := 0
 	inRise := false
 	for i < len(runes) {

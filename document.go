@@ -51,8 +51,29 @@ type Document struct {
 	textColor state.Color
 	lineWidth float64
 
+	// optional text segmenter used by MultiCell / wrapText. When nil, the
+	// default behaviour splits on ASCII whitespace. Set this to plug in a
+	// language-aware segmenter (e.g. a Thai word breaker) so line wrapping
+	// respects word boundaries.
+	wordBreaker WordBreakFunc
+
 	// error accumulation
 	err error
+}
+
+// WordBreakFunc segments a paragraph (a line containing no '\n') into
+// units between which a line break is allowed. The returned segments are
+// joined verbatim — the segmenter owns any whitespace — so a Thai
+// segmenter can return dictionary words with no separators while a
+// whitespace-preserving segmenter can return segments that include their
+// trailing space.
+type WordBreakFunc func(paragraph string) []string
+
+// SetWordBreaker installs a custom word segmenter used by MultiCell when
+// wrapping text. Pass nil to revert to the default whitespace-based
+// splitting.
+func (d *Document) SetWordBreaker(f WordBreakFunc) {
+	d.wordBreaker = f
 }
 
 // New creates a new Document with the given options.

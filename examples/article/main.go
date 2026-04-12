@@ -6,6 +6,7 @@ import (
 
 	"github.com/akkaraponph/folio"
 	"github.com/akkaraponph/folio/fonts/sarabun"
+	"github.com/veer66/mapkha"
 )
 
 // writer wraps the document + current page and handles page breaks.
@@ -41,12 +42,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Plug in a Thai word segmenter so line-wrapping respects word
+	// boundaries (e.g. "ต้อง", "ใช่") instead of breaking mid-word.
+	dict, err := mapkha.LoadDefaultDict()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error loading thai dict: %v\n", err)
+		os.Exit(1)
+	}
+	wc := mapkha.NewWordcut(dict)
+	doc.SetWordBreaker(func(para string) []string {
+		return wc.Segment(para)
+	})
+
+	// A4 is 210mm wide. With left margin 20 and right margin 20 the usable
+	// width is 170; we shave an extra 5mm off the right as visual edge
+	// padding so justified text never kisses the right edge.
 	w := &writer{
 		doc:       doc,
 		pageH:     297.0,
 		bMargin:   15.0,
 		lMargin:   20.0,
-		bodyWidth: 170.0,
+		bodyWidth: 165.0,
 	}
 
 	// ---- Page 1: Title + Abstract ----
@@ -56,8 +72,8 @@ func main() {
 	// Title
 	doc.SetFont("sarabun", "B", 18)
 	doc.SetTextColor(0, 51, 102)
-	p.SetXY(20, 20)
-	p.MultiCell(170, 8,
+	p.SetXY(w.lMargin, 20)
+	p.MultiCell(w.bodyWidth, 8,
 		"ประสิทธิภาพและความเหมาะสมของภาษาโปรแกรม Go (Golang) "+
 			"ในการพัฒนาระบบซอฟต์แวร์สมัยใหม่", "", "C", false)
 
@@ -65,7 +81,7 @@ func main() {
 	p.SetY(p.GetY() + 3)
 	doc.SetDrawColor(0, 51, 102)
 	doc.SetLineWidth(0.5)
-	p.Line(20, p.GetY(), 190, p.GetY())
+	p.Line(w.lMargin, p.GetY(), w.lMargin+w.bodyWidth, p.GetY())
 	p.SetY(p.GetY() + 5)
 
 	// Abstract
@@ -93,10 +109,10 @@ func main() {
 	w.needsBreak(10)
 	doc.SetFont("sarabun", "B", 11)
 	doc.SetTextColor(0, 0, 0)
-	w.page.SetX(20)
+	w.page.SetX(w.lMargin)
 	w.page.Cell(25, 6, "คำสำคัญ:", "", "L", false, 0)
 	doc.SetFont("sarabun", "", 11)
-	w.page.Cell(145, 6, "ภาษา Go, Golang, Concurrency, ระบบซอฟต์แวร์สมัยใหม่, Backend", "", "L", false, 1)
+	w.page.Cell(w.bodyWidth-25, 6, "ภาษา Go, Golang, Concurrency, ระบบซอฟต์แวร์สมัยใหม่, Backend", "", "L", false, 1)
 	w.page.SetY(w.page.GetY() + 5)
 
 	// ---- Section 1: Introduction ----
@@ -304,8 +320,8 @@ func main() {
 	doc.SetTextColor(0, 0, 0)
 	for _, ref := range refs {
 		w.needsBreak(7)
-		w.page.SetX(20)
-		w.page.MultiCell(170, 5, "- "+ref, "", "L", false)
+		w.page.SetX(w.lMargin)
+		w.page.MultiCell(w.bodyWidth, 5, "- "+ref, "", "L", false)
 		w.page.SetY(w.page.GetY() + 1)
 	}
 
@@ -364,7 +380,7 @@ func (w *writer) estimateHeight(text string, lineH float64) float64 {
 }
 
 func (w *writer) drawComparisonTable() {
-	colW := []float64{35, 67.5, 67.5}
+	colW := []float64{35, 65, 65}
 	x0 := w.lMargin
 	rowH := 7.0
 
