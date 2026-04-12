@@ -90,6 +90,9 @@ type Document struct {
 	// form fields (AcroForms)
 	formFields []*formField
 
+	// digital signature
+	sigState *signatureState
+
 	// encryption (password protection)
 	encrypted   bool
 	userPw      string

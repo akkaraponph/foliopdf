@@ -2,15 +2,25 @@ package folio
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	crand "crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
 	"image/png"
+	"math/big"
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
+
+var randReader = crand.Reader
 
 func TestEmptyPage(t *testing.T) {
 	doc := New()
@@ -5117,4 +5127,141 @@ func TestFormAppearanceStream(t *testing.T) {
 	if !strings.Contains(s, "/AP <<") {
 		t.Error("missing appearance dictionary")
 	}
+}
+
+// === Digital Signatures (F11) ===
+
+func TestSignatureBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Signed document")
+
+	// Generate a self-signed cert for testing.
+	cert, key := generateTestCert(t)
+
+	doc.Sign(cert, key, page, 20, 250, 100, 30, SignOptions{
+		Name:     "Test Signer",
+		Reason:   "Testing",
+		Location: "Bangkok",
+	})
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/Type /Sig") {
+		t.Error("missing signature value object")
+	}
+	if !strings.Contains(s, "/Filter /Adobe.PPKLite") {
+		t.Error("missing signature filter")
+	}
+	if !strings.Contains(s, "/SubFilter /adbe.pkcs7.detached") {
+		t.Error("missing signature sub-filter")
+	}
+	if !strings.Contains(s, "/FT /Sig") {
+		t.Error("missing signature field type")
+	}
+	if !strings.Contains(s, "(Test Signer)") {
+		t.Error("missing signer name")
+	}
+	if !strings.Contains(s, "(Testing)") {
+		t.Error("missing reason")
+	}
+	if !strings.Contains(s, "/ByteRange") {
+		t.Error("missing ByteRange")
+	}
+}
+
+func TestSignatureInAcroForm(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cert, key := generateTestCert(t)
+	doc.Sign(cert, key, page, 10, 250, 80, 25, SignOptions{Name: "Signer"})
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/AcroForm") {
+		t.Error("signature field should be in AcroForm")
+	}
+}
+
+func TestNoSignatureDefault(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if strings.Contains(s, "/Type /Sig") {
+		t.Error("should not have signature when not configured")
+	}
+}
+
+func TestSignatureWithFormFields(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.FormTextField("name", 20, 30, 100, 20)
+
+	cert, key := generateTestCert(t)
+	doc.Sign(cert, key, page, 20, 250, 100, 30, SignOptions{Name: "Signer"})
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should have both form field and signature.
+	if !strings.Contains(s, "/FT /Tx") {
+		t.Error("missing text field")
+	}
+	if !strings.Contains(s, "/FT /Sig") {
+		t.Error("missing signature field")
+	}
+}
+
+// generateTestCert creates a self-signed certificate for testing.
+func generateTestCert(t *testing.T) (*x509.Certificate, crypto.Signer) {
+	t.Helper()
+
+	keyData, err := ecdsa.GenerateKey(elliptic.P256(), randReader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	template := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "Test"},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(24 * time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+	}
+
+	certDER, err := x509.CreateCertificate(randReader, template, template, &keyData.PublicKey, keyData)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cert, err := x509.ParseCertificate(certDER)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return cert, keyData
 }

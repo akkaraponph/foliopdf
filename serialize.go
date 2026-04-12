@@ -60,7 +60,12 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 11. AcroForm fields
 	fieldObjNums := d.putAcroForm(w, pageObjNums)
 
-	// 12. Encrypt dictionary (not encrypted itself)
+	// 12. Digital signature
+	if sigFieldObj := d.putSignature(w, pageObjNums); sigFieldObj > 0 {
+		fieldObjNums = append(fieldObjNums, sigFieldObj)
+	}
+
+	// 13. Encrypt dictionary (not encrypted itself)
 	if d.encrypted {
 		encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
 	}
