@@ -44,6 +44,16 @@ func (s *Stream) SetLineJoin(style int) {
 	fmt.Fprintf(&s.buf, "%d j\n", style)
 }
 
+// ConcatMatrix emits the cm operator to concatenate a transformation matrix
+// with the current transformation matrix (CTM). The six values define:
+//
+//	| a  b  0 |
+//	| c  d  0 |
+//	| e  f  1 |
+func (s *Stream) ConcatMatrix(a, b, c, d, e, f float64) {
+	fmt.Fprintf(&s.buf, "%.5f %.5f %.5f %.5f %.5f %.5f cm\n", a, b, c, d, e, f)
+}
+
 // --- Color ---
 
 // SetStrokeColorRGB emits the RG operator. Values in 0..1.

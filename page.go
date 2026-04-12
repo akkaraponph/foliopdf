@@ -2,6 +2,7 @@ package folio
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/akkaraponph/folio/internal/content"
@@ -295,6 +296,95 @@ func (p *Page) DrawImageRect(name string, x, y, w, h float64) {
 	yPt := state.ToPointsY(y+h, p.h, k) // bottom-left of image in PDF coords
 
 	p.stream.DrawImage("Im"+entry.Name, wPt, 0, 0, hPt, xPt, yPt)
+}
+
+// --- Transforms ---
+
+// TransformBegin saves the graphics state. Must be paired with
+// TransformEnd after the transformed drawing operations.
+func (p *Page) TransformBegin() {
+	p = p.active()
+	p.stream.SaveState()
+}
+
+// TransformEnd restores the graphics state saved by TransformBegin.
+func (p *Page) TransformEnd() {
+	p = p.active()
+	p.stream.RestoreState()
+}
+
+// Rotate applies a counterclockwise rotation of angleDeg degrees around
+// the point (x, y) in user units. Must be called between TransformBegin
+// and TransformEnd.
+func (p *Page) Rotate(angleDeg, x, y float64) {
+	p = p.active()
+	k := p.doc.k
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+
+	rad := angleDeg * math.Pi / 180.0
+	cosA := math.Cos(rad)
+	sinA := math.Sin(rad)
+
+	a := cosA
+	b := sinA
+	c := -sinA
+	d := cosA
+	e := cx*(1-cosA) + cy*sinA
+	f := cy*(1-cosA) - cx*sinA
+
+	p.stream.ConcatMatrix(a, b, c, d, e, f)
+}
+
+// Scale applies a scaling transform with factors sx and sy around the
+// point (x, y) in user units. Must be called between TransformBegin
+// and TransformEnd.
+func (p *Page) Scale(sx, sy, x, y float64) {
+	p = p.active()
+	k := p.doc.k
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+
+	a := sx
+	b := 0.0
+	c := 0.0
+	d := sy
+	e := cx * (1 - sx)
+	f := cy * (1 - sy)
+
+	p.stream.ConcatMatrix(a, b, c, d, e, f)
+}
+
+// Skew applies a skew transform. angleX is the horizontal shear angle
+// and angleY is the vertical shear angle (both in degrees), around the
+// point (x, y) in user units. Must be called between TransformBegin
+// and TransformEnd.
+func (p *Page) Skew(angleX, angleY, x, y float64) {
+	p = p.active()
+	k := p.doc.k
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+
+	tanX := math.Tan(angleX * math.Pi / 180.0)
+	tanY := math.Tan(angleY * math.Pi / 180.0)
+
+	a := 1.0
+	b := tanY
+	c := tanX
+	d := 1.0
+	e := -cy * tanX
+	f := -cx * tanY
+
+	p.stream.ConcatMatrix(a, b, c, d, e, f)
+}
+
+// Translate applies a translation by (tx, ty) user units. Positive tx
+// moves right, positive ty moves down. Must be called between
+// TransformBegin and TransformEnd.
+func (p *Page) Translate(tx, ty float64) {
+	p = p.active()
+	k := p.doc.k
+	p.stream.ConcatMatrix(1, 0, 0, 1, tx*k, -ty*k)
 }
 
 // --- Cell and MultiCell ---

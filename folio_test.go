@@ -2010,3 +2010,258 @@ func TestWriteStartMidLine(t *testing.T) {
 		t.Errorf("Write after Cell should continue: x0=%f x1=%f", x0, x1)
 	}
 }
+
+// --- Transform tests ---
+
+func TestRotate(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 40)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Rotate(45, 105, 148.5) // rotate 45° around page center
+	page.TextAt(60, 148.5, "WATERMARK")
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Should contain cm operator with rotation matrix values.
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing cm operator")
+	}
+	// q/Q pair for transform begin/end.
+	if !strings.Contains(s, "q\n") {
+		t.Error("missing q (save state)")
+	}
+	if !strings.Contains(s, "Q\n") {
+		t.Error("missing Q (restore state)")
+	}
+	if !strings.Contains(s, "WATERMARK") {
+		t.Error("missing text")
+	}
+}
+
+func TestScale(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Scale(2, 2, 105, 148.5) // scale 2x around page center
+	page.TextAt(90, 148, "Scaled text")
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing cm operator")
+	}
+	if !strings.Contains(s, "Scaled text") {
+		t.Error("missing text")
+	}
+}
+
+func TestSkew(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Skew(15, 0, 105, 148.5) // horizontal skew
+	page.TextAt(80, 148, "Skewed")
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing cm operator")
+	}
+	if !strings.Contains(s, "Skewed") {
+		t.Error("missing text")
+	}
+}
+
+func TestTranslate(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Translate(50, 50) // shift everything 50mm right and down
+	page.TextAt(10, 10, "Translated")
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing cm operator")
+	}
+	if !strings.Contains(s, "Translated") {
+		t.Error("missing text")
+	}
+}
+
+func TestTransformRotatedImage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	// Register a test image.
+	jpgData := testJPEG(60, 40)
+	doc.RegisterImage("photo", bytes.NewReader(jpgData))
+
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Rotate(30, 80, 100) // rotate image 30° around (80,100)
+	page.DrawImageRect("photo", 50, 80, 60, 40)
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Should have two cm operators: one from the transform and one from DrawImage.
+	cmCount := strings.Count(s, " cm\n")
+	if cmCount < 2 {
+		t.Errorf("expected at least 2 cm operators (transform + image), got %d", cmCount)
+	}
+}
+
+func TestTransformChained(t *testing.T) {
+	// Multiple transforms applied in sequence.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Translate(20, 20)
+	page.Rotate(15, 0, 0)
+	page.TextAt(10, 10, "Chained")
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Two cm operators (translate + rotate).
+	cmCount := strings.Count(s, " cm\n")
+	if cmCount < 2 {
+		t.Errorf("expected at least 2 cm operators, got %d", cmCount)
+	}
+	if !strings.Contains(s, "Chained") {
+		t.Error("missing text")
+	}
+}
+
+func TestTransformNested(t *testing.T) {
+	// Nested transform blocks.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Rotate(30, 105, 148.5)
+	page.TextAt(80, 148, "Outer")
+
+	page.TransformBegin()
+	page.Scale(1.5, 1.5, 105, 148.5)
+	page.TextAt(80, 160, "Inner")
+	page.TransformEnd()
+
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "Outer") || !strings.Contains(s, "Inner") {
+		t.Error("missing text from nested transforms")
+	}
+
+	// Two q/Q pairs.
+	qCount := strings.Count(s, "q\n")
+	bigQCount := strings.Count(s, "Q\n")
+	if qCount < 2 {
+		t.Errorf("expected at least 2 q operators, got %d", qCount)
+	}
+	if bigQCount < 2 {
+		t.Errorf("expected at least 2 Q operators, got %d", bigQCount)
+	}
+}
+
+func TestRotateMatrixValues(t *testing.T) {
+	// Verify the cm matrix values for a known rotation.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	// 90° rotation around origin (0, 0) in user units.
+	// In PDF coords, origin (0,0) is bottom-left corner.
+	// cos(90°) = 0, sin(90°) = 1
+	// Matrix: a=0, b=1, c=-1, d=0, e=cx(1-0)+cy*1, f=cy(1-0)-cx*1
+	// With cx=0, cy=(297)*k (top of page in PDF = origin in user coords):
+	// e=0+cy, f=cy-0 = cy
+	page.Rotate(90, 0, 0)
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	doc.WriteTo(&buf)
+	s := buf.String()
+
+	// Should contain "0.00000 1.00000 -1.00000 0.00000" for cos/sin values.
+	if !strings.Contains(s, "0.00000 1.00000 -1.00000 0.00000") {
+		t.Errorf("unexpected rotation matrix in output:\n%s", s)
+	}
+}
+
+func TestTranslateDirection(t *testing.T) {
+	// Translate should produce correct PDF coordinates.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Translate(10, 20)
+	page.TransformEnd()
+
+	var buf bytes.Buffer
+	doc.WriteTo(&buf)
+	s := buf.String()
+
+	// Translate(10, 20) in mm:
+	// e = 10 * k ≈ 28.35
+	// f = -20 * k ≈ -56.69 (positive ty = downward = negative PDF y)
+	if !strings.Contains(s, "1.00000 0.00000 0.00000 1.00000") {
+		t.Error("translate should have identity rotation/scale components")
+	}
+}
