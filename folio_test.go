@@ -5266,6 +5266,210 @@ func generateTestCert(t *testing.T) (*x509.Certificate, crypto.Signer) {
 	return cert, keyData
 }
 
+// --------------- F14: Markdown Renderer ---------------
+
+func TestMarkdownHeadings(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("# Heading 1\n\n## Heading 2\n\n### Heading 3")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Heading 1)") {
+		t.Error("expected Heading 1 in output")
+	}
+	if !strings.Contains(out, "(Heading 2)") {
+		t.Error("expected Heading 2 in output")
+	}
+	if !strings.Contains(out, "(Heading 3)") {
+		t.Error("expected Heading 3 in output")
+	}
+}
+
+func TestMarkdownBoldItalic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("This is **bold** and *italic* text.")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(bold)") {
+		t.Error("expected bold text in output")
+	}
+	if !strings.Contains(out, "(italic)") {
+		t.Error("expected italic text in output")
+	}
+}
+
+func TestMarkdownCode(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("Use `fmt.Println` to print.")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(fmt.Println)") {
+		t.Error("expected code text in output")
+	}
+}
+
+func TestMarkdownUnorderedList(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("- Item one\n- Item two\n- Item three")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Item one)") {
+		t.Error("expected list item one")
+	}
+	if !strings.Contains(out, "(Item three)") {
+		t.Error("expected list item three")
+	}
+}
+
+func TestMarkdownOrderedList(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("1. First\n2. Second\n3. Third")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(First)") {
+		t.Error("expected ordered list item")
+	}
+}
+
+func TestMarkdownHorizontalRule(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("Above\n\n---\n\nBelow")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Above)") {
+		t.Error("expected text above rule")
+	}
+	if !strings.Contains(out, "(Below)") {
+		t.Error("expected text below rule")
+	}
+	// Horizontal rule uses line operator
+	if !strings.Contains(out, " l\nS\n") {
+		t.Error("expected line stroke for horizontal rule")
+	}
+}
+
+func TestMarkdownLink(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("Visit [Folio](https://example.com) now.")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Folio)") {
+		t.Error("expected link text in output")
+	}
+	if !strings.Contains(out, "/URI (https://example.com)") {
+		t.Error("expected URI annotation")
+	}
+}
+
+func TestMarkdownWithBookmarks(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.Markdown("# Chapter 1\n\nContent.\n\n## Section 1.1", WithBookmarks())
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	// Bookmarks generate /Type /Outlines
+	if !strings.Contains(out, "/Type /Outlines") {
+		t.Error("expected outline tree for bookmarks")
+	}
+	if !strings.Contains(out, "(Chapter 1)") {
+		t.Error("expected Chapter 1 bookmark title")
+	}
+}
+
+func TestMDBlockParser(t *testing.T) {
+	md := "# Title\n\nParagraph text.\n\n- a\n- b\n\n1. one\n2. two\n\n---\n"
+	blocks := parseMDBlocks(md)
+
+	expected := []string{"h1", "p", "ul", "ol", "hr"}
+	if len(blocks) != len(expected) {
+		t.Fatalf("expected %d blocks, got %d", len(expected), len(blocks))
+	}
+	for i, b := range blocks {
+		if b.kind != expected[i] {
+			t.Errorf("block %d: expected kind %q, got %q", i, expected[i], b.kind)
+		}
+	}
+}
+
+func TestMDInlineParser(t *testing.T) {
+	inlines := parseInline("Hello **bold** and *italic* with `code` and [link](url)")
+
+	kinds := []string{}
+	for _, inl := range inlines {
+		kinds = append(kinds, inl.kind)
+	}
+
+	expected := []string{"text", "bold", "text", "italic", "text", "code", "text", "link"}
+	if len(kinds) != len(expected) {
+		t.Fatalf("expected %d inlines, got %d: %v", len(expected), len(kinds), kinds)
+	}
+	for i, k := range kinds {
+		if k != expected[i] {
+			t.Errorf("inline %d: expected %q, got %q", i, expected[i], k)
+		}
+	}
+
+	// Check link details.
+	link := inlines[len(inlines)-1]
+	if link.text != "link" || link.url != "url" {
+		t.Errorf("expected link text='link' url='url', got text=%q url=%q", link.text, link.url)
+	}
+}
+
 // --------------- F13: Fluent Builder API ---------------
 
 func TestTextBuilder(t *testing.T) {
