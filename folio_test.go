@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"os"
 	"strings"
 	"testing"
@@ -1059,5 +1060,209 @@ func TestPageWidthHeight(t *testing.T) {
 	}
 	if h < 296 || h > 298 {
 		t.Errorf("expected height ≈ 297, got %f", h)
+	}
+}
+
+// --- PNG support tests ---
+
+// testPNG creates a PNG image in memory.
+func testPNG(w, h int, alpha bool) []byte {
+	var buf bytes.Buffer
+	if alpha {
+		img := image.NewNRGBA(image.Rect(0, 0, w, h))
+		for y := range h {
+			for x := range w {
+				img.SetNRGBA(x, y, color.NRGBA{
+					R: uint8(x % 256),
+					G: uint8(y % 256),
+					B: 100,
+					A: uint8((x + y) % 256), // varying alpha
+				})
+			}
+		}
+		png.Encode(&buf, img)
+	} else {
+		img := image.NewRGBA(image.Rect(0, 0, w, h))
+		for y := range h {
+			for x := range w {
+				img.Set(x, y, color.RGBA{
+					R: uint8(x % 256),
+					G: uint8(y % 256),
+					B: 100,
+					A: 255,
+				})
+			}
+		}
+		png.Encode(&buf, img)
+	}
+	return buf.Bytes()
+}
+
+func testGrayPNG(w, h int) []byte {
+	img := image.NewGray(image.Rect(0, 0, w, h))
+	for y := range h {
+		for x := range w {
+			img.SetGray(x, y, color.Gray{Y: uint8((x + y) % 256)})
+		}
+	}
+	var buf bytes.Buffer
+	png.Encode(&buf, img)
+	return buf.Bytes()
+}
+
+func TestPNGImage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	pngData := testPNG(80, 60, false)
+	err := doc.RegisterImage("photo", bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page := doc.AddPage(A4)
+	page.TextAt(20, 20, "PNG below:")
+	page.DrawImageRect("photo", 20, 30, 60, 45)
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "/Type /XObject") {
+		t.Error("missing XObject")
+	}
+	if !strings.Contains(s, "/Subtype /Image") {
+		t.Error("missing /Subtype /Image")
+	}
+	if !strings.Contains(s, "/Filter /FlateDecode") {
+		t.Error("expected FlateDecode filter for PNG")
+	}
+	if !strings.Contains(s, "/ColorSpace /DeviceRGB") {
+		t.Error("expected DeviceRGB color space")
+	}
+	if !strings.Contains(s, "/Im1 Do") {
+		t.Error("missing image draw operator")
+	}
+}
+
+func TestPNGWithAlpha(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	pngData := testPNG(40, 40, true)
+	err := doc.RegisterImage("alpha", bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page := doc.AddPage(A4)
+	page.DrawImageRect("alpha", 20, 20, 30, 30)
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Should have an SMask reference for the alpha channel.
+	if !strings.Contains(s, "/SMask") {
+		t.Error("missing SMask for RGBA PNG")
+	}
+	// Two XObjects: the SMask and the main image.
+	count := strings.Count(s, "/Subtype /Image")
+	if count != 2 {
+		t.Errorf("expected 2 image XObjects (main + smask), got %d", count)
+	}
+}
+
+func TestPNGGrayscale(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	pngData := testGrayPNG(50, 50)
+	err := doc.RegisterImage("gray", bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page := doc.AddPage(A4)
+	page.DrawImageRect("gray", 10, 10, 40, 40)
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "/ColorSpace /DeviceGray") {
+		t.Error("expected DeviceGray for grayscale PNG")
+	}
+	if strings.Contains(s, "/SMask") {
+		t.Error("grayscale PNG should not have SMask")
+	}
+}
+
+func TestPNGAutoDetect(t *testing.T) {
+	doc := New(WithCompression(false))
+
+	// Register PNG via RegisterImage (auto-detect).
+	pngData := testPNG(20, 20, false)
+	err := doc.RegisterImage("auto-png", bytes.NewReader(pngData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Register JPEG via RegisterImage (auto-detect).
+	jpgData := testJPEG(20, 20)
+	err = doc.RegisterImage("auto-jpg", bytes.NewReader(jpgData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	page := doc.AddPage(A4)
+	page.DrawImageRect("auto-png", 10, 10, 20, 20)
+	page.DrawImageRect("auto-jpg", 40, 10, 20, 20)
+
+	var buf bytes.Buffer
+	_, err = doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "/Filter /FlateDecode") {
+		t.Error("PNG should use FlateDecode")
+	}
+	if !strings.Contains(s, "/Filter /DCTDecode") {
+		t.Error("JPEG should use DCTDecode")
+	}
+}
+
+func TestPNGDedup(t *testing.T) {
+	doc := New(WithCompression(false))
+
+	pngData := testPNG(30, 30, false)
+	doc.RegisterImage("img1", bytes.NewReader(pngData))
+	doc.RegisterImage("img2", bytes.NewReader(pngData)) // same data
+
+	page := doc.AddPage(A4)
+	page.DrawImageRect("img1", 10, 10, 20, 20)
+	page.DrawImageRect("img2", 40, 10, 20, 20)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	count := strings.Count(s, "/Type /XObject")
+	if count != 1 {
+		t.Errorf("expected 1 image XObject (dedup), got %d", count)
 	}
 }

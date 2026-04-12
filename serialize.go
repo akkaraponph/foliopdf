@@ -295,9 +295,30 @@ func buildCIDToGIDMap(fe *resources.FontEntry) []byte {
 	return cidToGid
 }
 
-// putImages writes image XObject for all registered images.
+// putImages writes image XObjects for all registered images.
+// For images with transparency (SMaskData), a separate SMask XObject is
+// written first, then referenced from the main image.
 func (d *Document) putImages(w *pdfcore.Writer) {
 	for _, ie := range d.images.All() {
+		// Write SMask XObject first (if present) so we know its obj number.
+		if ie.SMaskData != nil {
+			smaskObj := w.NewObj()
+			ie.SMaskObjNum = smaskObj
+			w.Put("<<")
+			w.Put("/Type /XObject")
+			w.Put("/Subtype /Image")
+			w.Putf("/Width %d", ie.Width)
+			w.Putf("/Height %d", ie.Height)
+			w.Put("/ColorSpace /DeviceGray")
+			w.Putf("/BitsPerComponent %d", ie.BPC)
+			w.Put("/Filter /FlateDecode")
+			w.Putf("/Length %d", len(ie.SMaskData))
+			w.Put(">>")
+			w.PutStream(ie.SMaskData)
+			w.EndObj()
+		}
+
+		// Main image XObject.
 		n := w.NewObj()
 		ie.ObjNum = n
 		w.Put("<<")
@@ -308,6 +329,9 @@ func (d *Document) putImages(w *pdfcore.Writer) {
 		w.Putf("/ColorSpace /%s", ie.ColorSpace)
 		w.Putf("/BitsPerComponent %d", ie.BPC)
 		w.Putf("/Filter /%s", ie.Filter)
+		if ie.SMaskData != nil {
+			w.Putf("/SMask %d 0 R", ie.SMaskObjNum)
+		}
 		w.Putf("/Length %d", len(ie.Data))
 		w.Put(">>")
 		w.PutStream(ie.Data)

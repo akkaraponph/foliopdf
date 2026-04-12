@@ -454,16 +454,36 @@ func (d *Document) AddUTF8Font(family, style string, data []byte) error {
 	return nil
 }
 
-// RegisterImage registers a JPEG image from a reader for later use.
+// RegisterImage registers an image from a reader for later use.
+// The format is auto-detected from the first bytes of data.
+// Supported formats: JPEG and PNG (including RGBA with transparency).
 func (d *Document) RegisterImage(name string, r io.Reader) error {
 	if d.err != nil {
 		return d.err
 	}
-	_, err := d.images.RegisterJPEG(name, r)
+	// Read enough to detect the format, then recombine for the decoder.
+	buf, err := io.ReadAll(r)
 	if err != nil {
 		d.err = fmt.Errorf("RegisterImage: %w", err)
+		return d.err
 	}
-	return err
+	reader := bytes.NewReader(buf)
+
+	var regErr error
+	if isPNG(buf) {
+		_, regErr = d.images.RegisterPNG(name, reader)
+	} else {
+		_, regErr = d.images.RegisterJPEG(name, reader)
+	}
+	if regErr != nil {
+		d.err = fmt.Errorf("RegisterImage: %w", regErr)
+	}
+	return regErr
+}
+
+// isPNG checks if data starts with the PNG magic bytes.
+func isPNG(data []byte) bool {
+	return len(data) >= 4 && data[0] == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G'
 }
 
 // WriteTo serializes the PDF and writes it to w.
