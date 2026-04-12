@@ -18,8 +18,13 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 
 	w := pdfcore.NewWriter()
 
+	// 0. PDF/A validation
+	if err := d.validatePDFA(); err != nil {
+		return nil, err
+	}
+
 	// 1. Header
-	w.WriteHeader("1.4")
+	w.WriteHeader(d.pdfaVersion())
 
 	// 2. Encryption setup (before any content so streams are encrypted)
 	var encryptObjNum int
@@ -70,11 +75,15 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 		encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
 	}
 
-	// 13. Info dictionary
+	// 14. PDF/A metadata and output intent
+	metadataObjNum := d.putMetadata(w)
+	outputIntentObjNum := d.putOutputIntent(w)
+
+	// 15. Info dictionary
 	infoObjNum := d.putInfo(w)
 
-	// 14. Catalog
-	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums)
+	// 16. Catalog
+	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums, metadataObjNum, outputIntentObjNum)
 
 	// 14. Xref
 	xrefOffset := w.WriteXref()
@@ -796,7 +805,7 @@ func (d *Document) putEncrypt(w *pdfcore.Writer, ownerHash [32]byte, encKey, fil
 }
 
 // putCatalog writes the document catalog.
-func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int) int {
+func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int, metadataObjNum, outputIntentObjNum int) int {
 	n := w.NewObj()
 	w.Put("<<")
 	w.Put("/Type /Catalog")
@@ -812,6 +821,16 @@ func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootO
 		}
 		fields += "] /DA (/Helv 12 Tf 0 g) /DR << /Font << /Helv 2 0 R >> >> >>"
 		w.Put(fields)
+	}
+	// PDF/A: metadata, output intents, and mark info.
+	if metadataObjNum > 0 {
+		w.Putf("/Metadata %d 0 R", metadataObjNum)
+	}
+	if outputIntentObjNum > 0 {
+		w.Putf("/OutputIntents [%d 0 R]", outputIntentObjNum)
+	}
+	if d.pdfaLevel != nil {
+		w.Put("/MarkInfo <</Marked true>>")
 	}
 	w.Put(">>")
 	w.EndObj()

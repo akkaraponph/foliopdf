@@ -5265,3 +5265,194 @@ func generateTestCert(t *testing.T) (*x509.Certificate, crypto.Signer) {
 
 	return cert, keyData
 }
+
+// --------------- F12: PDF/A Compliance ---------------
+
+func TestPDFABasic1b(t *testing.T) {
+	doc := New(WithPDFA("1b"), WithCompression(false))
+	doc.SetTitle("PDF/A Test")
+	doc.SetAuthor("Test Author")
+
+	// PDF/A requires embedded fonts — use a TTF font.
+	sarabunData, err := os.ReadFile("fonts/sarabun/Sarabun-Regular.ttf")
+	if err != nil {
+		t.Skip("Skipping: Sarabun-Regular.ttf not available")
+	}
+	if err := doc.AddUTF8Font("sarabun", "", sarabunData); err != nil {
+		t.Fatal(err)
+	}
+	doc.SetFont("sarabun", "", 14)
+
+	p := doc.AddPage(A4)
+	p.SetXY(10, 10)
+	p.Cell(0, 10, "PDF/A-1b Document", "", "", false, 0)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := string(data)
+
+	// Check PDF version
+	if !strings.HasPrefix(out, "%PDF-1.4") {
+		t.Error("expected %PDF-1.4 header for PDF/A-1b")
+	}
+
+	// Check XMP metadata
+	if !strings.Contains(out, "/Type /Metadata") {
+		t.Error("expected /Type /Metadata in output")
+	}
+	if !strings.Contains(out, "<pdfaid:part>1</pdfaid:part>") {
+		t.Error("expected pdfaid:part=1 in XMP")
+	}
+	if !strings.Contains(out, "<pdfaid:conformance>B</pdfaid:conformance>") {
+		t.Error("expected pdfaid:conformance=B in XMP")
+	}
+
+	// Check OutputIntent
+	if !strings.Contains(out, "/Type /OutputIntent") {
+		t.Error("expected /Type /OutputIntent")
+	}
+	if !strings.Contains(out, "/S /GTS_PDFA1") {
+		t.Error("expected /S /GTS_PDFA1")
+	}
+	if !strings.Contains(out, "/OutputConditionIdentifier (sRGB)") {
+		t.Error("expected sRGB output condition")
+	}
+
+	// Check MarkInfo
+	if !strings.Contains(out, "/MarkInfo <</Marked true>>") {
+		t.Error("expected /MarkInfo in catalog")
+	}
+
+	// Check OutputIntents in catalog
+	if !strings.Contains(out, "/OutputIntents [") {
+		t.Error("expected /OutputIntents array in catalog")
+	}
+}
+
+func TestPDFA2b(t *testing.T) {
+	doc := New(WithPDFA("2b"), WithCompression(false))
+	doc.SetTitle("PDF/A-2b Test")
+
+	sarabunData, err := os.ReadFile("fonts/sarabun/Sarabun-Regular.ttf")
+	if err != nil {
+		t.Skip("Skipping: Sarabun-Regular.ttf not available")
+	}
+	if err := doc.AddUTF8Font("sarabun", "", sarabunData); err != nil {
+		t.Fatal(err)
+	}
+	doc.SetFont("sarabun", "", 12)
+
+	p := doc.AddPage(A4)
+	p.SetXY(10, 10)
+	p.Cell(0, 10, "PDF/A-2b", "", "", false, 0)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := string(data)
+	if !strings.HasPrefix(out, "%PDF-1.7") {
+		t.Error("expected %PDF-1.7 header for PDF/A-2b")
+	}
+	if !strings.Contains(out, "<pdfaid:part>2</pdfaid:part>") {
+		t.Error("expected pdfaid:part=2 in XMP")
+	}
+}
+
+func TestPDFARejectsCoreFont(t *testing.T) {
+	doc := New(WithPDFA("1b"))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+	p.SetXY(10, 10)
+	p.Cell(0, 10, "Should fail", "", "", false, 0)
+
+	_, err := doc.Bytes()
+	if err == nil {
+		t.Fatal("expected error for core font in PDF/A mode")
+	}
+	if !strings.Contains(err.Error(), "PDF/A") {
+		t.Errorf("error should mention PDF/A, got: %v", err)
+	}
+}
+
+func TestPDFA1bRejectsTransparency(t *testing.T) {
+	doc := New(WithPDFA("1b"), WithCompression(false))
+
+	sarabunData, err := os.ReadFile("fonts/sarabun/Sarabun-Regular.ttf")
+	if err != nil {
+		t.Skip("Skipping: Sarabun-Regular.ttf not available")
+	}
+	if err := doc.AddUTF8Font("sarabun", "", sarabunData); err != nil {
+		t.Fatal(err)
+	}
+	doc.SetFont("sarabun", "", 12)
+
+	doc.SetAlpha(0.5) // transparency — forbidden in PDF/A-1b
+	p := doc.AddPage(A4)
+	p.SetXY(10, 10)
+	p.Cell(0, 10, "Transparent", "", "", false, 0)
+
+	_, err = doc.Bytes()
+	if err == nil {
+		t.Fatal("expected error for transparency in PDF/A-1b")
+	}
+	if !strings.Contains(err.Error(), "transparency") {
+		t.Errorf("error should mention transparency, got: %v", err)
+	}
+}
+
+func TestPDFAInvalidLevel(t *testing.T) {
+	doc := New(WithPDFA("3a")) // unsupported
+	if doc.Err() == nil {
+		t.Fatal("expected error for unsupported PDF/A level")
+	}
+}
+
+func TestNoPDFADefault(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+	p.SetXY(10, 10)
+	p.Cell(0, 10, "Normal PDF", "", "", false, 0)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	out := string(data)
+	if strings.Contains(out, "/Type /Metadata") {
+		t.Error("non-PDF/A document should not have XMP metadata")
+	}
+	if strings.Contains(out, "/OutputIntents") {
+		t.Error("non-PDF/A document should not have OutputIntents")
+	}
+}
+
+func TestICCProfileStructure(t *testing.T) {
+	profile := buildSRGBICCProfile()
+
+	// Check size
+	if len(profile) != 456 {
+		t.Errorf("expected profile size 456, got %d", len(profile))
+	}
+
+	// Check header signature
+	if string(profile[36:40]) != "acsp" {
+		t.Error("expected 'acsp' signature at offset 36")
+	}
+
+	// Check device class
+	if string(profile[12:16]) != "mntr" {
+		t.Error("expected 'mntr' device class")
+	}
+
+	// Check color space
+	if string(profile[16:20]) != "RGB " {
+		t.Error("expected 'RGB ' color space")
+	}
+}

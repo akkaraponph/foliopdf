@@ -93,6 +93,9 @@ type Document struct {
 	// digital signature
 	sigState *signatureState
 
+	// PDF/A conformance
+	pdfaLevel *pdfaConf
+
 	// encryption (password protection)
 	encrypted   bool
 	userPw      string
