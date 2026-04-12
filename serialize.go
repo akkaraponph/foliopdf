@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	pdfcrypto "github.com/akkaraponph/folio/internal/crypto"
 	"github.com/akkaraponph/folio/internal/pdfcore"
 	"github.com/akkaraponph/folio/internal/resources"
 )
@@ -20,41 +21,58 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 1. Header
 	w.WriteHeader("1.4")
 
-	// 2. Pages: page dicts + content streams, then Pages root at obj 1
+	// 2. Encryption setup (before any content so streams are encrypted)
+	var encryptObjNum int
+	var fileID []byte
+	var ownerHash [32]byte
+	var encKey []byte
+	if d.encrypted {
+		fileID = pdfcrypto.FileID(d.title, d.producer)
+		ownerHash = pdfcrypto.ComputeOwnerHash(d.ownerPw, d.userPw)
+		encKey = pdfcrypto.ComputeEncryptionKey(d.userPw, ownerHash, d.permissions, fileID)
+		w.SetEncryption(encKey, pdfcrypto.EncryptData)
+	}
+
+	// 3. Pages: page dicts + content streams, then Pages root at obj 1
 	pageObjNums := d.putPages(w)
 
-	// 3. Fonts
+	// 4. Fonts
 	d.putFonts(w)
 
-	// 4. Images
+	// 5. Images
 	d.putImages(w)
 
-	// 5. ExtGState (alpha transparency)
+	// 6. ExtGState (alpha transparency)
 	d.putExtGStates(w)
 
-	// 6. Gradients (shading objects and their functions)
+	// 7. Gradients (shading objects and their functions)
 	d.putGradients(w)
 
-	// 7. Templates (Form XObjects)
+	// 8. Templates (Form XObjects)
 	d.putTemplates(w)
 
-	// 8. Outlines (bookmarks)
+	// 9. Outlines (bookmarks)
 	outlineRootObj := d.putOutlines(w, pageObjNums)
 
-	// 8. Resource dictionary at obj 2
+	// 10. Resource dictionary at obj 2
 	d.putResourceDict(w)
 
-	// 9. Info dictionary
+	// 11. Encrypt dictionary (not encrypted itself)
+	if d.encrypted {
+		encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
+	}
+
+	// 12. Info dictionary
 	infoObjNum := d.putInfo(w)
 
-	// 10. Catalog
+	// 13. Catalog
 	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj)
 
-	// 10. Xref
+	// 14. Xref
 	xrefOffset := w.WriteXref()
 
-	// 11. Trailer
-	w.WriteTrailer(catalogObjNum, infoObjNum)
+	// 15. Trailer
+	w.WriteTrailerEncrypt(catalogObjNum, infoObjNum, encryptObjNum, fileID)
 	w.WriteStartXref(xrefOffset)
 
 	return w, w.Err()
@@ -742,6 +760,28 @@ func (d *Document) putInfo(w *pdfcore.Writer) int {
 		w.Putf("/Creator %s", pdfString(d.creator))
 	}
 	w.Putf("/CreationDate %s", pdfString(pdfDate(time.Now())))
+	w.Put(">>")
+	w.EndObj()
+	return n
+}
+
+// putEncrypt writes the encryption dictionary. The encrypt dict itself
+// must not be encrypted, so encryption is temporarily disabled.
+func (d *Document) putEncrypt(w *pdfcore.Writer, ownerHash [32]byte, encKey, fileID []byte) int {
+	// Temporarily disable encryption for the encrypt dict itself.
+	w.SetEncryption(nil, nil)
+	defer w.SetEncryption(encKey, pdfcrypto.EncryptData)
+
+	userHash := pdfcrypto.ComputeUserHash(encKey)
+
+	n := w.NewObj()
+	w.Put("<<")
+	w.Put("/Filter /Standard")
+	w.Put("/V 1")
+	w.Put("/R 2")
+	w.Putf("/O <%x>", ownerHash)
+	w.Putf("/U <%x>", userHash)
+	w.Putf("/P %d", d.permissions)
 	w.Put(">>")
 	w.EndObj()
 	return n

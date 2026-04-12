@@ -4802,3 +4802,144 @@ func TestAutoTableWithStyles(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// === Password Protection (F9) ===
+
+func TestEncryptionBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtection("user", "owner", PermAll)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Secret content")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/Filter /Standard") {
+		t.Error("missing /Filter /Standard in encrypt dict")
+	}
+	if !strings.Contains(s, "/V 1") {
+		t.Error("missing /V 1 in encrypt dict")
+	}
+	if !strings.Contains(s, "/R 2") {
+		t.Error("missing /R 2 in encrypt dict")
+	}
+	if !strings.Contains(s, "/O <") {
+		t.Error("missing /O hash in encrypt dict")
+	}
+	if !strings.Contains(s, "/U <") {
+		t.Error("missing /U hash in encrypt dict")
+	}
+	if !strings.Contains(s, "/Encrypt") {
+		t.Error("missing /Encrypt in trailer")
+	}
+	if !strings.Contains(s, "/ID [") {
+		t.Error("missing /ID in trailer")
+	}
+}
+
+func TestEncryptionOwnerOnly(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtection("", "owner123", PermPrint|PermCopy)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Open without password")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/Filter /Standard") {
+		t.Error("missing encryption filter")
+	}
+}
+
+func TestEncryptionStreamEncrypted(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtection("pass", "owner", PermAll)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Encrypted text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// The plaintext "Encrypted text" should NOT appear in the raw PDF
+	// because streams are RC4-encrypted.
+	if strings.Contains(s, "(Encrypted text)") {
+		t.Error("plaintext should not appear in encrypted PDF streams")
+	}
+}
+
+func TestEncryptionPermissions(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtection("", "owner", PermPrint) // only print
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/P ") {
+		t.Error("missing /P permissions in encrypt dict")
+	}
+}
+
+func TestEncryptionDoesNotBreakStructure(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtection("test", "test", PermAll)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Hello")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Basic PDF structure should still be present.
+	if !strings.HasPrefix(s, "%PDF-1.4") {
+		t.Error("missing PDF header")
+	}
+	if !strings.Contains(s, "/Type /Page") {
+		t.Error("missing Page object")
+	}
+	if !strings.Contains(s, "/Type /Catalog") {
+		t.Error("missing Catalog")
+	}
+	if !strings.Contains(s, "%%EOF") {
+		t.Error("missing EOF marker")
+	}
+}
+
+func TestNoEncryptionDefault(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "No encryption")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if strings.Contains(s, "/Filter /Standard") {
+		t.Error("should not have encryption when not set")
+	}
+	if strings.Contains(s, "/Encrypt") {
+		t.Error("should not have /Encrypt in trailer when not set")
+	}
+}

@@ -20,6 +20,11 @@ type Writer struct {
 	n       int   // current (highest allocated) object number
 	offsets []int // offsets[objNum] = byte position in buf
 	err     error
+
+	// encryption state
+	encKey     []byte // file encryption key (nil = no encryption)
+	currentObj int    // object number being written (for per-object key)
+	encryptFn  func(key []byte, objNum, genNum int, data []byte) []byte
 }
 
 // NewWriter creates a Writer with objects 1 and 2 reserved.
@@ -38,10 +43,18 @@ func (w *Writer) NewObj() int {
 		return 0
 	}
 	w.n++
+	w.currentObj = w.n
 	w.grow(w.n)
 	w.offsets[w.n] = w.buf.Len()
 	fmt.Fprintf(&w.buf, "%d 0 obj\n", w.n)
 	return w.n
+}
+
+// SetEncryption enables RC4 encryption for all subsequently written streams.
+// encryptFn receives (key, objNum, genNum, data) and returns encrypted data.
+func (w *Writer) SetEncryption(key []byte, fn func(key []byte, objNum, genNum int, data []byte) []byte) {
+	w.encKey = key
+	w.encryptFn = fn
 }
 
 // EndObj writes "endobj\n".
@@ -72,9 +85,14 @@ func (w *Writer) Put(s string) {
 
 // PutStream writes a raw (uncompressed) stream.
 // The caller must have already written the dictionary with /Length.
+// If encryption is enabled, the stream data is encrypted with the
+// per-object RC4 key.
 func (w *Writer) PutStream(data []byte) {
 	if w.err != nil {
 		return
+	}
+	if w.encKey != nil && w.encryptFn != nil {
+		data = w.encryptFn(w.encKey, w.currentObj, 0, data)
 	}
 	w.buf.WriteString("stream\n")
 	w.buf.Write(data)
@@ -149,6 +167,13 @@ func (w *Writer) WriteXref() int {
 
 // WriteTrailer writes the trailer dictionary.
 func (w *Writer) WriteTrailer(rootObjNum, infoObjNum int) {
+	w.WriteTrailerEncrypt(rootObjNum, infoObjNum, 0, nil)
+}
+
+// WriteTrailerEncrypt writes the trailer with optional encryption refs.
+// encryptObjNum is the /Encrypt dict object number (0 = no encryption).
+// fileID is the document ID for /ID array (nil = omit).
+func (w *Writer) WriteTrailerEncrypt(rootObjNum, infoObjNum, encryptObjNum int, fileID []byte) {
 	if w.err != nil {
 		return
 	}
@@ -157,6 +182,13 @@ func (w *Writer) WriteTrailer(rootObjNum, infoObjNum int) {
 	fmt.Fprintf(&w.buf, "/Size %d\n", w.n+1)
 	fmt.Fprintf(&w.buf, "/Root %d 0 R\n", rootObjNum)
 	fmt.Fprintf(&w.buf, "/Info %d 0 R\n", infoObjNum)
+	if encryptObjNum > 0 {
+		fmt.Fprintf(&w.buf, "/Encrypt %d 0 R\n", encryptObjNum)
+	}
+	if fileID != nil {
+		hex := fmt.Sprintf("%x", fileID)
+		fmt.Fprintf(&w.buf, "/ID [<%s> <%s>]\n", hex, hex)
+	}
 	w.buf.WriteString(">>\n")
 }
 

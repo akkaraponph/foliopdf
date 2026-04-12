@@ -87,6 +87,12 @@ type Document struct {
 	inFooter       bool
 	lastPageClosed bool // true after final page footer has been called
 
+	// encryption (password protection)
+	encrypted   bool
+	userPw      string
+	ownerPw     string
+	permissions int32
+
 	// error accumulation
 	err error
 }
@@ -534,6 +540,29 @@ func (d *Document) AddBookmark(title string, level int) {
 		y:     d.currentPage.y,
 	})
 }
+
+// SetProtection enables password protection on the PDF.
+// userPw is required to open the document (empty string = no open password).
+// ownerPw is required to change permissions.
+// permissions is a bitmask: PermPrint (4), PermModify (8), PermCopy (16), PermAnnotate (32).
+// Use PermAll for all permissions. When only ownerPw is set, the document
+// opens freely but modifications require the owner password.
+func (d *Document) SetProtection(userPw, ownerPw string, permissions int) {
+	d.encrypted = true
+	d.userPw = userPw
+	d.ownerPw = ownerPw
+	// Standard permission value: must set reserved high bits per PDF spec.
+	d.permissions = int32(permissions) | int32(-4)
+}
+
+// Permission flag constants for PDF standard security handler.
+const (
+	PermPrint    = 1 << 2
+	PermModify   = 1 << 3
+	PermCopy     = 1 << 4
+	PermAnnotate = 1 << 5
+	PermAll      = PermPrint | PermModify | PermCopy | PermAnnotate
+)
 
 // SetUnderline enables or disables underlining for subsequent text.
 func (d *Document) SetUnderline(on bool) { d.underline = on }
