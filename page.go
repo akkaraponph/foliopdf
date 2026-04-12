@@ -24,12 +24,59 @@ type Page struct {
 	fontStyle  string
 	fontSizePt float64
 	fontEntry  *resources.FontEntry
+
+	// next is a forwarding pointer set by auto page break. When a page
+	// break occurs, the old page's next points to the new page so that
+	// stale *Page references transparently follow to the active page.
+	next *Page
+}
+
+// --- Page break support ---
+
+// active follows the forwarding chain to the current active page.
+// When auto page break creates a new page, the old page's next field
+// points to it. This lets stale *Page references seamlessly reach the
+// latest page.
+func (p *Page) active() *Page {
+	for p.next != nil {
+		p = p.next
+	}
+	return p
+}
+
+// checkPageBreak creates a new page if content of height h would overflow
+// past the bottom margin. Returns the page to draw on (p itself or the
+// newly created page).
+func (p *Page) checkPageBreak(h float64) *Page {
+	d := p.doc
+	if !d.autoPageBreak {
+		return p
+	}
+	// Would content overflow?
+	if p.y+h <= p.h-d.bMargin {
+		return p
+	}
+	// If we're already at the top margin (fresh page), allow overflow to
+	// prevent an infinite loop when a single cell is taller than the page.
+	if p.y <= d.tMargin {
+		return p
+	}
+	np := d.AddPage(p.size)
+	p.next = np
+	return np
+}
+
+// PageBreakTrigger returns the Y position (in user units) at which an
+// automatic page break would be triggered.
+func (p *Page) PageBreakTrigger() float64 {
+	return p.h - p.doc.bMargin
 }
 
 // --- Text methods ---
 
 // TextAt draws text at the given position (in user units, top-left origin).
 func (p *Page) TextAt(x, y float64, text string) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -66,6 +113,7 @@ func (p *Page) TextAt(x, y float64, text string) {
 
 // SetFont sets the font for this page.
 func (p *Page) SetFont(family, style string, size float64) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -83,6 +131,7 @@ func (p *Page) SetFont(family, style string, size float64) {
 
 // SetFontSize changes the font size for this page without changing the family or style.
 func (p *Page) SetFontSize(size float64) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -98,6 +147,7 @@ func (p *Page) SetFontSize(size float64) {
 // SetFontStyle changes the font style for this page (e.g. "B", "I", "BI", "")
 // without changing the family or size. The font family+style must already be registered.
 func (p *Page) SetFontStyle(style string) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -126,6 +176,7 @@ func (p *Page) SetFontStyle(style string) {
 
 // GetFontFamily returns the effective font family for this page.
 func (p *Page) GetFontFamily() string {
+	p = p.active()
 	if p.fontFamily != "" {
 		return p.fontFamily
 	}
@@ -134,6 +185,7 @@ func (p *Page) GetFontFamily() string {
 
 // GetFontStyle returns the effective font style for this page.
 func (p *Page) GetFontStyle() string {
+	p = p.active()
 	if p.fontEntry != nil {
 		return p.fontStyle
 	}
@@ -142,11 +194,12 @@ func (p *Page) GetFontStyle() string {
 
 // GetFontSize returns the effective font size in points for this page.
 func (p *Page) GetFontSize() float64 {
-	return p.effectiveFontSizePt()
+	return p.active().effectiveFontSizePt()
 }
 
 // GetStringWidth returns the width of s in user units using the current font.
 func (p *Page) GetStringWidth(s string) float64 {
+	p = p.active()
 	fe := p.effectiveFontEntry()
 	if fe == nil {
 		return 0
@@ -164,6 +217,7 @@ func (p *Page) GetStringWidth(s string) float64 {
 
 // Line draws a line segment from (x1,y1) to (x2,y2) in user units.
 func (p *Page) Line(x1, y1, x2, y2 float64) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -181,6 +235,7 @@ func (p *Page) Line(x1, y1, x2, y2 float64) {
 
 // Rect draws a rectangle. style: "D" (draw/stroke), "F" (fill), "DF" or "FD" (both).
 func (p *Page) Rect(x, y, w, h float64, style string) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -204,6 +259,7 @@ func (p *Page) Rect(x, y, w, h float64, style string) {
 
 // DrawImageRect draws a registered image at (x, y) with the given width and height.
 func (p *Page) DrawImageRect(name string, x, y, w, h float64) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -233,9 +289,11 @@ func (p *Page) DrawImageRect(name string, x, y, w, h float64) {
 // fill: if true, fill background with current fill color
 // ln: 0 = cursor right, 1 = next line, 2 = below
 func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
+	p = p.checkPageBreak(h)
 	d := p.doc
 	k := d.k
 
@@ -345,6 +403,7 @@ func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int)
 // align: "L", "C", "R", "J" (justified)
 // fill: if true, fill background with current fill color
 func (p *Page) MultiCell(w, h float64, text, border, align string, fill bool) {
+	p = p.active()
 	if p.doc.err != nil {
 		return
 	}
@@ -368,6 +427,8 @@ func (p *Page) MultiCell(w, h float64, text, border, align string, fill bool) {
 	lines := p.wrapText(text, fe, wmax)
 
 	for i, line := range lines {
+		p = p.active()
+
 		// Determine borders for this line
 		b := ""
 		if border == "1" {
@@ -397,6 +458,7 @@ func (p *Page) MultiCell(w, h float64, text, border, align string, fill bool) {
 	}
 
 	// Move to left margin
+	p = p.active()
 	p.x = d.lMargin
 }
 
@@ -600,19 +662,19 @@ func (p *Page) drawBorderLine(x1, y1, x2, y2 float64) {
 // --- Cursor methods ---
 
 // SetX sets the X cursor position.
-func (p *Page) SetX(x float64) { p.x = x }
+func (p *Page) SetX(x float64) { p.active().x = x }
 
 // SetY sets the Y cursor position.
-func (p *Page) SetY(y float64) { p.y = y }
+func (p *Page) SetY(y float64) { p.active().y = y }
 
 // SetXY sets both cursor positions.
-func (p *Page) SetXY(x, y float64) { p.x = x; p.y = y }
+func (p *Page) SetXY(x, y float64) { q := p.active(); q.x = x; q.y = y }
 
 // GetX returns the current X cursor position.
-func (p *Page) GetX() float64 { return p.x }
+func (p *Page) GetX() float64 { return p.active().x }
 
 // GetY returns the current Y cursor position.
-func (p *Page) GetY() float64 { return p.y }
+func (p *Page) GetY() float64 { return p.active().y }
 
 // --- Internal ---
 

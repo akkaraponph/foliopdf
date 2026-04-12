@@ -2,6 +2,7 @@ package folio
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -704,5 +705,158 @@ func TestAddUTF8FontFromFile(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "/Subtype /Type0") {
 		t.Error("missing Type0 font")
+	}
+}
+
+// --- Auto page break tests ---
+
+func TestAutoPageBreak(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 15)
+	page := doc.AddPage(A4)
+
+	// A4 = 297mm height. Top margin 10mm, bottom margin 15mm.
+	// Available: 272mm. Cell height: 10mm. 27 cells fit on page 1.
+	// Cell 28 triggers a break → page 2.
+	for i := 0; i < 30; i++ {
+		page.Cell(0, 10, fmt.Sprintf("Line %d", i+1), "", "L", false, 1)
+	}
+
+	if n := doc.PageCount(); n != 2 {
+		t.Errorf("expected 2 pages, got %d", n)
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "/Count 2") {
+		t.Error("PDF should have 2 pages")
+	}
+}
+
+func TestAutoPageBreakMultiplePages(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 15)
+	page := doc.AddPage(A4)
+
+	// 100 cells × 10mm. ~27 cells/page → 4 pages.
+	for i := 0; i < 100; i++ {
+		page.Cell(0, 10, "X", "", "L", false, 1)
+	}
+
+	if n := doc.PageCount(); n != 4 {
+		t.Errorf("expected 4 pages, got %d", n)
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAutoPageBreakForwarding(t *testing.T) {
+	doc := New()
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 15)
+	page := doc.AddPage(A4)
+
+	// Fill page 1 to trigger a break.
+	for i := 0; i < 30; i++ {
+		page.Cell(0, 10, "X", "", "L", false, 1)
+	}
+
+	// The original page variable should forward to the active page.
+	// After 30 cells (27 on page 1, 3 on page 2), cursor should be
+	// near the top of page 2.
+	y := page.GetY()
+	if y < 20 || y > 50 {
+		t.Errorf("expected cursor near top of page 2, got y=%f", y)
+	}
+
+	// CurrentPage should be page 2.
+	if doc.CurrentPage() == nil {
+		t.Fatal("CurrentPage should not be nil")
+	}
+	if doc.PageCount() != 2 {
+		t.Errorf("expected 2 pages, got %d", doc.PageCount())
+	}
+}
+
+func TestAutoPageBreakDisabled(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	// Auto page break NOT enabled (default).
+	page := doc.AddPage(A4)
+
+	for i := 0; i < 50; i++ {
+		page.Cell(0, 10, "X", "", "L", false, 1)
+	}
+
+	// All content on one page — no automatic breaks.
+	if n := doc.PageCount(); n != 1 {
+		t.Errorf("expected 1 page (no auto break), got %d", n)
+	}
+}
+
+func TestAutoPageBreakMultiCell(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 15)
+	page := doc.AddPage(A4)
+
+	// Write a very long text via MultiCell. Each line is ~6mm tall.
+	// With 272mm available, ~45 lines fit per page.
+	long := strings.Repeat("This is a line of text that will be wrapped. ", 120)
+	page.MultiCell(0, 6, long, "", "L", false)
+
+	if n := doc.PageCount(); n < 2 {
+		t.Errorf("expected at least 2 pages from long MultiCell, got %d", n)
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPageBreakTrigger(t *testing.T) {
+	doc := New()
+	doc.SetAutoPageBreak(true, 20)
+	page := doc.AddPage(A4)
+
+	// A4 height in mm ≈ 297. Trigger = 297 - 20 = 277.
+	trigger := page.PageBreakTrigger()
+	if trigger < 276 || trigger > 278 {
+		t.Errorf("expected trigger ~277, got %f", trigger)
+	}
+}
+
+func TestCurrentPageAndPageCount(t *testing.T) {
+	doc := New()
+	if doc.PageCount() != 0 {
+		t.Errorf("expected 0 pages initially, got %d", doc.PageCount())
+	}
+
+	p1 := doc.AddPage(A4)
+	if doc.PageCount() != 1 {
+		t.Errorf("expected 1 page, got %d", doc.PageCount())
+	}
+	if doc.CurrentPage() != p1 {
+		t.Error("CurrentPage should be p1")
+	}
+
+	p2 := doc.AddPage(A4)
+	if doc.PageCount() != 2 {
+		t.Errorf("expected 2 pages, got %d", doc.PageCount())
+	}
+	if doc.CurrentPage() != p2 {
+		t.Error("CurrentPage should be p2")
 	}
 }

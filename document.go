@@ -28,8 +28,9 @@ type Document struct {
 	lMargin  float64 // left margin in user units
 	tMargin  float64 // top margin
 	rMargin  float64 // right margin
-	bMargin  float64 // bottom margin
-	cMargin  float64 // cell margin
+	bMargin       float64 // bottom margin
+	cMargin       float64 // cell margin
+	autoPageBreak bool    // automatic page breaking
 
 	// pages
 	pages       []*Page
@@ -117,6 +118,25 @@ func (d *Document) SetMargins(left, top, right float64) {
 	d.lMargin = left
 	d.tMargin = top
 	d.rMargin = right
+}
+
+// SetAutoPageBreak enables or disables automatic page breaking.
+// When enabled, Cell and MultiCell automatically create a new page when
+// content would overflow past the bottom margin. margin sets the bottom
+// margin distance from the page edge (in user units).
+func (d *Document) SetAutoPageBreak(auto bool, margin float64) {
+	d.autoPageBreak = auto
+	d.bMargin = margin
+}
+
+// CurrentPage returns the most recently added page (the active drawing target).
+func (d *Document) CurrentPage() *Page {
+	return d.currentPage
+}
+
+// PageCount returns the number of pages in the document.
+func (d *Document) PageCount() int {
+	return len(d.pages)
 }
 
 // SetFont sets the current font. Core fonts are auto-registered.
