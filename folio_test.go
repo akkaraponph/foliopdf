@@ -860,3 +860,204 @@ func TestCurrentPageAndPageCount(t *testing.T) {
 		t.Error("CurrentPage should be p2")
 	}
 }
+
+// --- Header/footer tests ---
+
+func TestHeaderFooter(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	headerCalls := 0
+	footerCalls := 0
+
+	doc.SetHeaderFunc(func(p *Page) {
+		headerCalls++
+		doc.SetFont("helvetica", "I", 8)
+		p.Cell(0, 5, "Document Header", "", "C", false, 1)
+	})
+	doc.SetFooterFunc(func(p *Page) {
+		footerCalls++
+		p.SetY(-15)
+		doc.SetFont("helvetica", "I", 8)
+		p.Cell(0, 10, fmt.Sprintf("Page %d", doc.PageNo()), "", "C", false, 0)
+	})
+
+	doc.AddPage(A4)
+	doc.AddPage(A4)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if headerCalls != 2 {
+		t.Errorf("expected 2 header calls, got %d", headerCalls)
+	}
+	// Footer: page 1 footer called during AddPage(page 2), page 2 footer
+	// called during WriteTo → closeDoc.
+	if footerCalls != 2 {
+		t.Errorf("expected 2 footer calls, got %d", footerCalls)
+	}
+
+	s := buf.String()
+	if !strings.Contains(s, "Document Header") {
+		t.Error("missing header text in PDF")
+	}
+}
+
+func TestHeaderFooterPageNo(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	pageNos := []int{}
+	doc.SetFooterFunc(func(p *Page) {
+		pageNos = append(pageNos, doc.PageNo())
+	})
+
+	doc.AddPage(A4)
+	doc.AddPage(A4)
+	doc.AddPage(A4)
+
+	doc.WriteTo(&bytes.Buffer{})
+
+	// Footer for page 1 is called during AddPage(2) → PageNo()=1 at that point?
+	// Actually: footer on page 1 is called before page 2 is added, so
+	// len(pages) = 1 → PageNo() = 1.
+	// Footer on page 2 is called before page 3 is added → PageNo() = 2.
+	// Footer on page 3 is called during closeDoc → PageNo() = 3.
+	if len(pageNos) != 3 {
+		t.Fatalf("expected 3 footer calls, got %d", len(pageNos))
+	}
+	for i, pn := range pageNos {
+		if pn != i+1 {
+			t.Errorf("footer call %d: expected PageNo=%d, got %d", i, i+1, pn)
+		}
+	}
+}
+
+func TestHeaderFooterWithAutoBreak(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 20)
+
+	headerCalls := 0
+	footerCalls := 0
+
+	doc.SetHeaderFunc(func(p *Page) {
+		headerCalls++
+		doc.SetFont("helvetica", "B", 10)
+		p.Cell(0, 8, "HEADER", "", "C", false, 1)
+	})
+	doc.SetFooterFunc(func(p *Page) {
+		footerCalls++
+		p.SetY(-20)
+		doc.SetFont("helvetica", "I", 8)
+		p.Cell(0, 10, fmt.Sprintf("- %d -", doc.PageNo()), "", "C", false, 0)
+	})
+
+	page := doc.AddPage(A4)
+	// Write enough cells to trigger automatic page breaks.
+	for i := 0; i < 60; i++ {
+		page.Cell(0, 10, fmt.Sprintf("Row %d", i+1), "", "L", false, 1)
+	}
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// With header (8mm) + top margin (10mm) + bottom margin (20mm),
+	// available per page ≈ 297 - 10 - 20 = 267, minus header 8 = 259mm.
+	// 259/10 ≈ 25 cells per page. 60 cells → 3 pages.
+	if doc.PageCount() < 2 {
+		t.Errorf("expected at least 2 pages, got %d", doc.PageCount())
+	}
+	if headerCalls != doc.PageCount() {
+		t.Errorf("expected %d header calls, got %d", doc.PageCount(), headerCalls)
+	}
+	if footerCalls != doc.PageCount() {
+		t.Errorf("expected %d footer calls, got %d", doc.PageCount(), footerCalls)
+	}
+}
+
+func TestHeaderFooterStateRestore(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 14)
+	doc.SetTextColor(0, 0, 0)
+
+	doc.SetHeaderFunc(func(p *Page) {
+		// Header uses a different font and color.
+		doc.SetFont("courier", "B", 8)
+		doc.SetTextColor(255, 0, 0)
+		p.Cell(0, 5, "RED COURIER HEADER", "", "L", false, 1)
+	})
+
+	page := doc.AddPage(A4)
+
+	// After header, document state should be restored.
+	if doc.GetFontFamily() != "helvetica" {
+		t.Errorf("font family not restored: got %q", doc.GetFontFamily())
+	}
+	if doc.GetFontSize() != 14 {
+		t.Errorf("font size not restored: got %f", doc.GetFontSize())
+	}
+
+	page.Cell(0, 10, "Body text", "", "L", false, 1)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestFooterOnLastPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	footerPages := []int{}
+	doc.SetFooterFunc(func(p *Page) {
+		footerPages = append(footerPages, doc.PageNo())
+	})
+
+	doc.AddPage(A4)
+	// Only one page — footer should still be called during WriteTo.
+
+	doc.WriteTo(&bytes.Buffer{})
+
+	if len(footerPages) != 1 {
+		t.Fatalf("expected 1 footer call, got %d", len(footerPages))
+	}
+	if footerPages[0] != 1 {
+		t.Errorf("footer should report page 1, got %d", footerPages[0])
+	}
+}
+
+func TestNegativeSetY(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4)
+
+	page.SetY(-15)
+	// A4 height ≈ 297mm. -15 → 297 - 15 = 282.
+	y := page.GetY()
+	if y < 281 || y > 283 {
+		t.Errorf("expected y ≈ 282, got %f", y)
+	}
+}
+
+func TestPageWidthHeight(t *testing.T) {
+	doc := New()
+	page := doc.AddPage(A4)
+
+	// A4 in mm: 210 × 297
+	w := page.Width()
+	h := page.Height()
+	if w < 209 || w > 211 {
+		t.Errorf("expected width ≈ 210, got %f", w)
+	}
+	if h < 296 || h > 298 {
+		t.Errorf("expected height ≈ 297, got %f", h)
+	}
+}

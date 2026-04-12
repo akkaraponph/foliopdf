@@ -49,7 +49,7 @@ func (p *Page) active() *Page {
 // newly created page).
 func (p *Page) checkPageBreak(h float64) *Page {
 	d := p.doc
-	if !d.autoPageBreak {
+	if !d.autoPageBreak || d.inHeader || d.inFooter {
 		return p
 	}
 	// Would content overflow?
@@ -659,16 +659,40 @@ func (p *Page) drawBorderLine(x1, y1, x2, y2 float64) {
 	p.stream.Stroke()
 }
 
+// --- Dimension getters ---
+
+// Width returns the page width in user units.
+func (p *Page) Width() float64 { return p.active().w }
+
+// Height returns the page height in user units.
+func (p *Page) Height() float64 { return p.active().h }
+
 // --- Cursor methods ---
 
 // SetX sets the X cursor position.
 func (p *Page) SetX(x float64) { p.active().x = x }
 
-// SetY sets the Y cursor position.
-func (p *Page) SetY(y float64) { p.active().y = y }
+// SetY sets the Y cursor position. A negative value is interpreted as
+// distance from the bottom of the page (e.g. -15 means 15 user-units
+// above the page edge), which is convenient for footer positioning.
+func (p *Page) SetY(y float64) {
+	q := p.active()
+	if y < 0 {
+		y = q.h + y
+	}
+	q.y = y
+}
 
-// SetXY sets both cursor positions.
-func (p *Page) SetXY(x, y float64) { q := p.active(); q.x = x; q.y = y }
+// SetXY sets both cursor positions. A negative y is interpreted as
+// distance from the bottom of the page.
+func (p *Page) SetXY(x, y float64) {
+	q := p.active()
+	if y < 0 {
+		y = q.h + y
+	}
+	q.x = x
+	q.y = y
+}
 
 // GetX returns the current X cursor position.
 func (p *Page) GetX() float64 { return p.active().x }

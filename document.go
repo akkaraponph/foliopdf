@@ -58,6 +58,13 @@ type Document struct {
 	// respects word boundaries.
 	wordBreaker WordBreakFunc
 
+	// header/footer callbacks
+	headerFunc     func(*Page)
+	footerFunc     func(*Page)
+	inHeader       bool
+	inFooter       bool
+	lastPageClosed bool // true after final page footer has been called
+
 	// error accumulation
 	err error
 }
@@ -137,6 +144,114 @@ func (d *Document) CurrentPage() *Page {
 // PageCount returns the number of pages in the document.
 func (d *Document) PageCount() int {
 	return len(d.pages)
+}
+
+// PageNo returns the current page number (1-based).
+func (d *Document) PageNo() int {
+	return len(d.pages)
+}
+
+// SetHeaderFunc sets a function that is called at the top of every new page.
+// The callback receives the new page and may draw a header (title, rule,
+// logo, etc.). Document state (font, colors) is automatically saved before
+// and restored after the callback, so the header cannot leak visual state
+// into the page body. The cursor Y position is left where the header ends,
+// so body content starts below it.
+func (d *Document) SetHeaderFunc(f func(*Page)) {
+	d.headerFunc = f
+}
+
+// SetFooterFunc sets a function that is called at the bottom of every page.
+// It runs on the outgoing page just before a new page is created (via
+// AddPage or auto page break) and on the last page during serialization.
+// Document state is saved/restored around the call. Use page.SetY with a
+// negative value to position from the bottom (e.g. page.SetY(-15) places
+// the cursor 15 user-units above the page edge).
+func (d *Document) SetFooterFunc(f func(*Page)) {
+	d.footerFunc = f
+}
+
+// docState holds a snapshot of the mutable document-level visual state so
+// it can be saved before and restored after header/footer callbacks.
+type docState struct {
+	fontFamily string
+	fontStyle  string
+	fontSizePt float64
+	fontEntry  *resources.FontEntry
+	drawColor  state.Color
+	fillColor  state.Color
+	textColor  state.Color
+	lineWidth  float64
+}
+
+func (d *Document) saveDocState() docState {
+	return docState{
+		fontFamily: d.fontFamily,
+		fontStyle:  d.fontStyle,
+		fontSizePt: d.fontSizePt,
+		fontEntry:  d.fontEntry,
+		drawColor:  d.drawColor,
+		fillColor:  d.fillColor,
+		textColor:  d.textColor,
+		lineWidth:  d.lineWidth,
+	}
+}
+
+func (d *Document) restoreDocState(s docState) {
+	d.fontFamily = s.fontFamily
+	d.fontStyle = s.fontStyle
+	d.fontSizePt = s.fontSizePt
+	d.fontEntry = s.fontEntry
+	d.drawColor = s.drawColor
+	d.fillColor = s.fillColor
+	d.textColor = s.textColor
+	d.lineWidth = s.lineWidth
+}
+
+// callHeader invokes the header callback on p, wrapped in a graphics-state
+// save/restore and document-state save/restore.
+func (d *Document) callHeader(p *Page) {
+	if d.headerFunc == nil {
+		return
+	}
+	saved := d.saveDocState()
+	p.stream.SaveState()
+	d.inHeader = true
+	d.headerFunc(p)
+	d.inHeader = false
+	p.stream.RestoreState()
+	d.restoreDocState(saved)
+	// Re-apply the restored font to the page stream (the PDF Q operator
+	// restores graphics state but not the text font).
+	if d.fontEntry != nil {
+		p.applyFont(d.fontEntry, d.fontSizePt)
+	}
+}
+
+// callFooter invokes the footer callback on p, wrapped in state save/restore.
+func (d *Document) callFooter(p *Page) {
+	if d.footerFunc == nil {
+		return
+	}
+	saved := d.saveDocState()
+	p.stream.SaveState()
+	d.inFooter = true
+	d.footerFunc(p)
+	d.inFooter = false
+	p.stream.RestoreState()
+	d.restoreDocState(saved)
+	if d.fontEntry != nil {
+		p.applyFont(d.fontEntry, d.fontSizePt)
+	}
+}
+
+// closeDoc finalises the last page (calls its footer) before serialisation.
+func (d *Document) closeDoc() {
+	if d.lastPageClosed || d.currentPage == nil {
+		return
+	}
+	d.callFooter(d.currentPage)
+	d.lastPageClosed = true
 }
 
 // SetFont sets the current font. Core fonts are auto-registered.
@@ -263,9 +378,17 @@ func (d *Document) SetLineWidth(w float64) {
 }
 
 // AddPage adds a new page with the given size and returns it.
+// If a footer function is set, it is called on the outgoing page first.
+// If a header function is set, it is called on the new page after creation.
 func (d *Document) AddPage(size PageSize) *Page {
 	if d.err != nil {
 		return &Page{doc: d}
+	}
+
+	// Call footer on the outgoing page (skip if we're already inside a
+	// header/footer to prevent recursion).
+	if d.currentPage != nil && !d.inHeader && !d.inFooter {
+		d.callFooter(d.currentPage)
 	}
 
 	p := &Page{
@@ -279,6 +402,7 @@ func (d *Document) AddPage(size PageSize) *Page {
 
 	d.pages = append(d.pages, p)
 	d.currentPage = p
+	d.lastPageClosed = false
 
 	// Emit initial page state
 	p.stream.SetLineWidth(d.lineWidth * d.k)
@@ -300,6 +424,11 @@ func (d *Document) AddPage(size PageSize) *Page {
 	}
 	if !d.fillColor.IsBlack() {
 		p.stream.SetFillColorRGB(d.fillColor.R, d.fillColor.G, d.fillColor.B)
+	}
+
+	// Call header on the new page (skip if inside header/footer).
+	if !d.inHeader && !d.inFooter {
+		d.callHeader(p)
 	}
 
 	return p
@@ -342,6 +471,7 @@ func (d *Document) WriteTo(w io.Writer) (int64, error) {
 	if d.err != nil {
 		return 0, d.err
 	}
+	d.closeDoc()
 	pw, err := d.serialize()
 	if err != nil {
 		return 0, err
