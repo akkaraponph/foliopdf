@@ -44,6 +44,12 @@ func (s *Stream) SetLineJoin(style int) {
 	fmt.Fprintf(&s.buf, "%d j\n", style)
 }
 
+// SetExtGState emits the gs operator to set an extended graphics state
+// resource by name (e.g. "GS1").
+func (s *Stream) SetExtGState(name string) {
+	fmt.Fprintf(&s.buf, "/%s gs\n", name)
+}
+
 // ConcatMatrix emits the cm operator to concatenate a transformation matrix
 // with the current transformation matrix (CTM). The six values define:
 //

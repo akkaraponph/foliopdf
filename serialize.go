@@ -29,16 +29,19 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 4. Images
 	d.putImages(w)
 
-	// 5. Resource dictionary at obj 2
+	// 5. ExtGState (alpha transparency)
+	d.putExtGStates(w)
+
+	// 6. Resource dictionary at obj 2
 	d.putResourceDict(w)
 
-	// 6. Info dictionary
+	// 7. Info dictionary
 	infoObjNum := d.putInfo(w)
 
-	// 7. Catalog
+	// 8. Catalog
 	catalogObjNum := d.putCatalog(w, pageObjNums)
 
-	// 8. Xref
+	// 9. Xref
 	xrefOffset := w.WriteXref()
 
 	// 9. Trailer
@@ -397,6 +400,20 @@ func (d *Document) putImages(w *pdfcore.Writer) {
 	}
 }
 
+// putExtGStates writes ExtGState objects for alpha transparency.
+func (d *Document) putExtGStates(w *pdfcore.Writer) {
+	for _, ae := range d.alphaStates {
+		n := w.NewObj()
+		ae.objNum = n
+		w.Put("<<")
+		w.Put("/Type /ExtGState")
+		w.Putf("/ca %.3f", ae.alpha) // fill opacity
+		w.Putf("/CA %.3f", ae.alpha) // stroke opacity
+		w.Put(">>")
+		w.EndObj()
+	}
+}
+
 // putResourceDict writes the shared resource dictionary at object 2.
 func (d *Document) putResourceDict(w *pdfcore.Writer) {
 	w.SetOffset(2)
@@ -421,6 +438,16 @@ func (d *Document) putResourceDict(w *pdfcore.Writer) {
 		s := "/XObject <<"
 		for _, ie := range images {
 			s += fmt.Sprintf(" /Im%s %d 0 R", ie.Name, ie.ObjNum)
+		}
+		s += " >>"
+		w.Put(s)
+	}
+
+	// ExtGState references (alpha transparency)
+	if len(d.alphaStates) > 0 {
+		s := "/ExtGState <<"
+		for _, ae := range d.alphaStates {
+			s += fmt.Sprintf(" /%s %d 0 R", ae.name, ae.objNum)
 		}
 		s += " >>"
 		w.Put(s)

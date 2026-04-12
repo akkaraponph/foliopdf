@@ -2265,3 +2265,205 @@ func TestTranslateDirection(t *testing.T) {
 		t.Error("translate should have identity rotation/scale components")
 	}
 }
+
+// --- Alpha transparency tests ---
+
+func TestSetAlpha(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	doc.SetAlpha(0.5)
+	page.TextAt(20, 30, "Semi-transparent text")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Should have ExtGState object with ca and CA.
+	if !strings.Contains(s, "/Type /ExtGState") {
+		t.Error("missing ExtGState object")
+	}
+	if !strings.Contains(s, "/ca 0.500") {
+		t.Error("missing fill opacity /ca")
+	}
+	if !strings.Contains(s, "/CA 0.500") {
+		t.Error("missing stroke opacity /CA")
+	}
+	// Resource dict should reference ExtGState.
+	if !strings.Contains(s, "/ExtGState") {
+		t.Error("missing /ExtGState in resource dict")
+	}
+	// Content stream should have gs operator.
+	if !strings.Contains(s, "/GS1 gs") {
+		t.Error("missing gs operator in content stream")
+	}
+}
+
+func TestAlphaMultipleValues(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	doc.SetAlpha(0.3)
+	page.TextAt(20, 30, "Light")
+	doc.SetAlpha(0.7)
+	page.TextAt(20, 50, "Medium")
+	doc.SetAlpha(1.0)
+	page.TextAt(20, 70, "Opaque")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Three distinct alpha states.
+	gsCount := strings.Count(s, "/Type /ExtGState")
+	if gsCount != 3 {
+		t.Errorf("expected 3 ExtGState objects, got %d", gsCount)
+	}
+	// Three gs operator calls.
+	if !strings.Contains(s, "/GS1 gs") || !strings.Contains(s, "/GS2 gs") || !strings.Contains(s, "/GS3 gs") {
+		t.Error("missing gs operator calls for different alpha values")
+	}
+}
+
+func TestAlphaDedup(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	doc.SetAlpha(0.5)
+	page.TextAt(20, 30, "First")
+	doc.SetAlpha(0.5) // same value — should reuse
+	page.TextAt(20, 50, "Second")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Only one ExtGState object (dedup).
+	gsCount := strings.Count(s, "/Type /ExtGState")
+	if gsCount != 1 {
+		t.Errorf("expected 1 ExtGState (dedup), got %d", gsCount)
+	}
+}
+
+func TestAlphaNoExtGStateWhenNotUsed(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Fully opaque by default")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if strings.Contains(s, "/ExtGState") {
+		t.Error("/ExtGState should not appear when alpha is never set")
+	}
+}
+
+func TestAlphaWatermarkPattern(t *testing.T) {
+	// Realistic watermark: rotated semi-transparent text.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "B", 60)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.Rotate(45, 105, 148.5)
+	doc.SetAlpha(0.2)
+	doc.SetTextColor(200, 200, 200)
+	page.TextAt(30, 148.5, "DRAFT")
+	doc.SetAlpha(1.0)
+	page.TransformEnd()
+
+	// Draw normal content on top.
+	doc.SetTextColor(0, 0, 0)
+	doc.SetFont("helvetica", "", 12)
+	page.TextAt(20, 30, "Normal content")
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	if !strings.Contains(s, "DRAFT") {
+		t.Error("missing watermark text")
+	}
+	if !strings.Contains(s, "Normal content") {
+		t.Error("missing normal content")
+	}
+	if !strings.Contains(s, "/ca 0.200") {
+		t.Error("missing 0.2 opacity")
+	}
+	if !strings.Contains(s, " cm\n") {
+		t.Error("missing rotation transform")
+	}
+}
+
+func TestAlphaStateRestore(t *testing.T) {
+	// Alpha should be saved/restored around header/footer callbacks.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAlpha(0.8)
+
+	doc.SetHeaderFunc(func(p *Page) {
+		doc.SetAlpha(0.3)
+		p.Cell(0, 5, "Faded header", "", "C", false, 1)
+	})
+
+	doc.AddPage(A4)
+
+	// After header, alpha should be restored to 0.8.
+	if doc.currentAlpha != 0.8 {
+		t.Errorf("alpha should be restored to 0.8 after header, got %f", doc.currentAlpha)
+	}
+}
+
+func TestAlphaOnNewPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAlpha(0.5)
+	doc.AddPage(A4)
+
+	var buf bytes.Buffer
+	_, err := doc.WriteTo(&buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+
+	// Alpha should be applied to the first page.
+	if !strings.Contains(s, "/GS1 gs") {
+		t.Error("alpha should be applied to new page")
+	}
+}
+
+func TestAlphaClamp(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+
+	doc.SetAlpha(-0.5)
+	if doc.currentAlpha != 0 {
+		t.Errorf("negative alpha should be clamped to 0, got %f", doc.currentAlpha)
+	}
+	doc.SetAlpha(1.5)
+	if doc.currentAlpha != 1 {
+		t.Errorf("alpha > 1 should be clamped to 1, got %f", doc.currentAlpha)
+	}
+}

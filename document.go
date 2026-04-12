@@ -53,6 +53,11 @@ type Document struct {
 	lineWidth     float64
 	underline     bool
 	strikethrough bool
+	currentAlpha  float64 // current opacity (0.0–1.0), default 1.0
+
+	// alpha transparency states (ExtGState resources)
+	alphaStates  []*alphaEntry
+	alphaByKey   map[string]*alphaEntry
 
 	// optional text segmenter used by MultiCell / wrapText. When nil, the
 	// default behaviour splits on ASCII whitespace. Set this to plug in a
@@ -72,6 +77,13 @@ type Document struct {
 
 	// error accumulation
 	err error
+}
+
+// alphaEntry represents a registered alpha transparency ExtGState.
+type alphaEntry struct {
+	alpha  float64 // opacity 0.0–1.0
+	name   string  // resource name: "GS1", "GS2", ...
+	objNum int     // PDF object number, set during serialization
 }
 
 // anchorDest stores the target location for an internal link destination.
@@ -111,8 +123,10 @@ func New(opts ...Option) *Document {
 		cMargin:  2,
 		fonts:    resources.NewFontRegistry(),
 		images:   resources.NewImageRegistry(),
-		anchors:  make(map[string]anchorDest),
-		lineWidth: 0.2,
+		anchors:      make(map[string]anchorDest),
+		alphaByKey:   make(map[string]*alphaEntry),
+		currentAlpha: 1.0,
+		lineWidth:    0.2,
 	}
 	for _, opt := range opts {
 		opt(d)
@@ -196,6 +210,7 @@ type docState struct {
 	lineWidth     float64
 	underline     bool
 	strikethrough bool
+	currentAlpha  float64
 }
 
 func (d *Document) saveDocState() docState {
@@ -210,6 +225,7 @@ func (d *Document) saveDocState() docState {
 		lineWidth:     d.lineWidth,
 		underline:     d.underline,
 		strikethrough: d.strikethrough,
+		currentAlpha:  d.currentAlpha,
 	}
 }
 
@@ -224,6 +240,7 @@ func (d *Document) restoreDocState(s docState) {
 	d.lineWidth = s.lineWidth
 	d.underline = s.underline
 	d.strikethrough = s.strikethrough
+	d.currentAlpha = s.currentAlpha
 }
 
 // callHeader invokes the header callback on p, wrapped in a graphics-state
@@ -387,6 +404,36 @@ func (d *Document) SetTextColor(r, g, b int) {
 	d.textColor = state.ColorFromRGB(r, g, b)
 }
 
+// SetAlpha sets the opacity for subsequent drawing operations.
+// alpha ranges from 0.0 (fully transparent) to 1.0 (fully opaque).
+// This affects both fill and stroke operations via a PDF ExtGState resource.
+func (d *Document) SetAlpha(alpha float64) {
+	if alpha < 0 {
+		alpha = 0
+	}
+	if alpha > 1 {
+		alpha = 1
+	}
+	d.currentAlpha = alpha
+
+	// Register the alpha state (dedup by value).
+	key := fmt.Sprintf("%.3f", alpha)
+	entry, ok := d.alphaByKey[key]
+	if !ok {
+		entry = &alphaEntry{
+			alpha: alpha,
+			name:  fmt.Sprintf("GS%d", len(d.alphaStates)+1),
+		}
+		d.alphaStates = append(d.alphaStates, entry)
+		d.alphaByKey[key] = entry
+	}
+
+	// Emit the gs operator on the current page.
+	if d.currentPage != nil {
+		d.currentPage.stream.SetExtGState(entry.name)
+	}
+}
+
 // SetUnderline enables or disables underlining for subsequent text.
 func (d *Document) SetUnderline(on bool) { d.underline = on }
 
@@ -448,6 +495,14 @@ func (d *Document) AddPage(size PageSize) *Page {
 	}
 	if !d.fillColor.IsBlack() {
 		p.stream.SetFillColorRGB(d.fillColor.R, d.fillColor.G, d.fillColor.B)
+	}
+
+	// Apply alpha if non-default
+	if d.currentAlpha != 1.0 {
+		key := fmt.Sprintf("%.3f", d.currentAlpha)
+		if entry, ok := d.alphaByKey[key]; ok {
+			p.stream.SetExtGState(entry.name)
+		}
 	}
 
 	// Call header on the new page (skip if inside header/footer).
