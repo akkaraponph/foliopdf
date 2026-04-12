@@ -10,8 +10,15 @@
 *.out
 *.prof
 
+# Generated PDFs and images
+examples/pdf/
+examples/pdf2jpg/output/
+
 # Dependency
 vendor/
+
+# macOS
+.DS_Store
 
 # IDE / tools
 .claude/
