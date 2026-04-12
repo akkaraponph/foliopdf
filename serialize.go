@@ -32,19 +32,22 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 5. ExtGState (alpha transparency)
 	d.putExtGStates(w)
 
-	// 6. Resource dictionary at obj 2
+	// 6. Gradients (shading objects and their functions)
+	d.putGradients(w)
+
+	// 7. Resource dictionary at obj 2
 	d.putResourceDict(w)
 
-	// 7. Info dictionary
+	// 8. Info dictionary
 	infoObjNum := d.putInfo(w)
 
-	// 8. Catalog
+	// 9. Catalog
 	catalogObjNum := d.putCatalog(w, pageObjNums)
 
-	// 9. Xref
+	// 10. Xref
 	xrefOffset := w.WriteXref()
 
-	// 9. Trailer
+	// 11. Trailer
 	w.WriteTrailer(catalogObjNum, infoObjNum)
 	w.WriteStartXref(xrefOffset)
 
@@ -414,6 +417,102 @@ func (d *Document) putExtGStates(w *pdfcore.Writer) {
 	}
 }
 
+// putGradients writes shading objects for all registered gradients.
+// Each gradient consists of a function object (Type 3 stitching function
+// that chains Type 2 exponential interpolation functions for each stop
+// pair) and a shading object (Type 2 axial or Type 3 radial).
+func (d *Document) putGradients(w *pdfcore.Writer) {
+	for _, g := range d.gradients {
+		stops := g.colors
+		if len(stops) < 2 {
+			continue
+		}
+
+		// Sort stops by position.
+		sort.Slice(stops, func(i, j int) bool { return stops[i].pos < stops[j].pos })
+
+		// Write Type 2 (exponential interpolation) functions for each stop pair.
+		nFuncs := len(stops) - 1
+		funcObjNums := make([]int, nFuncs)
+		for i := 0; i < nFuncs; i++ {
+			n := w.NewObj()
+			funcObjNums[i] = n
+			w.Put("<<")
+			w.Put("/FunctionType 2")
+			w.Put("/Domain [0 1]")
+			w.Putf("/C0 [%.4f %.4f %.4f]", stops[i].r, stops[i].g, stops[i].b)
+			w.Putf("/C1 [%.4f %.4f %.4f]", stops[i+1].r, stops[i+1].g, stops[i+1].b)
+			w.Put("/N 1")
+			w.Put(">>")
+			w.EndObj()
+		}
+
+		// Write stitching function (Type 3) if multiple stop pairs.
+		var funcRef string
+		if nFuncs == 1 {
+			funcRef = fmt.Sprintf("%d 0 R", funcObjNums[0])
+		} else {
+			n := w.NewObj()
+			w.Put("<<")
+			w.Put("/FunctionType 3")
+			w.Put("/Domain [0 1]")
+			funcs := "/Functions ["
+			for i, fn := range funcObjNums {
+				if i > 0 {
+					funcs += " "
+				}
+				funcs += fmt.Sprintf("%d 0 R", fn)
+			}
+			funcs += "]"
+			w.Put(funcs)
+
+			// Bounds: interior breakpoints between stop pairs.
+			bounds := "/Bounds ["
+			for i := 1; i < len(stops)-1; i++ {
+				if i > 1 {
+					bounds += " "
+				}
+				bounds += fmt.Sprintf("%.4f", stops[i].pos)
+			}
+			bounds += "]"
+			w.Put(bounds)
+
+			// Encode: map each sub-function's domain to [0 1].
+			encode := "/Encode ["
+			for i := 0; i < nFuncs; i++ {
+				if i > 0 {
+					encode += " "
+				}
+				encode += "0 1"
+			}
+			encode += "]"
+			w.Put(encode)
+
+			w.Put(">>")
+			w.EndObj()
+			funcRef = fmt.Sprintf("%d 0 R", n)
+		}
+
+		// Write shading object.
+		n := w.NewObj()
+		g.objNum = n
+		w.Put("<<")
+		w.Putf("/ShadingType %d", g.gtype)
+		w.Put("/ColorSpace /DeviceRGB")
+		if g.gtype == 2 {
+			// Axial (linear)
+			w.Putf("/Coords [%.4f %.4f %.4f %.4f]", g.x0, g.y0, g.x1, g.y1)
+		} else {
+			// Radial
+			w.Putf("/Coords [%.4f %.4f %.4f %.4f %.4f %.4f]", g.x0, g.y0, g.r0, g.x1, g.y1, g.r1)
+		}
+		w.Putf("/Function %s", funcRef)
+		w.Put("/Extend [true true]")
+		w.Put(">>")
+		w.EndObj()
+	}
+}
+
 // putResourceDict writes the shared resource dictionary at object 2.
 func (d *Document) putResourceDict(w *pdfcore.Writer) {
 	w.SetOffset(2)
@@ -448,6 +547,18 @@ func (d *Document) putResourceDict(w *pdfcore.Writer) {
 		s := "/ExtGState <<"
 		for _, ae := range d.alphaStates {
 			s += fmt.Sprintf(" /%s %d 0 R", ae.name, ae.objNum)
+		}
+		s += " >>"
+		w.Put(s)
+	}
+
+	// Shading references (gradients)
+	if len(d.gradients) > 0 {
+		s := "/Shading <<"
+		for _, g := range d.gradients {
+			if g.objNum > 0 {
+				s += fmt.Sprintf(" /%s %d 0 R", g.name, g.objNum)
+			}
 		}
 		s += " >>"
 		w.Put(s)

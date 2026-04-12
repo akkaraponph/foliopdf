@@ -183,6 +183,25 @@ func (s *Stream) Fill() { s.buf.WriteString("f\n") }
 // FillStroke emits B (fill then stroke).
 func (s *Stream) FillStroke() { s.buf.WriteString("B\n") }
 
+// EndPath emits n (end path without filling or stroking — used after clip).
+func (s *Stream) EndPath() { s.buf.WriteString("n\n") }
+
+// --- Clipping ---
+
+// Clip emits W (set clipping path using non-zero winding rule).
+// Must be followed by a path-painting operator (usually EndPath).
+func (s *Stream) Clip() { s.buf.WriteString("W\n") }
+
+// ClipEvenOdd emits W* (set clipping path using even-odd rule).
+func (s *Stream) ClipEvenOdd() { s.buf.WriteString("W*\n") }
+
+// --- Shading ---
+
+// PaintShading emits the sh operator to paint a shading pattern.
+func (s *Stream) PaintShading(name string) {
+	fmt.Fprintf(&s.buf, "/%s sh\n", name)
+}
+
 // --- Image ---
 
 // DrawImage emits operators to draw an image XObject.

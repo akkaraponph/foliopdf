@@ -328,6 +328,103 @@ func (p *Page) Ellipse(x, y, rx, ry float64, style string) {
 	}
 }
 
+// Arc draws an elliptical arc centered at (x, y) with horizontal radius rx
+// and vertical radius ry, from startDeg to endDeg (both in degrees,
+// counterclockwise from 3-o'clock). style: "D" (stroke), "F" (fill),
+// "DF"/"FD" (fill and stroke). When filled, the arc is closed as a pie
+// slice (lines from endpoints to center).
+func (p *Page) Arc(x, y, rx, ry, startDeg, endDeg float64, style string) {
+	p = p.active()
+	if p.doc.err != nil {
+		return
+	}
+	k := p.doc.k
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+	rxPt := rx * k
+	ryPt := ry * k
+
+	// In PDF coordinates, Y increases upward but our user angles assume
+	// counterclockwise from 3-o'clock which maps naturally.
+	p.arcPath(cx, cy, rxPt, ryPt, startDeg, endDeg)
+
+	style = strings.ToUpper(style)
+	needClose := style == "F" || style == "DF" || style == "FD"
+	if needClose {
+		// Close as pie slice: line to center and back.
+		p.stream.LineTo(cx, cy)
+		p.stream.ClosePath()
+	}
+
+	switch style {
+	case "F":
+		p.stream.Fill()
+	case "DF", "FD":
+		p.stream.FillStroke()
+	default:
+		p.stream.Stroke()
+	}
+}
+
+// arcPath emits Bézier curves approximating an elliptical arc.
+// All coordinates are in PDF points. Angles are in degrees.
+func (p *Page) arcPath(cx, cy, rx, ry, startDeg, endDeg float64) {
+	// Normalize so startDeg < endDeg
+	for endDeg < startDeg {
+		endDeg += 360
+	}
+
+	// Split into segments of at most 90° each for Bézier accuracy.
+	totalAngle := endDeg - startDeg
+	nSegs := int(math.Ceil(totalAngle / 90.0))
+	if nSegs < 1 {
+		nSegs = 1
+	}
+	segAngle := totalAngle / float64(nSegs) * math.Pi / 180.0
+
+	angle := startDeg * math.Pi / 180.0
+
+	// First point
+	startX := cx + rx*math.Cos(angle)
+	startY := cy + ry*math.Sin(angle)
+	p.stream.MoveTo(startX, startY)
+
+	for i := 0; i < nSegs; i++ {
+		a1 := angle
+		a2 := angle + segAngle
+		p.arcSegment(cx, cy, rx, ry, a1, a2)
+		angle = a2
+	}
+}
+
+// arcSegment emits a single cubic Bézier curve approximating an arc
+// from angle a1 to a2 (radians) on an ellipse centered at (cx,cy).
+func (p *Page) arcSegment(cx, cy, rx, ry, a1, a2 float64) {
+	// Bézier approximation for a circular arc, scaled to ellipse.
+	// alpha = 4/3 * tan((a2-a1)/4)
+	da := a2 - a1
+	alpha := 4.0 / 3.0 * math.Tan(da/4.0)
+
+	cos1 := math.Cos(a1)
+	sin1 := math.Sin(a1)
+	cos2 := math.Cos(a2)
+	sin2 := math.Sin(a2)
+
+	// Control point 1
+	cp1x := cx + rx*(cos1-alpha*sin1)
+	cp1y := cy + ry*(sin1+alpha*cos1)
+
+	// Control point 2
+	cp2x := cx + rx*(cos2+alpha*sin2)
+	cp2y := cy + ry*(sin2-alpha*cos2)
+
+	// End point
+	endX := cx + rx*cos2
+	endY := cy + ry*sin2
+
+	p.stream.CurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY)
+}
+
 // SetDashPattern sets the line dash pattern for subsequent strokes.
 // dashArray contains alternating dash and gap lengths in user units.
 // phase is the offset into the pattern at which the stroke begins.
@@ -461,6 +558,135 @@ func (p *Page) TextRotatedAt(x, y, angleDeg float64, text string) {
 	p.Rotate(angleDeg, x, y)
 	p.TextAt(x, y, text)
 	p.TransformEnd()
+}
+
+// --- Gradients ---
+
+// LinearGradient fills a rectangle (x, y, w, h) in user units with a
+// linear gradient. (x1, y1) and (x2, y2) define the gradient axis in
+// user units (relative to the page, not the rect). stops defines the
+// color stops along the axis.
+func (p *Page) LinearGradient(x, y, w, h float64, x1, y1, x2, y2 float64, stops ...gradientStop) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+	k := d.k
+
+	entry := &gradientEntry{
+		name:   fmt.Sprintf("Sh%d", len(d.gradients)+1),
+		gtype:  2, // axial
+		x0:     state.ToPointsX(x1, k),
+		y0:     state.ToPointsY(y1, p.h, k),
+		x1:     state.ToPointsX(x2, k),
+		y1:     state.ToPointsY(y2, p.h, k),
+		colors: stops,
+	}
+	d.gradients = append(d.gradients, entry)
+
+	// Clip to the rectangle and paint the shading.
+	p.stream.SaveState()
+	p.stream.Rect(
+		state.ToPointsX(x, k),
+		state.ToPointsY(y+h, p.h, k),
+		w*k,
+		h*k,
+	)
+	p.stream.Clip()
+	p.stream.EndPath()
+	p.stream.PaintShading(entry.name)
+	p.stream.RestoreState()
+}
+
+// RadialGradient fills a rectangle (x, y, w, h) in user units with a
+// radial gradient. (cx, cy) is the gradient center and r is the outer
+// radius, all in user units. stops defines the color stops (0.0 = center,
+// 1.0 = edge).
+func (p *Page) RadialGradient(x, y, w, h float64, cx, cy, r float64, stops ...gradientStop) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+	k := d.k
+
+	entry := &gradientEntry{
+		name:   fmt.Sprintf("Sh%d", len(d.gradients)+1),
+		gtype:  3, // radial
+		x0:     state.ToPointsX(cx, k),
+		y0:     state.ToPointsY(cy, p.h, k),
+		x1:     state.ToPointsX(cx, k),
+		y1:     state.ToPointsY(cy, p.h, k),
+		r0:     0,
+		r1:     r * k,
+		colors: stops,
+	}
+	d.gradients = append(d.gradients, entry)
+
+	// Clip to the rectangle and paint the shading.
+	p.stream.SaveState()
+	p.stream.Rect(
+		state.ToPointsX(x, k),
+		state.ToPointsY(y+h, p.h, k),
+		w*k,
+		h*k,
+	)
+	p.stream.Clip()
+	p.stream.EndPath()
+	p.stream.PaintShading(entry.name)
+	p.stream.RestoreState()
+}
+
+// --- Clipping ---
+
+// ClipRect sets a rectangular clipping region at (x, y) with width w and
+// height h in user units. All subsequent drawing is clipped to this
+// rectangle until TransformEnd restores the graphics state.
+// Must be called between TransformBegin and TransformEnd.
+func (p *Page) ClipRect(x, y, w, h float64) {
+	p = p.active()
+	k := p.doc.k
+	p.stream.Rect(
+		state.ToPointsX(x, k),
+		state.ToPointsY(y+h, p.h, k),
+		w*k,
+		h*k,
+	)
+	p.stream.Clip()
+	p.stream.EndPath()
+}
+
+// ClipCircle sets a circular clipping region centered at (x, y) with
+// radius r in user units. Must be called between TransformBegin and
+// TransformEnd.
+func (p *Page) ClipCircle(x, y, r float64) {
+	p.ClipEllipse(x, y, r, r)
+}
+
+// ClipEllipse sets an elliptical clipping region centered at (x, y) with
+// horizontal radius rx and vertical radius ry in user units. Must be
+// called between TransformBegin and TransformEnd.
+func (p *Page) ClipEllipse(x, y, rx, ry float64) {
+	p = p.active()
+	k := p.doc.k
+	cx := state.ToPointsX(x, k)
+	cy := state.ToPointsY(y, p.h, k)
+	rxPt := rx * k
+	ryPt := ry * k
+
+	const kappa = 0.5522847498
+	kx := rxPt * kappa
+	ky := ryPt * kappa
+
+	p.stream.MoveTo(cx+rxPt, cy)
+	p.stream.CurveTo(cx+rxPt, cy+ky, cx+kx, cy+ryPt, cx, cy+ryPt)
+	p.stream.CurveTo(cx-kx, cy+ryPt, cx-rxPt, cy+ky, cx-rxPt, cy)
+	p.stream.CurveTo(cx-rxPt, cy-ky, cx-kx, cy-ryPt, cx, cy-ryPt)
+	p.stream.CurveTo(cx+kx, cy-ryPt, cx+rxPt, cy-ky, cx+rxPt, cy)
+
+	p.stream.Clip()
+	p.stream.EndPath()
 }
 
 // --- Cell and MultiCell ---

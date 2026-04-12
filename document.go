@@ -59,8 +59,11 @@ type Document struct {
 	textRise      float64 // vertical text baseline shift (Ts), in points
 
 	// alpha transparency states (ExtGState resources)
-	alphaStates  []*alphaEntry
-	alphaByKey   map[string]*alphaEntry
+	alphaStates []*alphaEntry
+	alphaByKey  map[string]*alphaEntry
+
+	// gradient shadings
+	gradients []*gradientEntry
 
 	// optional text segmenter used by MultiCell / wrapText. When nil, the
 	// default behaviour splits on ASCII whitespace. Set this to plug in a
@@ -471,6 +474,34 @@ func (d *Document) SetTextRise(rise float64) {
 	d.textRise = rise
 	if d.currentPage != nil {
 		d.currentPage.stream.SetTextRise(rise)
+	}
+}
+
+// gradientEntry holds a registered gradient shading definition.
+type gradientEntry struct {
+	name   string  // resource name: "Sh1", "Sh2", ...
+	gtype  int     // PDF shading type: 2=axial (linear), 3=radial
+	x0, y0 float64 // start point (or center for radial) in PDF points
+	x1, y1 float64 // end point (or edge center for radial) in PDF points
+	r0, r1 float64 // start/end radii (radial only) in PDF points
+	colors []gradientStop
+	objNum int // set during serialization
+}
+
+// gradientStop defines a color at a position along a gradient (0.0–1.0).
+type gradientStop struct {
+	pos     float64
+	r, g, b float64 // 0.0–1.0
+}
+
+// GradientStop creates a gradient color stop at the given position (0.0–1.0)
+// with RGB values (0–255).
+func GradientStop(pos float64, r, g, b int) gradientStop {
+	return gradientStop{
+		pos: pos,
+		r:   float64(r) / 255.0,
+		g:   float64(g) / 255.0,
+		b:   float64(b) / 255.0,
 	}
 }
 

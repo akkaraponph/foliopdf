@@ -3006,3 +3006,314 @@ func TestTypographyStateSaveRestore(t *testing.T) {
 		t.Errorf("textRise not restored: got %f", doc.textRise)
 	}
 }
+
+// --- Drawing & Graphics: Arc ---
+
+func TestArcStroke(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.Arc(100, 100, 30, 30, 0, 90, "D")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should contain a move-to, curve-to, and stroke.
+	if !strings.Contains(s, " m\n") {
+		t.Error("expected m operator for arc start")
+	}
+	if !strings.Contains(s, " c\n") {
+		t.Error("expected c operator for Bézier curve")
+	}
+	if !strings.Contains(s, "S\n") {
+		t.Error("expected S (stroke) operator")
+	}
+}
+
+func TestArcFill(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.Arc(100, 100, 30, 20, 0, 180, "F")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Filled arc should close path (h) and fill (f).
+	if !strings.Contains(s, "h\n") {
+		t.Error("expected h (close path) for filled arc")
+	}
+	if !strings.Contains(s, "f\n") {
+		t.Error("expected f (fill) for filled arc")
+	}
+}
+
+func TestArcFullCircle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.Arc(100, 100, 25, 25, 0, 360, "D")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Full circle arc should have 4 curve segments.
+	curveCount := strings.Count(s, " c\n")
+	if curveCount < 4 {
+		t.Errorf("expected at least 4 Bézier curves for 360° arc, got %d", curveCount)
+	}
+}
+
+func TestArcElliptical(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.Arc(100, 100, 40, 20, 45, 270, "DF")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, " c\n") {
+		t.Error("expected Bézier curves for elliptical arc")
+	}
+	if !strings.Contains(s, "B\n") {
+		t.Error("expected B (fill+stroke) for DF style")
+	}
+}
+
+// --- Drawing & Graphics: Clipping ---
+
+func TestClipRect(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.ClipRect(10, 10, 100, 50)
+	page.Rect(0, 0, 200, 200, "F")
+	page.TransformEnd()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "W\n") {
+		t.Error("expected W (clip) operator")
+	}
+	if !strings.Contains(s, "n\n") {
+		t.Error("expected n (end path) after clip")
+	}
+}
+
+func TestClipCircle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.ClipCircle(100, 100, 30)
+	page.Rect(70, 70, 60, 60, "F")
+	page.TransformEnd()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should have Bézier curves for circular clip and W operator.
+	if !strings.Contains(s, " c\n") {
+		t.Error("expected Bézier curves for circular clip path")
+	}
+	if !strings.Contains(s, "W\n") {
+		t.Error("expected W (clip) operator")
+	}
+}
+
+func TestClipEllipse(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.ClipEllipse(100, 100, 40, 20)
+	page.TextAt(80, 100, "Clipped text")
+	page.TransformEnd()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "W\n") {
+		t.Error("expected W (clip) operator for ellipse")
+	}
+	if !strings.Contains(s, "(Clipped text) Tj") {
+		t.Error("expected clipped text output")
+	}
+}
+
+func TestClipPreservesState(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.TransformBegin()
+	page.ClipRect(10, 10, 50, 50)
+	page.TransformEnd()
+
+	// After TransformEnd, clip should be released. Drawing should still work.
+	page.TextAt(10, 10, "After clip")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// q/Q wrapping should be present.
+	qCount := strings.Count(s, "q\n")
+	bigQCount := strings.Count(s, "Q\n")
+	if qCount < 1 || bigQCount < 1 {
+		t.Error("expected q/Q save/restore around clip")
+	}
+}
+
+// --- Drawing & Graphics: Linear Gradient ---
+
+func TestLinearGradient(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.LinearGradient(10, 10, 100, 50, 10, 10, 110, 10,
+		GradientStop(0, 255, 0, 0),
+		GradientStop(1, 0, 0, 255),
+	)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "/Sh1 sh") {
+		t.Error("expected sh operator for shading")
+	}
+	if !strings.Contains(s, "/ShadingType 2") {
+		t.Error("expected ShadingType 2 (axial) for linear gradient")
+	}
+	if !strings.Contains(s, "/Shading") {
+		t.Error("expected /Shading in resource dict")
+	}
+}
+
+func TestLinearGradientMultiStop(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.LinearGradient(10, 10, 100, 50, 10, 10, 110, 10,
+		GradientStop(0, 255, 0, 0),
+		GradientStop(0.5, 0, 255, 0),
+		GradientStop(1, 0, 0, 255),
+	)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Multi-stop gradient should use FunctionType 3 (stitching).
+	if !strings.Contains(s, "/FunctionType 3") {
+		t.Error("expected FunctionType 3 (stitching) for multi-stop gradient")
+	}
+	if !strings.Contains(s, "/Bounds") {
+		t.Error("expected /Bounds for stitching function")
+	}
+}
+
+// --- Drawing & Graphics: Radial Gradient ---
+
+func TestRadialGradient(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.RadialGradient(10, 10, 100, 100, 60, 60, 50,
+		GradientStop(0, 255, 255, 255),
+		GradientStop(1, 0, 0, 128),
+	)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "/Sh1 sh") {
+		t.Error("expected sh operator for radial shading")
+	}
+	if !strings.Contains(s, "/ShadingType 3") {
+		t.Error("expected ShadingType 3 (radial)")
+	}
+}
+
+func TestMultipleGradients(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.LinearGradient(10, 10, 90, 40, 10, 10, 100, 10,
+		GradientStop(0, 255, 0, 0),
+		GradientStop(1, 0, 255, 0),
+	)
+	page.RadialGradient(10, 60, 90, 90, 55, 105, 45,
+		GradientStop(0, 255, 255, 0),
+		GradientStop(1, 0, 128, 255),
+	)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "/Sh1 sh") {
+		t.Error("expected Sh1")
+	}
+	if !strings.Contains(s, "/Sh2 sh") {
+		t.Error("expected Sh2")
+	}
+	if !strings.Contains(s, "/Sh1") && !strings.Contains(s, "/Sh2") {
+		t.Error("expected both shadings in resource dict")
+	}
+}
+
+func TestGradientClipsToRect(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.LinearGradient(20, 20, 80, 40, 20, 20, 100, 20,
+		GradientStop(0, 0, 0, 0),
+		GradientStop(1, 255, 255, 255),
+	)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Gradient should be clipped to a rect: q ... re W n ... sh ... Q.
+	if !strings.Contains(s, "W\n") {
+		t.Error("expected W (clip) operator for gradient clipping rect")
+	}
+	if !strings.Contains(s, "n\n") {
+		t.Error("expected n (end path) after clip")
+	}
+}
