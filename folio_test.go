@@ -3317,3 +3317,83 @@ func TestGradientClipsToRect(t *testing.T) {
 		t.Error("expected n (end path) after clip")
 	}
 }
+
+// --- Landscape Orientation ---
+
+func TestLandscapeMethod(t *testing.T) {
+	ls := A4.Landscape()
+	if ls.WidthPt != A4.HeightPt || ls.HeightPt != A4.WidthPt {
+		t.Errorf("Landscape should swap width/height: got %.2f x %.2f", ls.WidthPt, ls.HeightPt)
+	}
+}
+
+func TestLandscapePresets(t *testing.T) {
+	if A4Landscape.WidthPt != A4.HeightPt {
+		t.Error("A4Landscape width should equal A4 height")
+	}
+	if LetterLandscape.HeightPt != Letter.WidthPt {
+		t.Error("LetterLandscape height should equal Letter width")
+	}
+}
+
+func TestLandscapePageMediaBox(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4Landscape)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// A4 landscape: width=841.89, height=595.28
+	if !strings.Contains(s, "/MediaBox [0 0 841.89 595.28]") {
+		t.Error("expected landscape MediaBox with swapped dimensions")
+	}
+}
+
+func TestLandscapePageDimensions(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4Landscape)
+
+	// In mm (default unit), width should be ~297 and height ~210
+	w := page.Width()
+	h := page.Height()
+	if w < 296 || w > 298 {
+		t.Errorf("landscape page width should be ~297mm, got %.2f", w)
+	}
+	if h < 209 || h > 211 {
+		t.Errorf("landscape page height should be ~210mm, got %.2f", h)
+	}
+}
+
+func TestMixedOrientationPages(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+	doc.AddPage(A4Landscape)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should have both portrait and landscape MediaBoxes.
+	portraitBox := "/MediaBox [0 0 595.28 841.89]"
+	landscapeBox := "/MediaBox [0 0 841.89 595.28]"
+	if strings.Count(s, portraitBox) != 2 {
+		t.Errorf("expected 2 portrait pages, got %d", strings.Count(s, portraitBox))
+	}
+	if strings.Count(s, landscapeBox) != 1 {
+		t.Errorf("expected 1 landscape page, got %d", strings.Count(s, landscapeBox))
+	}
+}
+
+func TestDoubleLandscapeIsPortrait(t *testing.T) {
+	back := A4.Landscape().Landscape()
+	if back.WidthPt != A4.WidthPt || back.HeightPt != A4.HeightPt {
+		t.Error("double Landscape() should return to portrait")
+	}
+}

@@ -8,6 +8,12 @@ type PageSize struct {
 	HeightPt float64
 }
 
+// Landscape returns a landscape variant of the page size by swapping
+// width and height.
+func (s PageSize) Landscape() PageSize {
+	return PageSize{WidthPt: s.HeightPt, HeightPt: s.WidthPt}
+}
+
 // Standard page sizes.
 var (
 	A3     = PageSize{841.89, 1190.55}
@@ -15,6 +21,15 @@ var (
 	A5     = PageSize{420.94, 595.28}
 	Letter = PageSize{612, 792}
 	Legal  = PageSize{612, 1008}
+)
+
+// Landscape page sizes.
+var (
+	A3Landscape     = A3.Landscape()
+	A4Landscape     = A4.Landscape()
+	A5Landscape     = A5.Landscape()
+	LetterLandscape = Letter.Landscape()
+	LegalLandscape  = Legal.Landscape()
 )
 
 // Option configures a Document.
