@@ -4258,3 +4258,207 @@ func TestTemplateConcatMatrix(t *testing.T) {
 		t.Error("missing Q (restore state) for template")
 	}
 }
+
+// === Multi-Column Layout (F6) ===
+
+func TestColumnLayoutBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 2, 5)
+	cols.Begin()
+
+	// Column 1.
+	page.Cell(0, 5, "Left column", "", "L", false, 2)
+
+	cols.NextColumn()
+
+	// Column 2.
+	page.Cell(0, 5, "Right column", "", "L", false, 2)
+
+	cols.End()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "(Left column)") {
+		t.Error("missing left column text")
+	}
+	if !strings.Contains(s, "(Right column)") {
+		t.Error("missing right column text")
+	}
+}
+
+func TestColumnLayoutThreeColumns(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 10)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 3, 3)
+	cols.Begin()
+
+	page.Cell(0, 5, "Col1", "", "L", false, 2)
+	cols.NextColumn()
+	page.Cell(0, 5, "Col2", "", "L", false, 2)
+	cols.NextColumn()
+	page.Cell(0, 5, "Col3", "", "L", false, 2)
+
+	cols.End()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "(Col1)") {
+		t.Error("missing Col1")
+	}
+	if !strings.Contains(s, "(Col2)") {
+		t.Error("missing Col2")
+	}
+	if !strings.Contains(s, "(Col3)") {
+		t.Error("missing Col3")
+	}
+}
+
+func TestColumnLayoutResetsY(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 2, 5)
+	cols.Begin()
+
+	startY := page.GetY()
+	page.Cell(0, 10, "Line 1", "", "L", false, 2)
+	page.Cell(0, 10, "Line 2", "", "L", false, 2)
+
+	cols.NextColumn()
+	// Y should reset to the start position.
+	if page.GetY() != startY {
+		t.Errorf("Y after NextColumn = %f, want %f", page.GetY(), startY)
+	}
+
+	cols.End()
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestColumnLayoutRestoresMargins(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	origLMargin := doc.lMargin
+	origRMargin := doc.rMargin
+
+	cols := NewColumnLayout(doc, page, 2, 5)
+	cols.Begin()
+
+	// Margins should be different during column mode.
+	if doc.lMargin == origLMargin && doc.rMargin == origRMargin {
+		// At least one margin should change for column 0.
+	}
+
+	cols.End()
+
+	// After End, margins should be restored.
+	if doc.lMargin != origLMargin {
+		t.Errorf("lMargin after End = %f, want %f", doc.lMargin, origLMargin)
+	}
+	if doc.rMargin != origRMargin {
+		t.Errorf("rMargin after End = %f, want %f", doc.rMargin, origRMargin)
+	}
+}
+
+func TestColumnLayoutNewPageWrap(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 2, 5)
+	cols.Begin()
+
+	page.Cell(0, 5, "Col1", "", "L", false, 2)
+	cols.NextColumn()
+	page.Cell(0, 5, "Col2", "", "L", false, 2)
+
+	// Wrap to new page.
+	cols.NextColumn()
+	if cols.CurrentColumn() != 0 {
+		t.Errorf("column after wrap = %d, want 0", cols.CurrentColumn())
+	}
+	if doc.PageCount() != 2 {
+		t.Errorf("page count after wrap = %d, want 2", doc.PageCount())
+	}
+
+	cols.End()
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestColumnLayoutCurrentColumn(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 3, 5)
+	cols.Begin()
+
+	if cols.CurrentColumn() != 0 {
+		t.Errorf("initial column = %d, want 0", cols.CurrentColumn())
+	}
+
+	cols.NextColumn()
+	if cols.CurrentColumn() != 1 {
+		t.Errorf("after first next = %d, want 1", cols.CurrentColumn())
+	}
+
+	cols.NextColumn()
+	if cols.CurrentColumn() != 2 {
+		t.Errorf("after second next = %d, want 2", cols.CurrentColumn())
+	}
+
+	cols.End()
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestColumnLayoutPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	cols := NewColumnLayout(doc, page, 2, 5)
+	cols.Begin()
+
+	origPage := cols.Page()
+	cols.NextColumn()
+	cols.NextColumn() // wraps to new page
+	newPage := cols.Page()
+
+	if origPage == newPage {
+		t.Error("Page() should return new page after wrap")
+	}
+
+	cols.End()
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
