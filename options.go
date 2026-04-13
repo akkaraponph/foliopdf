@@ -32,11 +32,22 @@ var (
 	LegalLandscape  = Legal.Landscape()
 )
 
+// Unit type re-exported for public API.
+type Unit = state.Unit
+
+// Measurement units.
+const (
+	UnitMM   = state.UnitMM   // millimeters (default)
+	UnitPt   = state.UnitPt   // points (1/72 inch)
+	UnitCM   = state.UnitCM   // centimeters
+	UnitInch = state.UnitInch // inches
+)
+
 // Option configures a Document.
 type Option func(*Document)
 
 // WithUnit sets the measurement unit.
-func WithUnit(u state.Unit) Option {
+func WithUnit(u Unit) Option {
 	return func(d *Document) {
 		d.unit = u
 		d.k = state.ScaleFactor(u)

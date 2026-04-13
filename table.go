@@ -455,10 +455,12 @@ func (t *Table) drawComplexCell(x, y, w, h float64, cell TableCell, isHeader boo
 		style = &t.bodyStyle
 	}
 
-	// Save document state.
+	// Save document state (font + colors).
 	savedFont := d.GetFontFamily()
 	savedStyle := d.GetFontStyle()
 	savedSize := d.GetFontSize()
+	savedTextColor := d.textColor
+	savedDrawColor := d.drawColor
 
 	// Apply style.
 	if style != nil {
@@ -530,9 +532,12 @@ func (t *Table) drawComplexCell(x, y, w, h float64, cell TableCell, isHeader boo
 			align = "L"
 		}
 
+		// Cell internally adds cMargin to the text position. Subtract
+		// it so our dx calculation is the final word.
+		cm := d.cMargin
+
 		for i, line := range lines {
 			lineY := startY + float64(i)*lineH
-			// Use Cell for each line — position cursor and draw.
 			pg = t.page.active()
 			pg.SetXY(x, lineY)
 
@@ -540,22 +545,26 @@ func (t *Table) drawComplexCell(x, y, w, h float64, cell TableCell, isHeader boo
 			sw := pg.GetStringWidth(line)
 			switch strings.ToUpper(align) {
 			case "C":
-				dx = (w - sw) / 2
+				dx = (w-sw)/2 - cm
 			case "R":
-				dx = w - padding - sw
+				dx = w - padding - sw - cm
 			default:
-				dx = padding
+				dx = padding - cm
 			}
 			pg.SetX(x + dx)
-			// Draw text only (no border/fill — already drawn above).
 			pg.Cell(w, lineH, line, "", "", false, 0)
-			// Reset X so next line draws correctly.
 		}
 	}
 
-	// Restore font state.
-	if style != nil && style.FontFamily != "" && savedFont != "" {
-		d.SetFont(savedFont, savedStyle, savedSize)
+	// Restore all styled state.
+	if style != nil {
+		if style.FontFamily != "" && savedFont != "" {
+			d.SetFont(savedFont, savedStyle, savedSize)
+		}
+		tc := savedTextColor
+		d.SetTextColor(int(tc.R*255+0.5), int(tc.G*255+0.5), int(tc.B*255+0.5))
+		dc := savedDrawColor
+		d.SetDrawColor(int(dc.R*255+0.5), int(dc.G*255+0.5), int(dc.B*255+0.5))
 	}
 }
 

@@ -27,3 +27,4 @@ vendor/
 !.claude/agents/
 .cursorrules
 .cursor/
+.wrangler/
