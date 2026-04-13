@@ -10,7 +10,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 func main() {
@@ -19,17 +19,17 @@ func main() {
 	fmt.Printf("Generated %d sample images\n\n", len(samples))
 
 	// 1. Auto-fit: each page sized to its image.
-	err := folio.ImagesToPDF("output/autofit.pdf", samples)
+	err := foliopdf.ImagesToPDF("output/autofit.pdf", samples)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("output/autofit.pdf        — pages sized to each image")
 
 	// 2. Fixed A4 pages, images scaled to fit with margins.
-	err = folio.ImagesToPDF("output/a4_fit.pdf", samples,
-		folio.ImagePageSize(folio.A4),
-		folio.ImageMargin(36),
-		folio.ImageFit("fit"),
+	err = foliopdf.ImagesToPDF("output/a4_fit.pdf", samples,
+		foliopdf.ImagePageSize(foliopdf.A4),
+		foliopdf.ImageMargin(36),
+		foliopdf.ImageFit("fit"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -37,10 +37,10 @@ func main() {
 	fmt.Println("output/a4_fit.pdf         — A4 pages, fit mode")
 
 	// 3. Fixed A4, stretch to fill.
-	err = folio.ImagesToPDF("output/a4_stretch.pdf", samples,
-		folio.ImagePageSize(folio.A4),
-		folio.ImageMargin(36),
-		folio.ImageFit("stretch"),
+	err = foliopdf.ImagesToPDF("output/a4_stretch.pdf", samples,
+		foliopdf.ImagePageSize(foliopdf.A4),
+		foliopdf.ImageMargin(36),
+		foliopdf.ImageFit("stretch"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -48,8 +48,8 @@ func main() {
 	fmt.Println("output/a4_stretch.pdf     — A4 pages, stretch mode")
 
 	// 4. High DPI (smaller auto-fit pages).
-	err = folio.ImagesToPDF("output/high_dpi.pdf", samples,
-		folio.ImageDPI(300),
+	err = foliopdf.ImagesToPDF("output/high_dpi.pdf", samples,
+		foliopdf.ImageDPI(300),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -57,10 +57,10 @@ func main() {
 	fmt.Println("output/high_dpi.pdf       — auto-fit at 300 DPI")
 
 	// 5. Landscape A4 with fill mode.
-	err = folio.ImagesToPDF("output/landscape.pdf", samples,
-		folio.ImagePageSize(folio.A4.Landscape()),
-		folio.ImageMargin(24),
-		folio.ImageFit("fill"),
+	err = foliopdf.ImagesToPDF("output/landscape.pdf", samples,
+		foliopdf.ImagePageSize(foliopdf.A4.Landscape()),
+		foliopdf.ImageMargin(24),
+		foliopdf.ImageFit("fill"),
 	)
 	if err != nil {
 		log.Fatal(err)

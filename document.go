@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/akkaraponph/folio/internal/resources"
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/resources"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // Document is the root object for creating a PDF.

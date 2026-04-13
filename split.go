@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/folio/internal/pdfcore"
+	"github.com/akkaraponph/foliopdf/internal/pdfcore"
 )
 
 // PageRange represents a range of pages to extract (1-indexed, inclusive).

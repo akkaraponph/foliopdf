@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import "strings"
 

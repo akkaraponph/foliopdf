@@ -19,13 +19,13 @@ Built-in sizes (portrait):
 Landscape:
 
 ```go
-page := doc.AddPage(folio.A4.Landscape())  // 297 x 210
+page := doc.AddPage(foliopdf.A4.Landscape())  // 297 x 210
 ```
 
 Custom size (values in PDF points, 1 pt = 1/72 inch):
 
 ```go
-page := doc.AddPage(folio.PageSize{WidthPt: 400, HeightPt: 600})
+page := doc.AddPage(foliopdf.PageSize{WidthPt: 400, HeightPt: 600})
 ```
 
 Different pages can use different sizes in the same document.
@@ -55,13 +55,13 @@ The second parameter is the bottom margin — when the cursor crosses this thres
 Register callbacks that run on every page:
 
 ```go
-doc.SetHeaderFunc(func(p *folio.Page) {
+doc.SetHeaderFunc(func(p *foliopdf.Page) {
     p.SetFont("helvetica", "B", 10)
     p.TextAt(20, 10, "ACME Corp")
     p.Line(20, 14, 190, 14)
 })
 
-doc.SetFooterFunc(func(p *folio.Page) {
+doc.SetFooterFunc(func(p *foliopdf.Page) {
     p.SetFont("helvetica", "", 8)
     p.TextAt(20, 285, fmt.Sprintf("Page %d", p.Doc().PageNo()))
 })
@@ -94,7 +94,7 @@ Flow text across multiple columns:
 doc.SetFont("helvetica", "", 10)
 page.SetXY(10, 30)
 
-cols := folio.NewColumnLayout(doc, page, 3, 5)  // 3 columns, 5mm gutter
+cols := foliopdf.NewColumnLayout(doc, page, 3, 5)  // 3 columns, 5mm gutter
 cols.Begin()
 
 page.MultiCell(0, 5, "First column text...", "", "J", false)
@@ -171,7 +171,7 @@ Define a reusable layout (letterhead, watermark, border) once and stamp it on mu
 
 ```go
 // Define the template
-tpl := doc.BeginTemplate(folio.A4)
+tpl := doc.BeginTemplate(foliopdf.A4)
 tpl.SetFillColorRGB(30, 60, 120)
 tpl.Rect(0, 0, 210, 25, "F")
 tpl.SetFont("helvetica", "B", 16)
@@ -179,11 +179,11 @@ tpl.TextAt(15, 10, "ACME Corporation")
 name := doc.EndTemplate()
 
 // Use on any page
-page1 := doc.AddPage(folio.A4)
+page1 := doc.AddPage(foliopdf.A4)
 page1.UseTemplate(name, 0, 0, 210, 297)
 page1.TextAt(15, 35, "Page 1 content...")
 
-page2 := doc.AddPage(folio.A4)
+page2 := doc.AddPage(foliopdf.A4)
 page2.UseTemplate(name, 0, 0, 210, 297)
 page2.TextAt(15, 35, "Page 2 content...")
 ```
@@ -196,19 +196,19 @@ Build a TOC with clickable entries:
 
 ```go
 // Reserve a page for the TOC
-tocPage := doc.AddPage(folio.A4)
+tocPage := doc.AddPage(foliopdf.A4)
 doc.SetFont("helvetica", "B", 20)
 tocPage.TextAt(20, 20, "Table of Contents")
 
-toc := folio.NewTOC(doc)
+toc := foliopdf.NewTOC(doc)
 
 // Add content pages and register them
-page1 := doc.AddPage(folio.A4)
+page1 := doc.AddPage(foliopdf.A4)
 doc.SetFont("helvetica", "B", 18)
 page1.TextAt(20, 25, "Chapter 1")
 toc.Add("Chapter 1", 0, page1, 25)
 
-page2 := doc.AddPage(folio.A4)
+page2 := doc.AddPage(foliopdf.A4)
 page2.TextAt(20, 25, "Chapter 2")
 toc.Add("Chapter 2", 0, page2, 25)
 

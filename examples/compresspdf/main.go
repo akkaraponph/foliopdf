@@ -9,7 +9,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 	showSize("Original", src)
 
 	// 1. Basic compression (FlateDecode + dedup).
-	err := folio.CompressPDF(src, "output/compressed.pdf")
+	err := foliopdf.CompressPDF(src, "output/compressed.pdf")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,8 +30,8 @@ func main() {
 	imgPDF := createImagePDF()
 	showSize("Image PDF (original)", imgPDF)
 
-	err = folio.CompressPDF(imgPDF, "output/compressed_images.pdf",
-		folio.CompressImageQuality(60),
+	err = foliopdf.CompressPDF(imgPDF, "output/compressed_images.pdf",
+		foliopdf.CompressImageQuality(60),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -39,8 +39,8 @@ func main() {
 	showSize("Image PDF (quality=60)", "output/compressed_images.pdf")
 
 	// 3. Compression without dedup.
-	err = folio.CompressPDF(src, "output/compressed_nodedup.pdf",
-		folio.CompressDedup(false),
+	err = foliopdf.CompressPDF(src, "output/compressed_nodedup.pdf",
+		foliopdf.CompressDedup(false),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -49,9 +49,9 @@ func main() {
 }
 
 func createSamplePDF() string {
-	doc := folio.New()
+	doc := foliopdf.New()
 	for i := 1; i <= 10; i++ {
-		doc.AddPage(folio.A4)
+		doc.AddPage(foliopdf.A4)
 		doc.SetFont("helvetica", "B", 24)
 		doc.CurrentPage().Cell(0, 15, fmt.Sprintf("Page %d", i), "", "C", false, 1)
 		doc.SetFont("helvetica", "", 12)
@@ -69,7 +69,7 @@ func createSamplePDF() string {
 func createImagePDF() string {
 	jpegs := createSampleJPEGs()
 	path := "output/sample_images.pdf"
-	if err := folio.ImagesToPDF(path, jpegs); err != nil {
+	if err := foliopdf.ImagesToPDF(path, jpegs); err != nil {
 		log.Fatal(err)
 	}
 	return path

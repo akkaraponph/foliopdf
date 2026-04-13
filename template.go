@@ -1,12 +1,12 @@
-package folio
+package foliopdf
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/akkaraponph/folio/internal/content"
-	"github.com/akkaraponph/folio/internal/resources"
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/content"
+	"github.com/akkaraponph/foliopdf/internal/resources"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // templateEntry stores a registered page template (PDF Form XObject).

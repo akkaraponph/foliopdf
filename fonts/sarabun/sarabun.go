@@ -6,9 +6,9 @@
 //
 // Usage:
 //
-//	import "github.com/akkaraponph/folio/fonts/sarabun"
+//	import "github.com/akkaraponph/foliopdf/fonts/sarabun"
 //
-//	doc := folio.New()
+//	doc := foliopdf.New()
 //	sarabun.Register(doc)           // registers all 4 styles
 //	doc.SetFont("sarabun", "", 14)  // use it
 package sarabun
@@ -16,7 +16,7 @@ package sarabun
 import (
 	_ "embed"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 //go:embed Sarabun-Regular.ttf
@@ -46,7 +46,7 @@ func BoldItalic() []byte { return boldItalic }
 // Register registers all four Sarabun styles with the document.
 // After calling Register, use doc.SetFont("sarabun", style, size) where
 // style is "", "B", "I", or "BI".
-func Register(doc *folio.Document) error {
+func Register(doc *foliopdf.Document) error {
 	if err := doc.AddUTF8Font("sarabun", "", regular); err != nil {
 		return err
 	}

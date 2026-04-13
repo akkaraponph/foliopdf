@@ -1,11 +1,11 @@
-package folio
+package foliopdf
 
 import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
 
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // SignOptions configures the digital signature.

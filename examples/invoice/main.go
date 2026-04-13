@@ -4,7 +4,7 @@
 //   - Bilingual (Thai/English) labels rendered with the bundled Sarabun font
 //   - Built-in Thai word segmentation for proper line wrapping
 //   - PNG → JPEG conversion at runtime so an existing PNG asset can be
-//     embedded via folio.Document.RegisterImage (which only accepts JPEG)
+//     embedded via foliopdf.Document.RegisterImage (which only accepts JPEG)
 //   - Filled header bar, two-column party block, line-items table with
 //     zebra striping, totals block with VAT 7%, and signature lines
 //
@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/akkaraponph/folio"
-	"github.com/akkaraponph/folio/fonts/sarabun"
-	"github.com/akkaraponph/folio/thai"
+	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/foliopdf/fonts/sarabun"
+	"github.com/akkaraponph/foliopdf/thai"
 )
 
 // --- Page geometry (A4, mm) ---
@@ -61,13 +61,13 @@ func (it item) amount() float64 { return it.qty * it.unitPrice }
 // writer bundles the document, current page, and shared geometry so the
 // drawing helpers stay terse.
 type writer struct {
-	doc       *folio.Document
-	page      *folio.Page
+	doc       *foliopdf.Document
+	page      *foliopdf.Page
 	bodyWidth float64
 }
 
 func main() {
-	doc := folio.New(folio.WithCompression(true))
+	doc := foliopdf.New(foliopdf.WithCompression(true))
 	doc.SetTitle("ใบกำกับภาษี / Tax Invoice")
 	doc.SetAuthor("Folio Studio")
 	doc.SetCreator("folio examples/invoice")
@@ -82,7 +82,7 @@ func main() {
 
 	// Register the company logo. RegisterImage only accepts JPEG, but the
 	// in-repo asset is PNG, so convert it on the fly.
-	logo, err := loadLogoAsJPEG("assets/logo-folio.png")
+	logo, err := loadLogoAsJPEG("assets/logo-foliopdf.png")
 	if err != nil {
 		fail("load logo: %v", err)
 	}
@@ -94,7 +94,7 @@ func main() {
 		doc:       doc,
 		bodyWidth: pageW - lMargin - rMargin,
 	}
-	w.page = doc.AddPage(folio.A4)
+	w.page = doc.AddPage(foliopdf.A4)
 
 	items := []item{
 		{"ออกแบบโลโก้และอัตลักษณ์", 1, 4500.00},
@@ -197,7 +197,7 @@ func (w *writer) drawPartyBlock() {
 		"123/45 ซอยสุขุมวิท 21\nแขวงคลองเตยเหนือ เขตวัฒนา\nกรุงเทพฯ 10110",
 		"0-1055-12345-67-8",
 		"+66 2 123 4567",
-		"hello@folio.studio",
+		"hello@foliopdf.studio",
 	)
 	w.drawPartyColumn(lMargin+colW+5, startY, colW, blockH,
 		"ผู้ซื้อ / Buyer",
@@ -359,9 +359,9 @@ func (w *writer) drawNotes() {
 	notes := "กรุณาชำระเงินภายใน 14 วันนับจากวันที่ในใบแจ้งหนี้ โดยโอนเข้าบัญชี " +
 		"ธนาคารกสิกรไทย สาขาสีลม เลขที่บัญชี 123-4-56789-0 " +
 		"ชื่อบัญชี บริษัท โฟลิโอ สตูดิโอ จำกัด " +
-		"เมื่อชำระเงินแล้วโปรดส่งหลักฐานการโอนมาที่ billing@folio.studio / " +
+		"เมื่อชำระเงินแล้วโปรดส่งหลักฐานการโอนมาที่ billing@foliopdf.studio / " +
 		"Please remit payment within 14 days of the invoice date and email " +
-		"the transfer slip to billing@folio.studio."
+		"the transfer slip to billing@foliopdf.studio."
 	w.page.MultiCell(w.bodyWidth, 4.8, notes, "", "J", false)
 }
 
@@ -400,7 +400,7 @@ func (w *writer) drawSignatures() {
 // --- Helpers ---
 
 // loadLogoAsJPEG decodes a PNG file from disk and re-encodes it as JPEG so
-// it can be embedded via folio.Document.RegisterImage (which currently
+// it can be embedded via foliopdf.Document.RegisterImage (which currently
 // only accepts JPEG).
 func loadLogoAsJPEG(path string) ([]byte, error) {
 	raw, err := os.ReadFile(path)

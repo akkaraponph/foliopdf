@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/akkaraponph/folio/internal/pdfcore"
+	"github.com/akkaraponph/foliopdf/internal/pdfcore"
 )
 
 // WatermarkOption configures PDF watermarking.

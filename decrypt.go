@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/folio/internal/pdfcore"
+	"github.com/akkaraponph/foliopdf/internal/pdfcore"
 )
 
 // DecryptPDF removes password protection from a PDF file.

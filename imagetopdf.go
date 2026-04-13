@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // ImageToPDFOption configures image-to-PDF conversion.

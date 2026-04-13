@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 func main() {
 	pdfPath := "../pdf/14_markdown.pdf"
 	outputDir := "output"
 
-	paths, err := folio.ConvertToImages(pdfPath, outputDir,
-		folio.WithFormat(folio.JPEG),
-		folio.WithDPI(300),
+	paths, err := foliopdf.ConvertToImages(pdfPath, outputDir,
+		foliopdf.WithFormat(foliopdf.JPEG),
+		foliopdf.WithDPI(300),
 	)
 	if err != nil {
 		log.Fatal(err)

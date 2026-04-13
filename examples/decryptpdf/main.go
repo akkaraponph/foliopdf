@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 func main() {
@@ -16,28 +16,28 @@ func main() {
 	fmt.Println("Created encrypted PDF:", src)
 
 	// Decrypt with user password.
-	err := folio.DecryptPDF(src, "output/decrypted_user.pdf", "hello")
+	err := foliopdf.DecryptPDF(src, "output/decrypted_user.pdf", "hello")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Decrypted with user password → output/decrypted_user.pdf")
 
 	// Decrypt with owner password.
-	err = folio.DecryptPDF(src, "output/decrypted_owner.pdf", "admin")
+	err = foliopdf.DecryptPDF(src, "output/decrypted_owner.pdf", "admin")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Decrypted with owner password → output/decrypted_owner.pdf")
 
 	// Try wrong password.
-	err = folio.DecryptPDF(src, "output/should_fail.pdf", "wrongpass")
+	err = foliopdf.DecryptPDF(src, "output/should_fail.pdf", "wrongpass")
 	if err != nil {
 		fmt.Println("Wrong password (expected):", err)
 	}
 
 	// Decrypt owner-only protection (empty user password).
 	src2 := createOwnerOnlyPDF()
-	err = folio.DecryptPDF(src2, "output/decrypted_owneronly.pdf", "")
+	err = foliopdf.DecryptPDF(src2, "output/decrypted_owneronly.pdf", "")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,11 +45,11 @@ func main() {
 }
 
 func createEncryptedPDF() string {
-	doc := folio.New()
+	doc := foliopdf.New()
 	doc.SetFont("helvetica", "B", 24)
-	doc.SetProtection("hello", "admin", folio.PermAll)
+	doc.SetProtection("hello", "admin", foliopdf.PermAll)
 
-	page := doc.AddPage(folio.A4)
+	page := doc.AddPage(foliopdf.A4)
 	page.TextAt(50, 50, "This was encrypted!")
 	doc.SetFont("helvetica", "", 14)
 	page.TextAt(50, 80, "If you can read this, decryption worked.")
@@ -62,11 +62,11 @@ func createEncryptedPDF() string {
 }
 
 func createOwnerOnlyPDF() string {
-	doc := folio.New()
+	doc := foliopdf.New()
 	doc.SetFont("helvetica", "", 14)
-	doc.SetProtection("", "secretowner", folio.PermPrint)
+	doc.SetProtection("", "secretowner", foliopdf.PermPrint)
 
-	page := doc.AddPage(folio.A4)
+	page := doc.AddPage(foliopdf.A4)
 	page.TextAt(50, 50, "Owner-only protected document")
 
 	path := "output/owner_only.pdf"

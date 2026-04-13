@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 // ColumnLayout provides a multi-column layout mode. While active,
 // existing text methods (Cell, MultiCell, Write) automatically flow

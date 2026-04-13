@@ -2,12 +2,12 @@
 
 ## What is this project?
 
-Folio is a layered PDF generation library for Go (`github.com/akkaraponph/folio`). Zero external dependencies. Go 1.26+.
+Folio is a layered PDF generation library for Go (`github.com/akkaraponph/foliopdf`). Zero external dependencies. Go 1.26+.
 
 ## Architecture — 4 layers
 
 ```
-folio (public API) → orchestrates everything
+foliopdf (public API) → orchestrates everything
   ├── internal/state      → unit conversion (mm→pt), color math
   ├── internal/resources  → font/image registry, deduplication
   ├── internal/content    → PDF content stream operators
@@ -69,7 +69,7 @@ Public API: 0-255 RGB integers. Internal: 0.0-1.0 float64.
 
 ## Testing
 
-Tests are in `folio_test.go`. They write PDFs to `bytes.Buffer` and verify structure.
+Tests are in `foliopdf_test.go`. They write PDFs to `bytes.Buffer` and verify structure.
 
 ```bash
 go test ./...

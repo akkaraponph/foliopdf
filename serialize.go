@@ -1,13 +1,13 @@
-package folio
+package foliopdf
 
 import (
 	"fmt"
 	"sort"
 	"time"
 
-	pdfcrypto "github.com/akkaraponph/folio/internal/crypto"
-	"github.com/akkaraponph/folio/internal/pdfcore"
-	"github.com/akkaraponph/folio/internal/resources"
+	pdfcrypto "github.com/akkaraponph/foliopdf/internal/crypto"
+	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/foliopdf/internal/resources"
 )
 
 // serialize builds the complete PDF byte stream.

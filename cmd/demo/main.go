@@ -8,16 +8,16 @@ import (
 	"image/jpeg"
 	"os"
 
-	"github.com/akkaraponph/folio"
+	"github.com/akkaraponph/foliopdf"
 )
 
 func main() {
-	doc := folio.New(folio.WithCompression(false))
+	doc := foliopdf.New(foliopdf.WithCompression(false))
 	doc.SetTitle("Folio Demo")
 	doc.SetAuthor("Bob")
 	doc.SetFont("helvetica", "", 16)
 
-	page := doc.AddPage(folio.A4)
+	page := doc.AddPage(foliopdf.A4)
 	page.TextAt(40, 30, "Hello Folio!")
 
 	doc.SetFont("helvetica", "B", 12)
@@ -49,7 +49,7 @@ func main() {
 
 	// Second page
 	doc.SetFont("courier", "", 14)
-	p2 := doc.AddPage(folio.Letter)
+	p2 := doc.AddPage(foliopdf.Letter)
 	p2.TextAt(30, 30, "Page 2 - Letter size")
 	p2.Line(30, 40, 250, 40)
 
@@ -60,7 +60,7 @@ func main() {
 	p2.Cell(60, 8, "Centered", "1", "C", false, 0)
 	p2.Cell(60, 8, "Right aligned", "1", "R", false, 1)
 
-	path := "/tmp/folio_demo.pdf"
+	path := "/tmp/foliopdf_demo.pdf"
 	if err := doc.Save(path); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package folio
+package foliopdf
 
 import (
 	"math"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // SVGPath draws an SVG path at position (x, y) in user units, scaled by

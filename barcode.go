@@ -1,10 +1,10 @@
-package folio
+package foliopdf
 
 import (
 	"fmt"
 
-	"github.com/akkaraponph/folio/internal/barcode"
-	"github.com/akkaraponph/folio/internal/state"
+	"github.com/akkaraponph/foliopdf/internal/barcode"
+	"github.com/akkaraponph/foliopdf/internal/state"
 )
 
 // Barcode128 draws a Code 128 barcode at position (x, y) with the given

@@ -9,12 +9,12 @@
 Create a table, define column widths, then add header and rows:
 
 ```go
-doc := folio.New()
+doc := foliopdf.New()
 doc.SetFont("helvetica", "", 10)
-page := doc.AddPage(folio.A4)
+page := doc.AddPage(foliopdf.A4)
 page.SetXY(20, 20)
 
-tbl := folio.NewTable(doc, page)
+tbl := foliopdf.NewTable(doc, page)
 tbl.SetWidths(60, 60, 50)
 tbl.Header("Name", "Department", "Salary")
 tbl.Row("Alice Johnson", "Engineering", "$95,000")
@@ -29,7 +29,7 @@ The table draws at the current cursor position and advances the cursor downward 
 ### Header style
 
 ```go
-tbl.SetHeaderStyle(folio.CellStyle{
+tbl.SetHeaderStyle(foliopdf.CellStyle{
     FillColor: [3]int{40, 60, 120},    // dark blue background
     TextColor: [3]int{255, 255, 255},  // white text
     FontStyle: "B",                     // bold
@@ -39,7 +39,7 @@ tbl.SetHeaderStyle(folio.CellStyle{
 ### Body style
 
 ```go
-tbl.SetBodyStyle(folio.CellStyle{
+tbl.SetBodyStyle(foliopdf.CellStyle{
     FillColor: [3]int{245, 245, 245},
     TextColor: [3]int{0, 0, 0},
     FontStyle: "",
@@ -81,16 +81,16 @@ tbl.SetRepeatHeader(true)
 ## Complete example
 
 ```go
-doc := folio.New()
+doc := foliopdf.New()
 doc.SetFont("helvetica", "", 10)
-page := doc.AddPage(folio.A4)
+page := doc.AddPage(foliopdf.A4)
 page.SetXY(20, 20)
 
-tbl := folio.NewTable(doc, page)
+tbl := foliopdf.NewTable(doc, page)
 tbl.SetWidths(50, 50, 40, 30)
 tbl.SetAligns("L", "L", "R", "C")
 tbl.SetRowHeight(7)
-tbl.SetHeaderStyle(folio.CellStyle{
+tbl.SetHeaderStyle(foliopdf.CellStyle{
     FillColor: [3]int{40, 60, 120},
     TextColor: [3]int{255, 255, 255},
     FontStyle: "B",
@@ -110,30 +110,30 @@ tbl.Row("Service Y", "Support", "$99.00", "-")
 For advanced layouts, use the buffered API with `AddHeader`/`AddRow` and `Render`:
 
 ```go
-tbl := folio.NewTable(doc, page)
+tbl := foliopdf.NewTable(doc, page)
 tbl.SetWidths(30, 60, 50, 50)
 tbl.SetCellPadding(2)
 
 // Spanning header
-tbl.AddHeader(folio.TableCell{Text: "Quarterly Report", ColSpan: 4, Align: "C"})
+tbl.AddHeader(foliopdf.TableCell{Text: "Quarterly Report", ColSpan: 4, Align: "C"})
 tbl.AddHeader(
-    folio.TableCell{Text: "Region"},
-    folio.TableCell{Text: "Q1"},
-    folio.TableCell{Text: "Q2"},
-    folio.TableCell{Text: "Total"},
+    foliopdf.TableCell{Text: "Region"},
+    foliopdf.TableCell{Text: "Q1"},
+    foliopdf.TableCell{Text: "Q2"},
+    foliopdf.TableCell{Text: "Total"},
 )
 
 // Rowspan: "North" spans 2 rows
 tbl.AddRow(
-    folio.TableCell{Text: "North", RowSpan: 2},
-    folio.TableCell{Text: "100"},
-    folio.TableCell{Text: "150"},
-    folio.TableCell{Text: "250"},
+    foliopdf.TableCell{Text: "North", RowSpan: 2},
+    foliopdf.TableCell{Text: "100"},
+    foliopdf.TableCell{Text: "150"},
+    foliopdf.TableCell{Text: "250"},
 )
 tbl.AddRow(
-    folio.TableCell{Text: "200"},
-    folio.TableCell{Text: "180"},
-    folio.TableCell{Text: "380"},
+    foliopdf.TableCell{Text: "200"},
+    foliopdf.TableCell{Text: "180"},
+    foliopdf.TableCell{Text: "380"},
 )
 
 tbl.Render()
@@ -146,8 +146,8 @@ Cell text supports `\n` for explicit line breaks. Use `SetLineHeight` to control
 ```go
 tbl.SetLineHeight(5)
 tbl.AddRow(
-    folio.TableCell{Text: "Line 1\nLine 2\nLine 3"},
-    folio.TableCell{Text: "Single line"},
+    foliopdf.TableCell{Text: "Line 1\nLine 2\nLine 3"},
+    foliopdf.TableCell{Text: "Single line"},
 )
 tbl.Render()
 ```
@@ -158,10 +158,10 @@ Override style on individual cells:
 
 ```go
 tbl.AddRow(
-    folio.TableCell{Text: "Normal"},
-    folio.TableCell{
+    foliopdf.TableCell{Text: "Normal"},
+    foliopdf.TableCell{
         Text: "Highlighted",
-        Style: &folio.CellStyle{
+        Style: &foliopdf.CellStyle{
             FillColor: [3]int{255, 255, 0},
             FontStyle: "B",
             Fill:      true,
@@ -188,8 +188,8 @@ data := []Employee{
 }
 
 page.SetXY(20, 20)
-at := folio.AutoTableFromStructs(doc, page, data)
-at.SetHeaderStyle(folio.CellStyle{
+at := foliopdf.AutoTableFromStructs(doc, page, data)
+at.SetHeaderStyle(foliopdf.CellStyle{
     FillColor: [3]int{40, 60, 120},
     TextColor: [3]int{255, 255, 255},
     FontStyle: "B",
@@ -209,7 +209,7 @@ jsonData := []byte(`[
 ]`)
 
 page.SetXY(20, 20)
-jt, err := folio.AutoTableFromJSON(doc, page, jsonData)
+jt, err := foliopdf.AutoTableFromJSON(doc, page, jsonData)
 if err != nil {
     log.Fatal(err)
 }
