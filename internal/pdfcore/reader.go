@@ -1116,6 +1116,11 @@ func ToInt(v interface{}) int { return toInt(v) }
 // ToDict converts a parsed PDF value to a dictionary.
 func ToDict(v interface{}) map[string]interface{} { return toDict(v) }
 
+// DecodeStream decodes a PDF stream's raw bytes using its filter chain.
+func DecodeStream(stm *Stream) ([]byte, error) {
+	return decodeStream(stm.Hdr, stm.Raw)
+}
+
 // ---- helpers ----
 
 func toInt(v interface{}) int {

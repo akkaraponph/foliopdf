@@ -4938,6 +4938,114 @@ func TestTaggedPDFDisabled(t *testing.T) {
 	}
 }
 
+// === Text Extraction ===
+
+func TestExtractTextBasic(t *testing.T) {
+	// Create a PDF with known text.
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 16)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Hello World")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pages, err := ExtractTextFromBytes(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pages) != 1 {
+		t.Fatalf("expected 1 page, got %d", len(pages))
+	}
+	if !strings.Contains(pages[0], "Hello World") {
+		t.Errorf("expected text 'Hello World', got %q", pages[0])
+	}
+}
+
+func TestExtractTextMultiPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	p1.TextAt(20, 30, "Page One")
+	p2 := doc.AddPage(A4)
+	p2.TextAt(20, 30, "Page Two")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pages, err := ExtractTextFromBytes(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pages) != 2 {
+		t.Fatalf("expected 2 pages, got %d", len(pages))
+	}
+	if !strings.Contains(pages[0], "Page One") {
+		t.Errorf("page 1: expected 'Page One', got %q", pages[0])
+	}
+	if !strings.Contains(pages[1], "Page Two") {
+		t.Errorf("page 2: expected 'Page Two', got %q", pages[1])
+	}
+}
+
+func TestExtractTextMultipleStrings(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "First")
+	page.TextAt(20, 50, "Second")
+	page.TextAt(20, 70, "Third")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pages, err := ExtractTextFromBytes(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(pages[0], "First") {
+		t.Error("missing 'First'")
+	}
+	if !strings.Contains(pages[0], "Second") {
+		t.Error("missing 'Second'")
+	}
+	if !strings.Contains(pages[0], "Third") {
+		t.Error("missing 'Third'")
+	}
+}
+
+func TestExtractTextEmptyPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pages, err := ExtractTextFromBytes(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(pages) != 1 {
+		t.Fatalf("expected 1 page, got %d", len(pages))
+	}
+	if pages[0] != "" {
+		t.Errorf("expected empty string, got %q", pages[0])
+	}
+}
+
 // === AutoTable (F8) ===
 
 func TestAutoTableFromStructs(t *testing.T) {
