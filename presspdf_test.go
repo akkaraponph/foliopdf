@@ -3836,6 +3836,265 @@ func TestClipRectOutline(t *testing.T) {
 	}
 }
 
+// --- Text features ---
+
+func TestLn(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Cell(50, 10, "Line 1", "", "L", false, 0)
+	y1 := page.GetY()
+	page.Ln(10)
+	y2 := page.GetY()
+
+	if y2-y1 != 10 {
+		t.Errorf("Ln(10): expected Y advance of 10, got %.2f", y2-y1)
+	}
+	if page.GetX() != doc.lMargin {
+		t.Errorf("Ln should reset X to left margin, got %.2f", page.GetX())
+	}
+}
+
+func TestLnNegative(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Cell(50, 8, "Hello", "", "L", false, 0)
+	y1 := page.GetY()
+	page.Ln(-1) // should use lastCellH = 8
+	y2 := page.GetY()
+
+	if y2-y1 != 8 {
+		t.Errorf("Ln(-1): expected Y advance of 8 (lastCellH), got %.2f", y2-y1)
+	}
+}
+
+func TestWritef(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Writef(5, "Price: $%.2f", 19.99)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "Price: $19.99") {
+		t.Error("expected formatted text in output")
+	}
+}
+
+func TestCellf(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Cellf(80, 10, "Item %d: %s", 1, "Widget")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "Item 1: Widget") {
+		t.Error("expected formatted text in output")
+	}
+}
+
+func TestWriteLinkString(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.WriteLinkString(5, "Click here", "https://example.com")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should have the text.
+	if !strings.Contains(s, "Click here") {
+		t.Error("expected link text in output")
+	}
+	// Should have a URI annotation.
+	if !strings.Contains(s, "/URI (https://example.com)") {
+		t.Error("expected URI annotation for link")
+	}
+}
+
+func TestWriteAligned(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.WriteAligned(0, 6, "Centered text", "C")
+	page.Ln(6)
+	page.WriteAligned(0, 6, "Right text", "R")
+	page.Ln(6)
+	page.WriteAligned(0, 6, "Left text", "L")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "Centered text") {
+		t.Error("expected centered text")
+	}
+	if !strings.Contains(s, "Right text") {
+		t.Error("expected right-aligned text")
+	}
+	if !strings.Contains(s, "Left text") {
+		t.Error("expected left-aligned text")
+	}
+}
+
+func TestSubWriteSuperscript(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Write(5, "E = mc")
+	page.SubWrite(5, "2", 8, 4) // superscript
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "(E = mc) Tj") {
+		t.Error("expected base text")
+	}
+	if !strings.Contains(s, "(2) Tj") {
+		t.Error("expected superscript text")
+	}
+}
+
+func TestSubWriteSubscript(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Write(5, "H")
+	page.SubWrite(5, "2", 8, -3) // subscript
+	page.Write(5, "O")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "(H) Tj") {
+		t.Error("expected H text")
+	}
+	if !strings.Contains(s, "(2) Tj") {
+		t.Error("expected subscript text")
+	}
+}
+
+func TestSplitText(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	lines := page.SplitText("This is a long text that should be split into multiple lines when the width is narrow enough", 50)
+
+	if len(lines) < 2 {
+		t.Errorf("expected text to be split into at least 2 lines, got %d", len(lines))
+	}
+	// All lines concatenated should contain the original text.
+	joined := strings.Join(lines, " ")
+	if !strings.Contains(joined, "This is a long text") {
+		t.Error("split text should preserve original content")
+	}
+}
+
+func TestSplitTextNewlines(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	lines := page.SplitText("Line one\nLine two\nLine three", 200)
+
+	if len(lines) != 3 {
+		t.Errorf("expected 3 lines from explicit newlines, got %d: %v", len(lines), lines)
+	}
+}
+
+func TestSetUnderlineThickness(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 14)
+	doc.SetUnderline(true)
+
+	// Default thickness.
+	page := doc.AddPage(A4)
+	page.Cell(80, 10, "Normal underline", "", "L", false, 0)
+
+	// Thicker underline.
+	doc.SetUnderlineThickness(2.5)
+	page.Ln(12)
+	page.Cell(80, 10, "Thick underline", "", "L", false, 0)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Both texts should be present.
+	if !strings.Contains(s, "Normal underline") {
+		t.Error("expected normal underline text")
+	}
+	if !strings.Contains(s, "Thick underline") {
+		t.Error("expected thick underline text")
+	}
+	// Underline rectangles should be in the PDF (re f pattern).
+	if strings.Count(s, "re\nf") < 2 {
+		t.Error("expected at least 2 underline rectangles")
+	}
+}
+
+func TestSetTextRenderingMode(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 24)
+	page := doc.AddPage(A4)
+
+	doc.SetTextRenderingMode(1) // stroke
+	page.TextAt(20, 50, "Stroked text")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "1 Tr\n") {
+		t.Error("expected text rendering mode 1 (stroke)")
+	}
+}
+
+func TestSetTextRenderingModeInvalid(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	_ = doc.AddPage(A4)
+
+	// Invalid modes should be silently ignored.
+	doc.SetTextRenderingMode(-1)
+	doc.SetTextRenderingMode(8)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if strings.Contains(s, " Tr\n") {
+		t.Error("invalid rendering modes should not emit Tr operator")
+	}
+}
+
 // --- Drawing & Graphics: Linear Gradient ---
 
 func TestLinearGradient(t *testing.T) {

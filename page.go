@@ -1255,6 +1255,9 @@ func (p *Page) Cell(w, h float64, text, border, align string, fill bool, ln int)
 		p.stream.RestoreState()
 	}
 
+	// Track last cell height for Ln(-1).
+	d.lastCellH = h
+
 	// Advance cursor
 	switch ln {
 	case 0:
@@ -1454,6 +1457,223 @@ func (p *Page) Write(h float64, text string) {
 		p = p.active()
 		p.writeSegment(string(runes[j:n]), h)
 	}
+	d.lastCellH = h
+}
+
+// Writef is like Write but uses printf-style formatting.
+func (p *Page) Writef(h float64, format string, args ...any) {
+	p.Write(h, fmt.Sprintf(format, args...))
+}
+
+// WriteLinkString writes text that, when clicked, opens the given URL.
+// h is the line height. The text is rendered inline (with word wrapping)
+// and a clickable link annotation is placed over it.
+func (p *Page) WriteLinkString(h float64, text, url string) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+	// Record where text starts, draw it, then add a link annotation.
+	startX := p.GetX()
+	startY := p.GetY()
+	p.Write(h, text)
+	p = p.active()
+	endX := p.GetX()
+
+	// Simple case: single-line link (no page break during Write).
+	sw := endX - startX
+	if sw > 0 {
+		p.links = append(p.links, linkAnnotation{
+			x: startX, y: startY, w: sw, h: h,
+			url: url,
+		})
+	}
+}
+
+// WriteAligned writes multi-line text with horizontal alignment.
+// width is the box width (0 = full page width minus margins).
+// h is the line height. align is "L", "C", or "R".
+func (p *Page) WriteAligned(width, h float64, text, align string) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+
+	if width == 0 {
+		width = p.w - d.lMargin - d.rMargin
+	}
+
+	lines := p.SplitText(text, width)
+	savedLM := d.lMargin
+	savedRM := d.rMargin
+
+	for _, line := range lines {
+		lineW := p.GetStringWidth(line)
+		switch strings.ToUpper(align) {
+		case "C":
+			d.lMargin = savedLM + (width-lineW)/2
+			p.x = d.lMargin
+			p.Write(h, line)
+			d.lMargin = savedLM
+		case "R":
+			d.lMargin = savedLM + width - lineW - 2.01*d.cMargin
+			p.x = d.lMargin
+			p.Write(h, line)
+			d.lMargin = savedLM
+		default: // "L"
+			d.rMargin = p.w - savedLM - width
+			p.x = savedLM
+			p.Write(h, line)
+			d.rMargin = savedRM
+		}
+		p = p.active()
+	}
+}
+
+// SubWrite writes text as superscript or subscript. h is the line height.
+// fontSize is the size in points for the sub/superscript text.
+// offset is the vertical offset in points: positive = superscript (up),
+// negative = subscript (down).
+func (p *Page) SubWrite(h float64, text string, fontSize, offset float64) {
+	p = p.active()
+	d := p.doc
+	if d.err != nil {
+		return
+	}
+
+	oldSize := d.fontSizePt
+	k := d.k
+
+	// Change to sub/super font size.
+	d.SetFontSize(fontSize)
+
+	// Calculate vertical offset in user units.
+	yShift := ((fontSize-oldSize)/k)*0.3 + offset/k
+	savedX := p.GetX()
+	savedY := p.GetY()
+	p.SetXY(savedX, savedY-yShift)
+
+	p.Write(h, text)
+
+	// Restore position and font size.
+	p = p.active()
+	endX := p.GetX()
+	p.SetXY(endX, savedY)
+	d.SetFontSize(oldSize)
+}
+
+// Cellf is like Cell but uses printf-style formatting for the text content.
+func (p *Page) Cellf(w, h float64, format string, args ...any) {
+	p.Cell(w, h, fmt.Sprintf(format, args...), "", "L", false, 0)
+}
+
+// Ln performs a line break. The cursor X moves back to the left margin.
+// h is the vertical distance to advance. A negative value of h uses the
+// height of the last Cell or Write output.
+func (p *Page) Ln(h float64) {
+	p = p.active()
+	d := p.doc
+	p.x = d.lMargin
+	if h < 0 {
+		p.y += d.lastCellH
+	} else {
+		p.y += h
+	}
+}
+
+// SplitText splits text into lines that fit within the given width (in user
+// units) using the current font. This is useful for calculating the total
+// height of wrapped text for layout purposes.
+func (p *Page) SplitText(text string, width float64) []string {
+	p = p.active()
+	d := p.doc
+	fe := p.effectiveFontEntry()
+	if fe == nil || d.err != nil {
+		return nil
+	}
+
+	fontSize := p.effectiveFontSizePt()
+	k := d.k
+	maxW := (width - 2*d.cMargin) * 1000.0 / (fontSize / k)
+
+	runes := []rune(text)
+	n := len(runes)
+	// Trim trailing newlines.
+	for n > 0 && runes[n-1] == '\n' {
+		n--
+	}
+	runes = runes[:n]
+
+	var lines []string
+	sep := -1
+	i, j := 0, 0
+	l := 0.0
+
+	for i < n {
+		c := runes[i]
+
+		if c == '\n' {
+			lines = append(lines, string(runes[j:i]))
+			i++
+			j = i
+			sep = -1
+			l = 0
+			continue
+		}
+
+		l += p.runeWidth1000(fe, c)
+
+		if c == ' ' || isCJK(c) {
+			sep = i
+		}
+
+		if l > maxW {
+			if sep == -1 {
+				if i == j {
+					i++
+				}
+				sep = i
+			} else {
+				i = sep + 1
+			}
+			lines = append(lines, string(runes[j:sep]))
+			sep = -1
+			j = i
+			l = 0
+		} else {
+			i++
+		}
+	}
+	if i != j {
+		lines = append(lines, string(runes[j:i]))
+	}
+	return lines
+}
+
+// runeWidth1000 returns the width of a rune in 1/1000 font-size units.
+func (p *Page) runeWidth1000(fe *resources.FontEntry, r rune) float64 {
+	if fe.Type == "TTF" && fe.TTF != nil {
+		ch := int(r)
+		if ch < len(fe.TTF.CharWidths) {
+			return float64(fe.TTF.CharWidths[ch])
+		}
+		return 0
+	}
+	if r < 256 {
+		return float64(fe.Widths[byte(r)])
+	}
+	return 0
+}
+
+// isCJK reports whether a rune is in a CJK ideograph range where line
+// breaks are allowed between any two characters.
+func isCJK(r rune) bool {
+	return (r >= 0x4E00 && r <= 0x9FFF) || // CJK Unified Ideographs
+		(r >= 0x3400 && r <= 0x4DBF) || // CJK Extension A
+		(r >= 0x3000 && r <= 0x303F) || // CJK Symbols and Punctuation
+		(r >= 0xFF00 && r <= 0xFFEF) // Halfwidth and Fullwidth Forms
 }
 
 // RichText draws inline text with simple HTML-like markup for styling.
@@ -1872,7 +2092,7 @@ func (p *Page) drawTextDecoration(xUser, yUser float64, text string) {
 	sw := p.GetStringWidth(text)
 
 	up := float64(fe.Up) // typically negative (e.g. -100)
-	ut := float64(fe.Ut) // typically positive (e.g. 50)
+	ut := float64(fe.Ut) * p.doc.underlineThickness // typically positive (e.g. 50)
 
 	x1Pt := xUser * k
 	y1Pt := (p.h - (yUser - up/1000.0*fontSizeUser)) * k

@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Text & Fonts
 
 ## Core fonts
 
-Folio includes metrics for 13 standard PDF fonts. These are built into every PDF viewer — no embedding needed.
+PressPDF includes metrics for 13 standard PDF fonts. These are built into every PDF viewer — no embedding needed.
 
 | Family | Styles | Notes |
 |--------|--------|-------|
@@ -41,7 +41,7 @@ TrueType fonts are embedded in the PDF as CIDFont Type 2 with 2-byte character e
 
 ## Bundled fonts
 
-Folio ships two font families ready to use:
+PressPDF ships two font families ready to use:
 
 ### Sarabun (Thai + Latin)
 
@@ -63,7 +63,7 @@ doc.SetFont("dejavu", "", 12)
 
 ## Thai language support
 
-Thai text needs word segmentation for proper line wrapping (Thai doesn't use spaces between words). Folio includes a built-in dictionary-based segmenter:
+Thai text needs word segmentation for proper line wrapping (Thai doesn't use spaces between words). PressPDF includes a built-in dictionary-based segmenter:
 
 ```go
 import (
@@ -79,7 +79,7 @@ doc.SetFont("sarabun", "", 14)
 page := doc.AddPage(presspdf.A4)
 page.SetXY(20, 20)
 page.MultiCell(170, 7,
-    "สวัสดีครับ นี่คือตัวอย่างภาษาไทยใน Folio",
+    "สวัสดีครับ นี่คือตัวอย่างภาษาไทยใน PressPDF",
     "", "L", false)
 ```
 
@@ -138,6 +138,29 @@ page.TextAt(20, 40, "This text has a line through it")
 doc.SetStrikethrough(false)
 ```
 
+### Configurable underline thickness
+
+Control the underline weight with a multiplier (default 1.0):
+
+```go
+doc.SetUnderlineThickness(2.0) // double thickness
+doc.SetUnderline(true)
+page.Cell(80, 10, "Thick underline", "", "L", false, 0)
+doc.SetUnderlineThickness(0.5) // half thickness
+```
+
+### Text rendering mode
+
+Control how text glyphs are painted — fill, stroke, or both:
+
+```go
+doc.SetTextRenderingMode(1) // 0=fill, 1=stroke, 2=fill+stroke, 3=invisible
+page.TextAt(20, 50, "Outlined text")
+doc.SetTextRenderingMode(0) // restore fill
+```
+
+Modes 4-7 add clipping behavior (fill+clip, stroke+clip, fill+stroke+clip, clip only).
+
 ### Measuring text
 
 Get the width of a string in current units, using the current font:
@@ -145,6 +168,70 @@ Get the width of a string in current units, using the current font:
 ```go
 w := page.GetStringWidth("Hello, World!")
 // Use to center text, align elements, etc.
+```
+
+### Splitting text for layout
+
+Split text into lines that fit within a given width, useful for calculating vertical space:
+
+```go
+lines := page.SplitText("Long paragraph text...", 170)
+totalHeight := float64(len(lines)) * lineHeight
+```
+
+## Line feed
+
+`Ln` moves the cursor to the left margin and advances vertically:
+
+```go
+page.Cell(80, 10, "Line 1", "", "L", false, 0)
+page.Ln(10)   // advance 10 user units
+page.Cell(80, 10, "Line 2", "", "L", false, 0)
+page.Ln(-1)   // advance by the height of the last Cell
+```
+
+## Printf-style formatting
+
+Convenience wrappers with `fmt.Sprintf` built in:
+
+```go
+page.Cellf(80, 10, "Total: $%.2f", 99.95)
+page.Writef(6, "Item %d: %s", 1, "Widget")
+```
+
+## Inline hyperlinks
+
+Write text that opens a URL when clicked:
+
+```go
+page.WriteLinkString(6, "Visit our website", "https://example.com")
+```
+
+## Aligned multi-line text
+
+`WriteAligned` writes word-wrapped text with horizontal alignment:
+
+```go
+page.WriteAligned(0, 6, "Centered paragraph", "C")  // 0 = full page width
+page.Ln(6)
+page.WriteAligned(100, 6, "Right-aligned text", "R") // 100mm wide box
+```
+
+Alignment options: `"L"` (left), `"C"` (center), `"R"` (right).
+
+## Superscript and subscript
+
+`SubWrite` shifts text vertically with a different font size:
+
+```go
+// Superscript: E = mc²
+page.Write(6, "E = mc")
+page.SubWrite(6, "2", 8, 4)  // fontSize=8pt, offset=+4pt (up)
+
+// Subscript: H₂O
+page.Write(6, "H")
+page.SubWrite(6, "2", 8, -3) // fontSize=8pt, offset=-3pt (down)
+page.Write(6, "O")
 ```
 
 ## Rotated text

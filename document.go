@@ -51,12 +51,14 @@ type Document struct {
 	fillColor     state.Color
 	textColor     state.Color
 	lineWidth     float64
-	underline     bool
-	strikethrough bool
-	currentAlpha  float64 // current opacity (0.0–1.0), default 1.0
-	charSpacing   float64 // extra space between characters (Tc), in points
-	wordSpacing   float64 // extra space added to ASCII space (Tw), in points
-	textRise      float64 // vertical text baseline shift (Ts), in points
+	underline          bool
+	strikethrough      bool
+	underlineThickness float64 // multiplier for underline weight (default 1.0)
+	currentAlpha       float64 // current opacity (0.0–1.0), default 1.0
+	charSpacing        float64 // extra space between characters (Tc), in points
+	wordSpacing        float64 // extra space added to ASCII space (Tw), in points
+	textRise           float64 // vertical text baseline shift (Ts), in points
+	lastCellH          float64 // height of the last Cell/Write output (for Ln)
 
 	// alpha transparency states (ExtGState resources)
 	alphaStates []*alphaEntry
@@ -151,7 +153,7 @@ func (d *Document) SetWordBreaker(f WordBreakFunc) {
 // Defaults: mm units, compression enabled, 10mm margins, A4 page size.
 func New(opts ...Option) *Document {
 	d := &Document{
-		producer: "Folio",
+		producer: "PressPDF",
 		unit:     state.UnitMM,
 		k:        state.ScaleFactor(state.UnitMM),
 		compress: true,
@@ -165,8 +167,9 @@ func New(opts ...Option) *Document {
 		images:   resources.NewImageRegistry(),
 		anchors:      make(map[string]anchorDest),
 		alphaByKey:   make(map[string]*alphaEntry),
-		currentAlpha: 1.0,
-		lineWidth:    0.2,
+		currentAlpha:       1.0,
+		underlineThickness: 1.0,
+		lineWidth:          0.2,
 	}
 	for _, opt := range opts {
 		opt(d)
@@ -240,20 +243,21 @@ func (d *Document) SetFooterFunc(f func(*Page)) {
 // docState holds a snapshot of the mutable document-level visual state so
 // it can be saved before and restored after header/footer callbacks.
 type docState struct {
-	fontFamily    string
-	fontStyle     string
-	fontSizePt    float64
-	fontEntry     *resources.FontEntry
-	drawColor     state.Color
-	fillColor     state.Color
-	textColor     state.Color
-	lineWidth     float64
-	underline     bool
-	strikethrough bool
-	currentAlpha  float64
-	charSpacing   float64
-	wordSpacing   float64
-	textRise      float64
+	fontFamily         string
+	fontStyle          string
+	fontSizePt         float64
+	fontEntry          *resources.FontEntry
+	drawColor          state.Color
+	fillColor          state.Color
+	textColor          state.Color
+	lineWidth          float64
+	underline          bool
+	strikethrough      bool
+	underlineThickness float64
+	currentAlpha       float64
+	charSpacing        float64
+	wordSpacing        float64
+	textRise           float64
 }
 
 func (d *Document) saveDocState() docState {
@@ -266,9 +270,10 @@ func (d *Document) saveDocState() docState {
 		fillColor:     d.fillColor,
 		textColor:     d.textColor,
 		lineWidth:     d.lineWidth,
-		underline:     d.underline,
-		strikethrough: d.strikethrough,
-		currentAlpha:  d.currentAlpha,
+		underline:          d.underline,
+		strikethrough:      d.strikethrough,
+		underlineThickness: d.underlineThickness,
+		currentAlpha:       d.currentAlpha,
 		charSpacing:   d.charSpacing,
 		wordSpacing:   d.wordSpacing,
 		textRise:      d.textRise,
@@ -286,6 +291,7 @@ func (d *Document) restoreDocState(s docState) {
 	d.lineWidth = s.lineWidth
 	d.underline = s.underline
 	d.strikethrough = s.strikethrough
+	d.underlineThickness = s.underlineThickness
 	d.currentAlpha = s.currentAlpha
 	d.charSpacing = s.charSpacing
 	d.wordSpacing = s.wordSpacing
@@ -595,6 +601,28 @@ func (d *Document) SetUnderline(on bool) { d.underline = on }
 
 // SetStrikethrough enables or disables strikethrough for subsequent text.
 func (d *Document) SetStrikethrough(on bool) { d.strikethrough = on }
+
+// SetUnderlineThickness sets a multiplier for the underline weight.
+// The default is 1.0. Values > 1 make the underline thicker, < 1 thinner.
+func (d *Document) SetUnderlineThickness(thickness float64) {
+	if thickness <= 0 {
+		thickness = 1.0
+	}
+	d.underlineThickness = thickness
+}
+
+// SetTextRenderingMode sets the PDF text rendering mode on the current page.
+// Common modes: 0 = fill (default), 1 = stroke, 2 = fill+stroke,
+// 3 = invisible, 4 = fill+clip, 5 = stroke+clip, 6 = fill+stroke+clip,
+// 7 = clip only.
+func (d *Document) SetTextRenderingMode(mode int) {
+	if mode < 0 || mode > 7 {
+		return
+	}
+	if d.currentPage != nil {
+		d.currentPage.stream.SetTextRendering(mode)
+	}
+}
 
 // SetLineWidth sets the line width in user units.
 func (d *Document) SetLineWidth(w float64) {
