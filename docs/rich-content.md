@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-folio.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
 </p>
 
 # Rich Content

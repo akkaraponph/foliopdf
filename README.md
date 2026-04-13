@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner-folio.png" alt="Folio" width="600">
+  <img src="docs/assets/banner-presspdf.png" alt="Folio" width="600">
 </p>
 
 <p align="center">
