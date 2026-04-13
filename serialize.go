@@ -177,6 +177,12 @@ func (d *Document) putPages(w *pdfcore.Writer) []int {
 		w.Putf("/MediaBox [0 0 %.2f %.2f]", p.size.WidthPt, p.size.HeightPt)
 		w.Put("/Resources 2 0 R")
 		w.Putf("/Contents %d 0 R", contentObj)
+		// Optional page boxes (TrimBox, CropBox, BleedBox, ArtBox)
+		for _, boxName := range []string{"TrimBox", "CropBox", "BleedBox", "ArtBox"} {
+			if box, ok := p.pageBoxes[boxName]; ok {
+				w.Putf("/%s [%.2f %.2f %.2f %.2f]", boxName, box[0], box[1], box[2], box[3])
+			}
+		}
 		if numAnnots > 0 {
 			annots := "/Annots ["
 			for j := 0; j < numAnnots; j++ {

@@ -34,6 +34,9 @@ type Page struct {
 	// links holds hyperlink annotations for this page.
 	links []linkAnnotation
 
+	// page boxes (optional: TrimBox, CropBox, BleedBox, ArtBox) in PDF points
+	pageBoxes map[string][4]float64
+
 	// tagged PDF (structure tree)
 	nextMCID       int              // next marked content ID for this page
 	structElements []*structElement // elements on this page
@@ -66,6 +69,10 @@ func (p *Page) active() *Page {
 func (p *Page) checkPageBreak(h float64) *Page {
 	d := p.doc
 	if !d.autoPageBreak || d.inHeader || d.inFooter {
+		return p
+	}
+	// Custom accept-page-break function: if it returns false, suppress break.
+	if d.acceptPageBreakFunc != nil && !d.acceptPageBreakFunc() {
 		return p
 	}
 	// Would content overflow?

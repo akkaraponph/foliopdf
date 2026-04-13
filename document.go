@@ -48,8 +48,18 @@ type Document struct {
 	javascript *string
 
 	// alias replacement (applied to page streams before output)
-	aliases        map[string]string
-	aliasNbPages   string // placeholder replaced with total page count
+	aliases      map[string]string
+	aliasNbPages string // placeholder replaced with total page count
+
+	// line style state
+	capStyle  int // 0=butt, 1=round, 2=square
+	joinStyle int // 0=miter, 1=round, 2=bevel
+
+	// custom page break acceptance function
+	acceptPageBreakFunc func() bool
+
+	// default page boxes (applied to new pages if set)
+	defPageBoxes map[string][4]float64 // "TrimBox", "CropBox", etc. → [llx, lly, urx, ury] in points
 
 	// pages
 	pages       []*Page
@@ -365,6 +375,8 @@ type docState struct {
 	charSpacing        float64
 	wordSpacing        float64
 	textRise           float64
+	capStyle           int
+	joinStyle          int
 }
 
 func (d *Document) saveDocState() docState {
@@ -384,6 +396,8 @@ func (d *Document) saveDocState() docState {
 		charSpacing:   d.charSpacing,
 		wordSpacing:   d.wordSpacing,
 		textRise:      d.textRise,
+		capStyle:      d.capStyle,
+		joinStyle:     d.joinStyle,
 	}
 }
 
@@ -403,6 +417,8 @@ func (d *Document) restoreDocState(s docState) {
 	d.charSpacing = s.charSpacing
 	d.wordSpacing = s.wordSpacing
 	d.textRise = s.textRise
+	d.capStyle = s.capStyle
+	d.joinStyle = s.joinStyle
 }
 
 // callHeader invokes the header callback on p, wrapped in a graphics-state
@@ -739,6 +755,161 @@ func (d *Document) SetLineWidth(w float64) {
 	}
 }
 
+// SetLineCapStyle sets the line cap style for subsequent drawing.
+// style: "butt" (0), "round" (1), or "square" (2).
+func (d *Document) SetLineCapStyle(style string) {
+	var v int
+	switch style {
+	case "butt":
+		v = 0
+	case "round":
+		v = 1
+	case "square":
+		v = 2
+	default:
+		return
+	}
+	d.capStyle = v
+	if d.currentPage != nil {
+		d.currentPage.stream.SetLineCap(v)
+	}
+}
+
+// SetLineJoinStyle sets the line join style for subsequent drawing.
+// style: "miter" (0), "round" (1), or "bevel" (2).
+func (d *Document) SetLineJoinStyle(style string) {
+	var v int
+	switch style {
+	case "miter":
+		v = 0
+	case "round":
+		v = 1
+	case "bevel":
+		v = 2
+	default:
+		return
+	}
+	d.joinStyle = v
+	if d.currentPage != nil {
+		d.currentPage.stream.SetLineJoin(v)
+	}
+}
+
+// GetLineWidth returns the current line width in user units.
+func (d *Document) GetLineWidth() float64 {
+	return d.lineWidth
+}
+
+// GetDrawColor returns the current stroke color as 0-255 RGB values.
+func (d *Document) GetDrawColor() (int, int, int) {
+	return int(d.drawColor.R*255 + 0.5), int(d.drawColor.G*255 + 0.5), int(d.drawColor.B*255 + 0.5)
+}
+
+// GetFillColor returns the current fill color as 0-255 RGB values.
+func (d *Document) GetFillColor() (int, int, int) {
+	return int(d.fillColor.R*255 + 0.5), int(d.fillColor.G*255 + 0.5), int(d.fillColor.B*255 + 0.5)
+}
+
+// GetTextColor returns the current text color as 0-255 RGB values.
+func (d *Document) GetTextColor() (int, int, int) {
+	return int(d.textColor.R*255 + 0.5), int(d.textColor.G*255 + 0.5), int(d.textColor.B*255 + 0.5)
+}
+
+// GetAlpha returns the current opacity (0.0 = fully transparent, 1.0 = fully opaque).
+func (d *Document) GetAlpha() float64 {
+	return d.currentAlpha
+}
+
+// SetPage switches the active drawing target to the given page number (1-based).
+// This allows drawing on a previously created page. The cursor position is
+// preserved from the last time that page was active.
+func (d *Document) SetPage(pageNum int) {
+	if d.err != nil {
+		return
+	}
+	if pageNum < 1 || pageNum > len(d.pages) {
+		d.err = fmt.Errorf("SetPage: page %d out of range (1–%d)", pageNum, len(d.pages))
+		return
+	}
+	d.currentPage = d.pages[pageNum-1]
+}
+
+// SetPageBox sets a named page box on the specified page (1-based) or on
+// all future pages (if pageNum is 0). Supported box types: "TrimBox",
+// "CropBox", "BleedBox", "ArtBox". Coordinates are in user units relative
+// to the top-left corner.
+func (d *Document) SetPageBox(boxType string, pageNum int, x, y, wd, ht float64) {
+	if d.err != nil {
+		return
+	}
+	// Normalize box type name
+	switch boxType {
+	case "trim", "TrimBox":
+		boxType = "TrimBox"
+	case "crop", "CropBox":
+		boxType = "CropBox"
+	case "bleed", "BleedBox":
+		boxType = "BleedBox"
+	case "art", "ArtBox":
+		boxType = "ArtBox"
+	default:
+		d.err = fmt.Errorf("SetPageBox: unknown box type %q", boxType)
+		return
+	}
+	// Convert to PDF points (bottom-left origin)
+	k := d.k
+	var pageH float64
+	if pageNum > 0 && pageNum <= len(d.pages) {
+		pageH = d.pages[pageNum-1].size.HeightPt
+	} else if pageNum == 0 {
+		pageH = d.defSize.HeightPt
+	} else {
+		d.err = fmt.Errorf("SetPageBox: page %d out of range", pageNum)
+		return
+	}
+	llx := x * k
+	lly := pageH - (y+ht)*k
+	urx := (x + wd) * k
+	ury := pageH - y*k
+	box := [4]float64{llx, lly, urx, ury}
+
+	if pageNum == 0 {
+		// Set as default for future pages
+		if d.defPageBoxes == nil {
+			d.defPageBoxes = make(map[string][4]float64)
+		}
+		d.defPageBoxes[boxType] = box
+	} else {
+		p := d.pages[pageNum-1]
+		if p.pageBoxes == nil {
+			p.pageBoxes = make(map[string][4]float64)
+		}
+		p.pageBoxes[boxType] = box
+	}
+}
+
+// SetAcceptPageBreakFunc sets a custom function that controls automatic page
+// breaking. When set, this function is called instead of the default behavior
+// to determine if a page break should occur. Return true to allow the break,
+// false to suppress it.
+func (d *Document) SetAcceptPageBreakFunc(fn func() bool) {
+	d.acceptPageBreakFunc = fn
+}
+
+// GetPageSize returns the width and height of the current page in user units.
+func (d *Document) GetPageSize() (float64, float64) {
+	if d.currentPage == nil {
+		return d.defSize.WidthPt / d.k, d.defSize.HeightPt / d.k
+	}
+	return d.currentPage.w, d.currentPage.h
+}
+
+// GetMargins returns the current left, top, right, and bottom margins
+// in user units.
+func (d *Document) GetMargins() (left, top, right, bottom float64) {
+	return d.lMargin, d.tMargin, d.rMargin, d.bMargin
+}
+
 // AddPage adds a new page with the given size and returns it.
 // If a footer function is set, it is called on the outgoing page first.
 // If a header function is set, it is called on the new page after creation.
@@ -766,10 +937,20 @@ func (d *Document) AddPage(size PageSize) *Page {
 	d.currentPage = p
 	d.lastPageClosed = false
 
+	// Apply default page boxes if set
+	if len(d.defPageBoxes) > 0 {
+		if p.pageBoxes == nil {
+			p.pageBoxes = make(map[string][4]float64, len(d.defPageBoxes))
+		}
+		for k, v := range d.defPageBoxes {
+			p.pageBoxes[k] = v
+		}
+	}
+
 	// Emit initial page state
 	p.stream.SetLineWidth(d.lineWidth * d.k)
-	p.stream.SetLineCap(0)
-	p.stream.SetLineJoin(0)
+	p.stream.SetLineCap(d.capStyle)
+	p.stream.SetLineJoin(d.joinStyle)
 
 	// Restore font if one was set
 	if d.fontEntry != nil {

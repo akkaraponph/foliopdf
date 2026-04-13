@@ -9396,3 +9396,330 @@ func TestStackWithParagraphAndKeepTogether(t *testing.T) {
 		t.Error("invalid PDF")
 	}
 }
+
+// ---- Feature 5: Page Management, Line Style, Color Getters ----
+
+func TestSetPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	p1 := doc.AddPage(A4)
+	p1.TextAt(20, 30, "Page 1 original")
+
+	p2 := doc.AddPage(A4)
+	p2.TextAt(20, 30, "Page 2")
+
+	// Switch back to page 1 and draw more
+	doc.SetPage(1)
+	doc.CurrentPage().TextAt(20, 50, "Page 1 added later")
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "Page 1 original") {
+		t.Error("missing Page 1 original text")
+	}
+	if !strings.Contains(s, "Page 1 added later") {
+		t.Error("missing Page 1 added later text")
+	}
+	if !strings.Contains(s, "Page 2") {
+		t.Error("missing Page 2 text")
+	}
+}
+
+func TestSetPageOutOfRange(t *testing.T) {
+	doc := New()
+	doc.AddPage(A4)
+	doc.SetPage(5)
+	if doc.Err() == nil {
+		t.Error("expected error for out-of-range page")
+	}
+}
+
+func TestSetPageBox(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+
+	// Set a TrimBox on page 1
+	doc.SetPageBox("TrimBox", 1, 10, 10, 190, 277)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "/TrimBox") {
+		t.Error("missing /TrimBox in page dict")
+	}
+}
+
+func TestSetPageBoxDefault(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+
+	// Set default CropBox for all future pages
+	doc.SetPageBox("CropBox", 0, 5, 5, 200, 287)
+
+	doc.AddPage(A4)
+	doc.AddPage(A4)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	// Both pages should have the CropBox
+	if count := strings.Count(s, "/CropBox"); count != 2 {
+		t.Errorf("expected 2 /CropBox entries, got %d", count)
+	}
+}
+
+func TestSetPageBoxInvalidType(t *testing.T) {
+	doc := New()
+	doc.AddPage(A4)
+	doc.SetPageBox("FooBox", 1, 0, 0, 100, 100)
+	if doc.Err() == nil {
+		t.Error("expected error for invalid box type")
+	}
+}
+
+func TestSetAcceptPageBreakFunc(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetAutoPageBreak(true, 10)
+
+	// Suppress all page breaks
+	doc.SetAcceptPageBreakFunc(func() bool {
+		return false
+	})
+
+	p := doc.AddPage(A4)
+	// Try to force a page break by writing near the bottom
+	p.SetY(280)
+	p.Cell(0, 10, "Should not trigger break", "", "L", false, 0)
+
+	// Should still be on page 1
+	if doc.PageCount() != 1 {
+		t.Errorf("expected 1 page (break suppressed), got %d", doc.PageCount())
+	}
+}
+
+func TestGetPageSize(t *testing.T) {
+	doc := New()
+	doc.AddPage(A4)
+	w, h := doc.GetPageSize()
+	// A4 = 210mm x 297mm
+	if w < 209 || w > 211 {
+		t.Errorf("width = %.2f, expected ~210", w)
+	}
+	if h < 296 || h > 298 {
+		t.Errorf("height = %.2f, expected ~297", h)
+	}
+}
+
+func TestGetPageSizeLetter(t *testing.T) {
+	doc := New()
+	doc.AddPage(Letter)
+	w, h := doc.GetPageSize()
+	// Letter = 215.9mm x 279.4mm
+	if w < 215 || w > 217 {
+		t.Errorf("width = %.2f, expected ~215.9", w)
+	}
+	if h < 278 || h > 280 {
+		t.Errorf("height = %.2f, expected ~279.4", h)
+	}
+}
+
+func TestGetMargins(t *testing.T) {
+	doc := New()
+	doc.SetMargins(15, 20, 25)
+	doc.SetAutoPageBreak(true, 30)
+
+	l, top, r, b := doc.GetMargins()
+	if l != 15 {
+		t.Errorf("left margin = %.2f, expected 15", l)
+	}
+	if top != 20 {
+		t.Errorf("top margin = %.2f, expected 20", top)
+	}
+	if r != 25 {
+		t.Errorf("right margin = %.2f, expected 25", r)
+	}
+	if b != 30 {
+		t.Errorf("bottom margin = %.2f, expected 30", b)
+	}
+}
+
+func TestSetLineCapStyle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetLineCapStyle("round")
+	p := doc.AddPage(A4)
+	p.Line(20, 20, 100, 20)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "1 J") {
+		t.Error("missing '1 J' (round cap) operator")
+	}
+}
+
+func TestSetLineCapStyleSquare(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+	doc.SetLineCapStyle("square")
+	p.Line(20, 20, 100, 20)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "2 J") {
+		t.Error("missing '2 J' (square cap) operator")
+	}
+}
+
+func TestSetLineJoinStyle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetLineJoinStyle("bevel")
+	p := doc.AddPage(A4)
+	p.Line(20, 20, 100, 20)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "2 j") {
+		t.Error("missing '2 j' (bevel join) operator")
+	}
+}
+
+func TestSetLineJoinStyleRound(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+	doc.SetLineJoinStyle("round")
+	p.Line(20, 20, 100, 20)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.Contains(s, "1 j") {
+		t.Error("missing '1 j' (round join) operator")
+	}
+}
+
+func TestGetLineWidth(t *testing.T) {
+	doc := New()
+	// Default line width
+	if w := doc.GetLineWidth(); w != 0.2 {
+		t.Errorf("default line width = %.2f, expected 0.2", w)
+	}
+	doc.SetLineWidth(1.5)
+	if w := doc.GetLineWidth(); w != 1.5 {
+		t.Errorf("line width after set = %.2f, expected 1.5", w)
+	}
+}
+
+func TestGetDrawColor(t *testing.T) {
+	doc := New()
+	// Default is black
+	r, g, b := doc.GetDrawColor()
+	if r != 0 || g != 0 || b != 0 {
+		t.Errorf("default draw color = (%d,%d,%d), expected (0,0,0)", r, g, b)
+	}
+	doc.SetDrawColor(255, 128, 0)
+	r, g, b = doc.GetDrawColor()
+	if r != 255 || g != 128 || b != 0 {
+		t.Errorf("draw color = (%d,%d,%d), expected (255,128,0)", r, g, b)
+	}
+}
+
+func TestGetFillColor(t *testing.T) {
+	doc := New()
+	r, g, b := doc.GetFillColor()
+	if r != 0 || g != 0 || b != 0 {
+		t.Errorf("default fill color = (%d,%d,%d), expected (0,0,0)", r, g, b)
+	}
+	doc.SetFillColor(100, 200, 50)
+	r, g, b = doc.GetFillColor()
+	if r != 100 || g != 200 || b != 50 {
+		t.Errorf("fill color = (%d,%d,%d), expected (100,200,50)", r, g, b)
+	}
+}
+
+func TestGetTextColor(t *testing.T) {
+	doc := New()
+	r, g, b := doc.GetTextColor()
+	if r != 0 || g != 0 || b != 0 {
+		t.Errorf("default text color = (%d,%d,%d), expected (0,0,0)", r, g, b)
+	}
+	doc.SetTextColor(0, 0, 255)
+	r, g, b = doc.GetTextColor()
+	if r != 0 || g != 0 || b != 255 {
+		t.Errorf("text color = (%d,%d,%d), expected (0,0,255)", r, g, b)
+	}
+}
+
+func TestGetAlpha(t *testing.T) {
+	doc := New()
+	if a := doc.GetAlpha(); a != 1.0 {
+		t.Errorf("default alpha = %.2f, expected 1.0", a)
+	}
+	doc.SetAlpha(0.5)
+	if a := doc.GetAlpha(); a != 0.5 {
+		t.Errorf("alpha = %.2f, expected 0.5", a)
+	}
+}
+
+func TestLineCapStyleCarriedToNewPage(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetLineCapStyle("round")
+	doc.AddPage(A4)
+	p2 := doc.AddPage(A4)
+	p2.Line(20, 20, 100, 20)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	// The second page should also have round cap (1 J)
+	if !strings.Contains(s, "1 J") {
+		t.Error("line cap style not carried to second page")
+	}
+}
+
+func TestSetPageBoxMultipleTypes(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AddPage(A4)
+
+	doc.SetPageBox("TrimBox", 1, 10, 10, 190, 277)
+	doc.SetPageBox("BleedBox", 1, 5, 5, 200, 287)
+	doc.SetPageBox("ArtBox", 1, 20, 20, 170, 257)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	for _, box := range []string{"/TrimBox", "/BleedBox", "/ArtBox"} {
+		if !strings.Contains(s, box) {
+			t.Errorf("missing %s in output", box)
+		}
+	}
+}
