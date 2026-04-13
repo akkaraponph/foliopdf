@@ -52,6 +52,9 @@ func (d *Document) validatePDFA() error {
 
 // pdfaVersion returns the PDF version string for the conformance level.
 func (d *Document) pdfaVersion() string {
+	if d.encryptAES {
+		return "2.0" // AES-256 requires PDF 2.0
+	}
 	if d.pdfaLevel == nil {
 		return "1.4"
 	}

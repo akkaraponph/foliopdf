@@ -5356,6 +5356,93 @@ func TestNoEncryptionDefault(t *testing.T) {
 	}
 }
 
+func TestEncryptionAES256Basic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtectionAES256("user", "owner", PermAll)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "AES-256 encrypted")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Should have AES-256 encrypt dictionary.
+	if !strings.Contains(s, "/V 5") {
+		t.Error("missing /V 5 in encrypt dictionary")
+	}
+	if !strings.Contains(s, "/R 6") {
+		t.Error("missing /R 6 in encrypt dictionary")
+	}
+	if !strings.Contains(s, "/AESV3") {
+		t.Error("missing /AESV3 crypt filter")
+	}
+	if !strings.Contains(s, "/StmF /StdCF") {
+		t.Error("missing /StmF /StdCF")
+	}
+	// Should be PDF 2.0.
+	if !strings.HasPrefix(s, "%PDF-2.0") {
+		t.Error("expected PDF 2.0 header for AES-256")
+	}
+}
+
+func TestEncryptionAES256Structure(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtectionAES256("test", "test", PermPrint|PermCopy)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 30, "Hello")
+	page.Rect(40, 50, 100, 60, "D")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Basic PDF structure should still be present.
+	if !strings.Contains(s, "/Type /Page") {
+		t.Error("missing Page object")
+	}
+	if !strings.Contains(s, "/Type /Catalog") {
+		t.Error("missing Catalog")
+	}
+	if !strings.Contains(s, "%%EOF") {
+		t.Error("missing EOF marker")
+	}
+	if !strings.Contains(s, "/Filter /Standard") {
+		t.Error("missing Standard security handler")
+	}
+}
+
+func TestEncryptionAES256HasOUValues(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProtectionAES256("pass", "pass", PermAll)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/O <") {
+		t.Error("missing /O value")
+	}
+	if !strings.Contains(s, "/U <") {
+		t.Error("missing /U value")
+	}
+	if !strings.Contains(s, "/OE <") {
+		t.Error("missing /OE value")
+	}
+	if !strings.Contains(s, "/UE <") {
+		t.Error("missing /UE value")
+	}
+}
+
 // === AcroForms (F10) ===
 
 func TestFormTextField(t *testing.T) {

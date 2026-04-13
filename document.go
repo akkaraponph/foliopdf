@@ -102,6 +102,7 @@ type Document struct {
 
 	// encryption (password protection)
 	encrypted   bool
+	encryptAES  bool   // true = AES-256 (V=5 R=6), false = RC4-40 (V=1 R=2)
 	userPw      string
 	ownerPw     string
 	permissions int32
@@ -565,6 +566,18 @@ func (d *Document) SetProtection(userPw, ownerPw string, permissions int) {
 	d.userPw = userPw
 	d.ownerPw = ownerPw
 	// Standard permission value: must set reserved high bits per PDF spec.
+	d.permissions = int32(permissions) | int32(-4)
+}
+
+// SetProtectionAES256 sets AES-256 password protection on the document.
+// This uses the PDF 2.0 standard security handler (V=5, R=6) with
+// AES-256-CBC encryption, which is significantly stronger than the
+// RC4-based SetProtection.
+func (d *Document) SetProtectionAES256(userPw, ownerPw string, permissions int) {
+	d.encrypted = true
+	d.encryptAES = true
+	d.userPw = userPw
+	d.ownerPw = ownerPw
 	d.permissions = int32(permissions) | int32(-4)
 }
 

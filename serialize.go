@@ -31,11 +31,40 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	var fileID []byte
 	var ownerHash [32]byte
 	var encKey []byte
+	// AES-256 specific values
+	var uValue, oValue [48]byte
+	var ueEncrypted, oeEncrypted []byte
 	if d.encrypted {
-		fileID = pdfcrypto.FileID(d.title, d.producer)
-		ownerHash = pdfcrypto.ComputeOwnerHash(d.ownerPw, d.userPw)
-		encKey = pdfcrypto.ComputeEncryptionKey(d.userPw, ownerHash, d.permissions, fileID)
-		w.SetEncryption(encKey, pdfcrypto.EncryptData)
+		if d.encryptAES {
+			// AES-256 (V=5, R=6)
+			fileID = pdfcrypto.FileIDAES(d.title, d.producer)
+			var err error
+			encKey, err = pdfcrypto.GenerateFileEncryptionKey()
+			if err != nil {
+				return nil, fmt.Errorf("folio: generate encryption key: %w", err)
+			}
+			// Compute U value and UE (encrypted file key).
+			var ueKey [32]byte
+			uValue, ueKey = pdfcrypto.ComputeUserHashV5(d.userPw)
+			ueEncrypted, err = pdfcrypto.EncryptAESCBC(ueKey[:], encKey)
+			if err != nil {
+				return nil, fmt.Errorf("folio: encrypt UE: %w", err)
+			}
+			// Compute O value and OE (encrypted file key).
+			var oeKey [32]byte
+			oValue, oeKey = pdfcrypto.ComputeOwnerHashV5(d.ownerPw, uValue[:])
+			oeEncrypted, err = pdfcrypto.EncryptAESCBC(oeKey[:], encKey)
+			if err != nil {
+				return nil, fmt.Errorf("folio: encrypt OE: %w", err)
+			}
+			w.SetEncryption(encKey, pdfcrypto.EncryptDataAES256)
+		} else {
+			// RC4-40 (V=1, R=2)
+			fileID = pdfcrypto.FileID(d.title, d.producer)
+			ownerHash = pdfcrypto.ComputeOwnerHash(d.ownerPw, d.userPw)
+			encKey = pdfcrypto.ComputeEncryptionKey(d.userPw, ownerHash, d.permissions, fileID)
+			w.SetEncryption(encKey, pdfcrypto.EncryptData)
+		}
 	}
 
 	// 3. Pages: page dicts + content streams, then Pages root at obj 1
@@ -72,7 +101,15 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 
 	// 13. Encrypt dictionary (not encrypted itself)
 	if d.encrypted {
-		encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
+		// Temporarily disable encryption for the encrypt dict.
+		w.SetEncryption(nil, nil)
+		if d.encryptAES {
+			encryptObjNum = d.putEncryptAES256(w, uValue, oValue, ueEncrypted, oeEncrypted)
+			w.SetEncryption(encKey, pdfcrypto.EncryptDataAES256)
+		} else {
+			encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
+			w.SetEncryption(encKey, pdfcrypto.EncryptData)
+		}
 	}
 
 	// 13.5 Structure tree (tagged PDF)
@@ -790,13 +827,9 @@ func (d *Document) putInfo(w *pdfcore.Writer) int {
 	return n
 }
 
-// putEncrypt writes the encryption dictionary. The encrypt dict itself
-// must not be encrypted, so encryption is temporarily disabled.
+// putEncrypt writes the RC4 encryption dictionary (V=1, R=2).
+// Caller must disable encryption before calling and restore after.
 func (d *Document) putEncrypt(w *pdfcore.Writer, ownerHash [32]byte, encKey, fileID []byte) int {
-	// Temporarily disable encryption for the encrypt dict itself.
-	w.SetEncryption(nil, nil)
-	defer w.SetEncryption(encKey, pdfcrypto.EncryptData)
-
 	userHash := pdfcrypto.ComputeUserHash(encKey)
 
 	n := w.NewObj()
@@ -807,6 +840,30 @@ func (d *Document) putEncrypt(w *pdfcore.Writer, ownerHash [32]byte, encKey, fil
 	w.Putf("/O <%x>", ownerHash)
 	w.Putf("/U <%x>", userHash)
 	w.Putf("/P %d", d.permissions)
+	w.Put(">>")
+	w.EndObj()
+	return n
+}
+
+// putEncryptAES256 writes the AES-256 encrypt dictionary (V=5, R=6).
+// Caller must disable encryption before calling and restore after.
+func (d *Document) putEncryptAES256(w *pdfcore.Writer, uValue, oValue [48]byte, ueEncrypted, oeEncrypted []byte) int {
+	n := w.NewObj()
+	w.Put("<<")
+	w.Put("/Filter /Standard")
+	w.Put("/V 5")
+	w.Put("/R 6")
+	w.Put("/Length 256")
+	w.Putf("/O <%x>", oValue)
+	w.Putf("/U <%x>", uValue)
+	w.Putf("/OE <%x>", oeEncrypted)
+	w.Putf("/UE <%x>", ueEncrypted)
+	w.Putf("/P %d", d.permissions)
+	w.Put("/EncryptMetadata true")
+	// Crypt filter for AES-256.
+	w.Put("/CF <</StdCF <</AuthEvent /DocOpen /CFM /AESV3 /Length 32>>>>")
+	w.Put("/StmF /StdCF")
+	w.Put("/StrF /StdCF")
 	w.Put(">>")
 	w.EndObj()
 	return n
