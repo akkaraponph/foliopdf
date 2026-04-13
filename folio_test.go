@@ -7580,3 +7580,228 @@ func TestComplexTable_PageBreakWithHeaders(t *testing.T) {
 		t.Errorf("expected multiple pages, got %d", pages)
 	}
 }
+
+// ---- Layout helper tests ----
+
+func TestSpacer(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 12)
+
+	y0 := p.GetY()
+	p.Spacer(20)
+	y1 := p.active().GetY()
+	if diff := y1 - y0; diff < 19.9 || diff > 20.1 {
+		t.Errorf("Spacer: expected ~20mm advance, got %.2f", diff)
+	}
+}
+
+func TestSpacerPageBreak(t *testing.T) {
+	doc := New()
+	doc.SetAutoPageBreak(true, 10)
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 12)
+
+	// Move near bottom.
+	p.SetY(280)
+	p.Spacer(20)
+	// Should have triggered a page break.
+	q := p.active()
+	if q == p {
+		// With forwarding, q should be a new page
+		// unless the cursor is still on the same page.
+		// After page break, Y should be near top.
+		if q.GetY() > 50 {
+			t.Errorf("expected page break, Y=%.1f", q.GetY())
+		}
+	}
+}
+
+func TestPageBreakIfNeeded(t *testing.T) {
+	doc := New()
+	doc.SetAutoPageBreak(true, 10)
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 12)
+
+	// Should NOT break near top.
+	broke := p.PageBreakIfNeeded(10)
+	if broke {
+		t.Error("should not break near top of page")
+	}
+
+	// Move near bottom and check.
+	p.active().SetY(280)
+	broke = p.PageBreakIfNeeded(20)
+	if !broke {
+		t.Error("should have triggered page break")
+	}
+}
+
+func TestParagraph(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 12)
+
+	y0 := p.GetY()
+	p.Paragraph("Hello world, this is a test paragraph.",
+		ParagraphFont("helvetica", "", 10),
+		ParagraphLineHeight(5),
+		ParagraphSpaceBefore(3),
+		ParagraphSpaceAfter(3),
+	)
+	y1 := p.active().GetY()
+	if y1 <= y0 {
+		t.Errorf("paragraph should advance cursor: y0=%.1f y1=%.1f", y0, y1)
+	}
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	if !strings.HasPrefix(s, "%PDF") {
+		t.Error("invalid PDF")
+	}
+}
+
+func TestParagraphOptions(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 12)
+
+	p.Paragraph("Centered bold text.",
+		ParagraphFont("helvetica", "B", 14),
+		ParagraphAlign("C"),
+		ParagraphTextColor(255, 0, 0),
+		ParagraphIndent(10),
+	)
+
+	// Font should be restored after paragraph.
+	if fam := doc.GetFontFamily(); fam != "helvetica" {
+		t.Errorf("font not restored: %s", fam)
+	}
+	if sty := doc.GetFontStyle(); sty != "" {
+		t.Errorf("style not restored: %s", sty)
+	}
+}
+
+func TestKeepTogether(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 10)
+
+	// Move near bottom so the block won't fit.
+	p.SetY(270)
+
+	p.KeepTogether(func() {
+		pg := p.active()
+		pg.Cell(0, 6, "Line 1", "", "L", false, 1)
+		pg = p.active()
+		pg.Cell(0, 6, "Line 2", "", "L", false, 1)
+		pg = p.active()
+		pg.Cell(0, 6, "Line 3", "", "L", false, 1)
+	})
+
+	// Block should have been pushed to a new page.
+	q := p.active()
+	if q.GetY() > 50 {
+		t.Errorf("KeepTogether should have moved block to new page, Y=%.1f", q.GetY())
+	}
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	s := buf.String()
+	pages := strings.Count(s, "/Type /Page\n")
+	if pages < 2 {
+		t.Errorf("expected 2+ pages, got %d", pages)
+	}
+}
+
+func TestKeepTogetherFitsOnCurrentPage(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 10)
+
+	y0 := p.GetY()
+	p.KeepTogether(func() {
+		pg := p.active()
+		pg.Cell(0, 6, "Small block", "", "L", false, 1)
+	})
+
+	// Should stay on same page.
+	q := p.active()
+	if q.GetY() <= y0 {
+		t.Error("cursor should advance")
+	}
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	pages := strings.Count(buf.String(), "/Type /Page\n")
+	if pages != 1 {
+		t.Errorf("expected 1 page, got %d", pages)
+	}
+}
+
+func TestStack(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 10)
+
+	y0 := p.GetY()
+	p.Stack(
+		func() {
+			p.active().Cell(0, 6, "Block 1", "", "L", false, 1)
+		},
+		func() {
+			p.active().Spacer(5)
+		},
+		func() {
+			p.active().Cell(0, 6, "Block 2", "", "L", false, 1)
+		},
+	)
+
+	y1 := p.active().GetY()
+	if y1 <= y0 {
+		t.Errorf("Stack should advance cursor: y0=%.1f y1=%.1f", y0, y1)
+	}
+}
+
+func TestStackWithParagraphAndKeepTogether(t *testing.T) {
+	doc := New()
+	p := doc.AddPage(A4)
+	doc.SetFont("helvetica", "", 10)
+
+	p.Stack(
+		func() {
+			p.active().Paragraph("Title",
+				ParagraphFont("helvetica", "B", 16),
+				ParagraphSpaceAfter(3),
+			)
+		},
+		func() {
+			p.active().Paragraph("Body text that flows normally.",
+				ParagraphLineHeight(5),
+			)
+		},
+		func() {
+			p.active().KeepTogether(func() {
+				pg := p.active()
+				pg.Cell(0, 6, "Kept together line 1", "", "L", false, 1)
+				pg = p.active()
+				pg.Cell(0, 6, "Kept together line 2", "", "L", false, 1)
+			})
+		},
+	)
+
+	var buf bytes.Buffer
+	if _, err := doc.WriteTo(&buf); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(buf.String(), "%PDF") {
+		t.Error("invalid PDF")
+	}
+}

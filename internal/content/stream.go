@@ -21,6 +21,9 @@ func (s *Stream) Len() int { return s.buf.Len() }
 // Reset clears the stream.
 func (s *Stream) Reset() { s.buf.Reset() }
 
+// Truncate discards all but the first n bytes of the stream.
+func (s *Stream) Truncate(n int) { s.buf.Truncate(n) }
+
 // --- Graphics state ---
 
 // SaveState emits q (save graphics state).

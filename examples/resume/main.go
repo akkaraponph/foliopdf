@@ -62,7 +62,7 @@ func main() {
 	sectionHeader(doc, page, "EXPERIENCE")
 
 	jobEntry(doc, page,
-		"Senior Software Engineer", "LookSocial Co., Ltd.", "2022 - Present",
+		"Senior Software Engineer", "Folio Co., Ltd.", "2022 - Present",
 		[]string{
 			"Designed and built Folio, a layered PDF generation library in Go with 4-layer architecture",
 			"Led backend team of 5 engineers, established code review process and CI/CD pipelines",
