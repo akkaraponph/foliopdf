@@ -4095,6 +4095,279 @@ func TestSetTextRenderingModeInvalid(t *testing.T) {
 	}
 }
 
+// --- Document Metadata & Settings ---
+
+func TestSetKeywords(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetKeywords("invoice august billing")
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "/Keywords (invoice august billing)") {
+		t.Error("expected /Keywords in info dict")
+	}
+}
+
+func TestSetProducer(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetProducer("MyApp 2.0")
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "/Producer (MyApp 2.0)") {
+		t.Error("expected custom /Producer in info dict")
+	}
+}
+
+func TestSetCreationDate(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	fixed := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
+	doc.SetCreationDate(fixed)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "D:20250615103000") {
+		t.Error("expected fixed CreationDate in info dict")
+	}
+}
+
+func TestSetModificationDate(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	fixed := time.Date(2025, 7, 1, 14, 0, 0, 0, time.UTC)
+	doc.SetModificationDate(fixed)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), "/ModDate") {
+		t.Error("expected /ModDate in info dict")
+	}
+	if !strings.Contains(string(b), "D:20250701140000") {
+		t.Error("expected fixed ModDate value")
+	}
+}
+
+func TestSetXmpMetadata(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	xmp := []byte(`<?xpacket begin="` + "\xEF\xBB\xBF" + `" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`)
+	doc.SetXmpMetadata(xmp)
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "/Type /Metadata") {
+		t.Error("expected /Type /Metadata object")
+	}
+	if !strings.Contains(s, "/Subtype /XML") {
+		t.Error("expected /Subtype /XML")
+	}
+}
+
+func TestSetDisplayModeZoom(t *testing.T) {
+	tests := []struct {
+		zoom string
+		want string
+	}{
+		{"fullpage", "/OpenAction [3 0 R /Fit]"},
+		{"fullwidth", "/OpenAction [3 0 R /FitH null]"},
+		{"real", "/OpenAction [3 0 R /XYZ null null 1]"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.zoom, func(t *testing.T) {
+			doc := New(WithCompression(false))
+			doc.SetFont("helvetica", "", 12)
+			doc.SetDisplayMode(tc.zoom, "")
+			doc.AddPage(A4)
+
+			b, err := doc.Bytes()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(b), tc.want) {
+				t.Errorf("expected %q for zoom=%q", tc.want, tc.zoom)
+			}
+		})
+	}
+}
+
+func TestSetDisplayModeLayout(t *testing.T) {
+	tests := []struct {
+		layout string
+		want   string
+	}{
+		{"single", "/PageLayout /SinglePage"},
+		{"continuous", "/PageLayout /OneColumn"},
+		{"two", "/PageLayout /TwoColumnLeft"},
+		{"TwoColumnRight", "/PageLayout /TwoColumnRight"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.layout, func(t *testing.T) {
+			doc := New(WithCompression(false))
+			doc.SetFont("helvetica", "", 12)
+			doc.SetDisplayMode("default", tc.layout)
+			doc.AddPage(A4)
+
+			b, err := doc.Bytes()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(b), tc.want) {
+				t.Errorf("expected %q for layout=%q", tc.want, tc.layout)
+			}
+		})
+	}
+}
+
+func TestSetDisplayModeInvalidZoom(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetDisplayMode("invalid", "")
+	if doc.Err() == nil {
+		t.Error("expected error for invalid zoom mode")
+	}
+}
+
+func TestSetDisplayModeInvalidLayout(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetDisplayMode("default", "invalid")
+	if doc.Err() == nil {
+		t.Error("expected error for invalid layout mode")
+	}
+}
+
+func TestSetCompression(t *testing.T) {
+	doc := New() // compression on by default
+	doc.SetFont("helvetica", "", 12)
+	doc.SetCompression(false)
+	page := doc.AddPage(A4)
+	page.TextAt(20, 20, "Hello")
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Without compression, content should NOT have FlateDecode.
+	if strings.Contains(s, "/FlateDecode") {
+		t.Error("expected no /FlateDecode when compression is disabled")
+	}
+}
+
+func TestAliasNbPages(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AliasNbPages("") // defaults to "{nb}"
+
+	page1 := doc.AddPage(A4)
+	page1.Cell(80, 10, "Page 1 of {nb}", "", "L", false, 0)
+	page2 := doc.AddPage(A4)
+	page2.Cell(80, 10, "Page 2 of {nb}", "", "L", false, 0)
+	doc.AddPage(A4) // page 3
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// {nb} should be replaced with "3".
+	if strings.Contains(s, "{nb}") {
+		t.Error("expected {nb} to be replaced")
+	}
+	if !strings.Contains(s, "Page 1 of 3") {
+		t.Error("expected 'Page 1 of 3' in output")
+	}
+	if !strings.Contains(s, "Page 2 of 3") {
+		t.Error("expected 'Page 2 of 3' in output")
+	}
+}
+
+func TestAliasNbPagesCustom(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.AliasNbPages("##TOTAL##")
+
+	page := doc.AddPage(A4)
+	page.Cell(80, 10, "1 / ##TOTAL##", "", "L", false, 0)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if strings.Contains(s, "##TOTAL##") {
+		t.Error("expected custom alias to be replaced")
+	}
+	if !strings.Contains(s, "1 / 1") {
+		t.Error("expected '1 / 1' in output")
+	}
+}
+
+func TestRegisterAlias(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.RegisterAlias("{{company}}", "Acme Corp")
+
+	page := doc.AddPage(A4)
+	page.Cell(100, 10, "Welcome to {{company}}", "", "L", false, 0)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if strings.Contains(s, "{{company}}") {
+		t.Error("expected alias to be replaced")
+	}
+	if !strings.Contains(s, "Welcome to Acme Corp") {
+		t.Error("expected replaced text in output")
+	}
+}
+
+func TestSetJavascript(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	doc.SetJavascript("app.alert('Hello from PDF!');")
+	doc.AddPage(A4)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "/S /JavaScript") {
+		t.Error("expected /S /JavaScript action")
+	}
+	if !strings.Contains(s, "app.alert") {
+		t.Error("expected JavaScript content in output")
+	}
+	if !strings.Contains(s, "/Names <</JavaScript") {
+		t.Error("expected /Names /JavaScript reference in catalog")
+	}
+}
+
 // --- Drawing & Graphics: Linear Gradient ---
 
 func TestLinearGradient(t *testing.T) {

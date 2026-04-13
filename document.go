@@ -19,6 +19,14 @@ type Document struct {
 	subject  string
 	creator  string
 	producer string
+	keywords string
+
+	// dates (zero means use time.Now() during serialization)
+	creationDate time.Time
+	modDate      time.Time
+
+	// XMP metadata (raw XML bytes, embedded as-is)
+	xmpMetadata []byte
 
 	// configuration
 	unit     state.Unit
@@ -31,6 +39,17 @@ type Document struct {
 	bMargin       float64 // bottom margin
 	cMargin       float64 // cell margin
 	autoPageBreak bool    // automatic page breaking
+
+	// display mode
+	zoomMode   string // "fullpage", "fullwidth", "real", "default"
+	layoutMode string // "single", "continuous", "two", "default", PDF names
+
+	// JavaScript
+	javascript *string
+
+	// alias replacement (applied to page streams before output)
+	aliases        map[string]string
+	aliasNbPages   string // placeholder replaced with total page count
 
 	// pages
 	pages       []*Page
@@ -167,6 +186,9 @@ func New(opts ...Option) *Document {
 		images:   resources.NewImageRegistry(),
 		anchors:      make(map[string]anchorDest),
 		alphaByKey:   make(map[string]*alphaEntry),
+		aliases:      make(map[string]string),
+		zoomMode:     "default",
+		layoutMode:   "default",
 		currentAlpha:       1.0,
 		underlineThickness: 1.0,
 		lineWidth:          0.2,
@@ -188,6 +210,91 @@ func (d *Document) SetSubject(s string) { d.subject = s }
 
 // SetCreator sets the document creator metadata.
 func (d *Document) SetCreator(s string) { d.creator = s }
+
+// SetKeywords sets the document keywords metadata (space-separated).
+func (d *Document) SetKeywords(s string) { d.keywords = s }
+
+// SetProducer overrides the document producer metadata (default "PressPDF").
+func (d *Document) SetProducer(s string) { d.producer = s }
+
+// SetCreationDate fixes the document's CreationDate metadata to a specific time.
+// By default, the current time is used during serialization.
+// Pass a zero-value time to revert to the default behavior.
+func (d *Document) SetCreationDate(t time.Time) { d.creationDate = t }
+
+// SetModificationDate fixes the document's ModDate metadata to a specific time.
+// By default, the current time is used during serialization.
+// Pass a zero-value time to revert to the default behavior.
+func (d *Document) SetModificationDate(t time.Time) { d.modDate = t }
+
+// SetXmpMetadata sets raw XMP metadata (XML bytes) to embed in the PDF.
+// This is useful for PDF/A compliance or custom metadata schemas.
+func (d *Document) SetXmpMetadata(xmp []byte) { d.xmpMetadata = xmp }
+
+// SetDisplayMode controls how the PDF viewer opens the document.
+//
+// zoom: "fullpage" (fit whole page), "fullwidth" (fit width),
+// "real" (100%), "default" (viewer default).
+//
+// layout: "single"/"SinglePage", "continuous"/"OneColumn",
+// "two"/"TwoColumnLeft", "TwoColumnRight",
+// "TwoPageLeft", "TwoPageRight", "default".
+func (d *Document) SetDisplayMode(zoom, layout string) {
+	if d.err != nil {
+		return
+	}
+	if zoom == "" {
+		zoom = "default"
+	}
+	if layout == "" {
+		layout = "default"
+	}
+	switch zoom {
+	case "fullpage", "fullwidth", "real", "default":
+		d.zoomMode = zoom
+	default:
+		d.err = fmt.Errorf("SetDisplayMode: invalid zoom mode: %q", zoom)
+		return
+	}
+	switch layout {
+	case "single", "continuous", "two", "default",
+		"SinglePage", "OneColumn", "TwoColumnLeft", "TwoColumnRight",
+		"TwoPageLeft", "TwoPageRight":
+		d.layoutMode = layout
+	default:
+		d.err = fmt.Errorf("SetDisplayMode: invalid layout mode: %q", layout)
+	}
+}
+
+// SetCompression enables or disables zlib compression of page content
+// streams. Compression is enabled by default and typically reduces
+// file size by ~50%.
+func (d *Document) SetCompression(compress bool) { d.compress = compress }
+
+// AliasNbPages defines a placeholder string that will be replaced with the
+// total page count in all page content streams when the document is
+// serialized. An empty string defaults to "{nb}".
+//
+// Usage: page.Cell(0, 10, "Page 1 of {nb}", ...)
+func (d *Document) AliasNbPages(alias string) {
+	if alias == "" {
+		alias = "{nb}"
+	}
+	d.aliasNbPages = alias
+}
+
+// RegisterAlias registers a (alias, replacement) pair. All occurrences of
+// alias in page content streams are replaced with replacement during
+// serialization.
+func (d *Document) RegisterAlias(alias, replacement string) {
+	d.aliases[alias] = replacement
+}
+
+// SetJavascript embeds Adobe JavaScript in the document. The script runs
+// when the PDF is opened.
+func (d *Document) SetJavascript(script string) {
+	d.javascript = &script
+}
 
 // SetMargins sets the left, top, and right margins in user units.
 func (d *Document) SetMargins(left, top, right float64) {

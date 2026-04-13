@@ -3,6 +3,7 @@ package presspdf
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	pdfcrypto "github.com/akkaraponph/presspdf/internal/crypto"
@@ -67,6 +68,9 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 		}
 	}
 
+	// 2.5. Alias replacement (before page streams are written)
+	d.replaceAliases()
+
 	// 3. Pages: page dicts + content streams, then Pages root at obj 1
 	pageObjNums := d.putPages(w)
 
@@ -115,15 +119,21 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	// 13.5 Structure tree (tagged PDF)
 	structTreeRootObj := d.putStructTree(w, pageObjNums)
 
-	// 14. PDF/A metadata and output intent
+	// 14. JavaScript
+	jsObjNum := d.putJavascript(w)
+
+	// 15. XMP metadata (user-supplied, distinct from PDF/A metadata)
+	xmpObjNum := d.putXmpMetadata(w)
+
+	// 16. PDF/A metadata and output intent
 	metadataObjNum := d.putMetadata(w)
 	outputIntentObjNum := d.putOutputIntent(w)
 
-	// 15. Info dictionary
+	// 17. Info dictionary
 	infoObjNum := d.putInfo(w)
 
-	// 16. Catalog
-	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums, metadataObjNum, outputIntentObjNum, structTreeRootObj)
+	// 18. Catalog
+	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums, metadataObjNum, outputIntentObjNum, structTreeRootObj, jsObjNum, xmpObjNum)
 
 	// 14. Xref
 	xrefOffset := w.WriteXref()
@@ -804,6 +814,66 @@ func (d *Document) putResourceDict(w *pdfcore.Writer) {
 	w.Put("endobj")
 }
 
+// putJavascript writes the JavaScript name tree and action objects.
+// Returns the object number of the name tree, or 0 if no JavaScript is set.
+func (d *Document) putJavascript(w *pdfcore.Writer) int {
+	if d.javascript == nil {
+		return 0
+	}
+	nameTreeObj := w.NewObj()
+	w.Put("<<")
+	w.Putf("/Names [(EmbeddedJS) %d 0 R]", nameTreeObj+1)
+	w.Put(">>")
+	w.EndObj()
+
+	w.NewObj()
+	w.Put("<<")
+	w.Put("/S /JavaScript")
+	w.Putf("/JS %s", pdfString(*d.javascript))
+	w.Put(">>")
+	w.EndObj()
+
+	return nameTreeObj
+}
+
+// putXmpMetadata writes user-provided XMP metadata as a metadata stream.
+// Returns the object number, or 0 if no XMP data is set.
+func (d *Document) putXmpMetadata(w *pdfcore.Writer) int {
+	if len(d.xmpMetadata) == 0 {
+		return 0
+	}
+	n := w.NewObj()
+	w.Putf("<< /Type /Metadata /Subtype /XML /Length %d >>", len(d.xmpMetadata))
+	w.PutStream(d.xmpMetadata)
+	w.EndObj()
+	return n
+}
+
+// replaceAliases performs string replacement on all page content streams.
+// This is called during serialization to resolve {nb} and custom aliases.
+func (d *Document) replaceAliases() {
+	nb := len(d.pages)
+	// Register the page-count alias if set.
+	if d.aliasNbPages != "" {
+		d.aliases[d.aliasNbPages] = fmt.Sprintf("%d", nb)
+	}
+	if len(d.aliases) == 0 {
+		return
+	}
+	for _, p := range d.pages {
+		original := string(p.stream.Bytes())
+		replaced := original
+		for alias, replacement := range d.aliases {
+			replaced = strings.ReplaceAll(replaced, alias, replacement)
+		}
+		if replaced != original {
+			p.stream.Reset()
+			// Write replaced content back without adding an extra newline.
+			p.stream.Raw(strings.TrimSuffix(replaced, "\n"))
+		}
+	}
+}
+
 // putInfo writes the document info dictionary.
 func (d *Document) putInfo(w *pdfcore.Writer) int {
 	n := w.NewObj()
@@ -818,10 +888,21 @@ func (d *Document) putInfo(w *pdfcore.Writer) int {
 	if d.subject != "" {
 		w.Putf("/Subject %s", pdfString(d.subject))
 	}
+	if d.keywords != "" {
+		w.Putf("/Keywords %s", pdfString(d.keywords))
+	}
 	if d.creator != "" {
 		w.Putf("/Creator %s", pdfString(d.creator))
 	}
-	w.Putf("/CreationDate %s", pdfString(pdfDate(time.Now())))
+	creation := d.creationDate
+	if creation.IsZero() {
+		creation = time.Now()
+	}
+	w.Putf("/CreationDate %s", pdfString(pdfDate(creation)))
+	mod := d.modDate
+	if !mod.IsZero() {
+		w.Putf("/ModDate %s", pdfString(pdfDate(mod)))
+	}
 	w.Put(">>")
 	w.EndObj()
 	return n
@@ -974,11 +1055,37 @@ func (d *Document) putStructTree(w *pdfcore.Writer, pageObjNums []int) int {
 	return rootObjNum
 }
 
-func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int, metadataObjNum, outputIntentObjNum, structTreeRootObj int) int {
+func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int, metadataObjNum, outputIntentObjNum, structTreeRootObj, jsObjNum, xmpObjNum int) int {
 	n := w.NewObj()
 	w.Put("<<")
 	w.Put("/Type /Catalog")
 	w.Put("/Pages 1 0 R")
+
+	// Display mode: zoom
+	switch d.zoomMode {
+	case "fullpage":
+		w.Put("/OpenAction [3 0 R /Fit]")
+	case "fullwidth":
+		w.Put("/OpenAction [3 0 R /FitH null]")
+	case "real":
+		w.Put("/OpenAction [3 0 R /XYZ null null 1]")
+	}
+	// Display mode: layout
+	switch d.layoutMode {
+	case "single", "SinglePage":
+		w.Put("/PageLayout /SinglePage")
+	case "continuous", "OneColumn":
+		w.Put("/PageLayout /OneColumn")
+	case "two", "TwoColumnLeft":
+		w.Put("/PageLayout /TwoColumnLeft")
+	case "TwoColumnRight":
+		w.Put("/PageLayout /TwoColumnRight")
+	case "TwoPageLeft":
+		w.Put("/PageLayout /TwoPageLeft")
+	case "TwoPageRight":
+		w.Put("/PageLayout /TwoPageRight")
+	}
+
 	if outlineRootObj > 0 {
 		w.Putf("/Outlines %d 0 R", outlineRootObj)
 		w.Put("/PageMode /UseOutlines")
@@ -991,9 +1098,19 @@ func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootO
 		fields += "] /DA (/Helv 12 Tf 0 g) /DR << /Font << /Helv 2 0 R >> >> >>"
 		w.Put(fields)
 	}
+
+	// JavaScript names dictionary
+	if jsObjNum > 0 {
+		w.Putf("/Names <</JavaScript %d 0 R>>", jsObjNum)
+	}
+
 	// PDF/A: metadata, output intents, and mark info.
 	if metadataObjNum > 0 {
 		w.Putf("/Metadata %d 0 R", metadataObjNum)
+	}
+	// XMP metadata (non-PDF/A)
+	if xmpObjNum > 0 && metadataObjNum == 0 {
+		w.Putf("/Metadata %d 0 R", xmpObjNum)
 	}
 	if outputIntentObjNum > 0 {
 		w.Putf("/OutputIntents [%d 0 R]", outputIntentObjNum)
