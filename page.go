@@ -33,6 +33,11 @@ type Page struct {
 
 	// links holds hyperlink annotations for this page.
 	links []linkAnnotation
+
+	// tagged PDF (structure tree)
+	nextMCID       int              // next marked content ID for this page
+	structElements []*structElement // elements on this page
+	currentTag     *structElement   // current open tag (for nesting)
 }
 
 // linkAnnotation represents a hyperlink annotation on a page.

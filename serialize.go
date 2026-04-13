@@ -75,6 +75,9 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 		encryptObjNum = d.putEncrypt(w, ownerHash, encKey, fileID)
 	}
 
+	// 13.5 Structure tree (tagged PDF)
+	structTreeRootObj := d.putStructTree(w, pageObjNums)
+
 	// 14. PDF/A metadata and output intent
 	metadataObjNum := d.putMetadata(w)
 	outputIntentObjNum := d.putOutputIntent(w)
@@ -83,7 +86,7 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 	infoObjNum := d.putInfo(w)
 
 	// 16. Catalog
-	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums, metadataObjNum, outputIntentObjNum)
+	catalogObjNum := d.putCatalog(w, pageObjNums, outlineRootObj, fieldObjNums, metadataObjNum, outputIntentObjNum, structTreeRootObj)
 
 	// 14. Xref
 	xrefOffset := w.WriteXref()
@@ -137,6 +140,11 @@ func (d *Document) putPages(w *pdfcore.Writer) []int {
 			}
 			annots += "]"
 			w.Put(annots)
+		}
+		// Tagged PDF: StructParents index for this page.
+		if d.tagged && len(p.structElements) > 0 {
+			w.Putf("/StructParents %d", i)
+			w.Put("/Tabs /S") // tab order follows structure
 		}
 		w.Put(">>")
 		w.EndObj()
@@ -804,8 +812,112 @@ func (d *Document) putEncrypt(w *pdfcore.Writer, ownerHash [32]byte, encKey, fil
 	return n
 }
 
-// putCatalog writes the document catalog.
-func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int, metadataObjNum, outputIntentObjNum int) int {
+// putStructTree writes the structure tree for tagged PDFs.
+// Returns 0 if tagging is not enabled.
+func (d *Document) putStructTree(w *pdfcore.Writer, pageObjNums []int) int {
+	if !d.tagged || d.structRoot == nil || len(d.structRoot.children) == 0 {
+		return 0
+	}
+
+	// Build page pointer → index map.
+	pageIdx := make(map[*Page]int, len(d.pages))
+	for i, p := range d.pages {
+		pageIdx[p] = i
+	}
+
+	// Collect all elements in tree order (pre-order traversal).
+	var allElems []*structElement
+	var collect func(e *structElement)
+	collect = func(e *structElement) {
+		allElems = append(allElems, e)
+		for _, c := range e.children {
+			collect(c)
+		}
+	}
+	for _, child := range d.structRoot.children {
+		collect(child)
+	}
+
+	// Pre-allocate object numbers for all elements + parent tree + root.
+	// Next obj will be w.ObjCount()+1.
+	baseObj := w.ObjCount() + 1
+	for i, e := range allElems {
+		e.objNum = baseObj + i
+	}
+	parentTreeObjNum := baseObj + len(allElems)
+	rootObjNum := parentTreeObjNum + 1
+
+	// Write structure elements in pre-order. Parent /P refs are known
+	// because we pre-allocated all obj numbers above.
+	for _, elem := range allElems {
+		parentObj := rootObjNum // default: parent is the StructTreeRoot
+		if elem.parent != nil && elem.parent != d.structRoot {
+			parentObj = elem.parent.objNum
+		}
+
+		w.NewObj() // allocates elem.objNum as expected
+		w.Put("<<")
+		w.Put("/Type /StructElem")
+		w.Putf("/S /%s", elem.tag)
+		w.Putf("/P %d 0 R", parentObj)
+
+		if len(elem.children) > 0 {
+			kids := "/K ["
+			for _, child := range elem.children {
+				kids += fmt.Sprintf(" %d 0 R", child.objNum)
+			}
+			kids += "]"
+			w.Put(kids)
+		} else if elem.page != nil {
+			if pi, ok := pageIdx[elem.page]; ok {
+				w.Putf("/Pg %d 0 R", pageObjNums[pi])
+			}
+			w.Putf("/K %d", elem.mcid)
+		}
+
+		if elem.altText != "" {
+			w.Putf("/Alt (%s)", pdfEscape(elem.altText))
+		}
+		w.Put(">>")
+		w.EndObj()
+	}
+
+	// Write parent tree (maps StructParents index + MCID → struct elem).
+	w.NewObj() // parentTreeObjNum
+	w.Put("<<")
+	w.Put("/Nums [")
+	for i, p := range d.pages {
+		if len(p.structElements) == 0 {
+			continue
+		}
+		w.Putf("%d [", i)
+		for _, se := range p.structElements {
+			w.Putf("%d 0 R ", se.objNum)
+		}
+		w.Put("]")
+	}
+	w.Put("]")
+	w.Put(">>")
+	w.EndObj()
+
+	// Write StructTreeRoot.
+	w.NewObj() // rootObjNum
+	w.Put("<<")
+	w.Put("/Type /StructTreeRoot")
+	kids := "/K ["
+	for _, child := range d.structRoot.children {
+		kids += fmt.Sprintf(" %d 0 R", child.objNum)
+	}
+	kids += "]"
+	w.Put(kids)
+	w.Putf("/ParentTree %d 0 R", parentTreeObjNum)
+	w.Put(">>")
+	w.EndObj()
+
+	return rootObjNum
+}
+
+func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootObj int, fieldObjNums []int, metadataObjNum, outputIntentObjNum, structTreeRootObj int) int {
 	n := w.NewObj()
 	w.Put("<<")
 	w.Put("/Type /Catalog")
@@ -829,8 +941,11 @@ func (d *Document) putCatalog(w *pdfcore.Writer, pageObjNums []int, outlineRootO
 	if outputIntentObjNum > 0 {
 		w.Putf("/OutputIntents [%d 0 R]", outputIntentObjNum)
 	}
-	if d.pdfaLevel != nil {
+	if d.pdfaLevel != nil || d.tagged {
 		w.Put("/MarkInfo <</Marked true>>")
+	}
+	if structTreeRootObj > 0 {
+		w.Putf("/StructTreeRoot %d 0 R", structTreeRootObj)
 	}
 	w.Put(">>")
 	w.EndObj()

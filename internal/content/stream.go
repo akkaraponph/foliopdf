@@ -249,6 +249,24 @@ func (s *Stream) DrawImage(name string, a, b, c, d, e, f float64) {
 	s.buf.WriteString("Q\n")
 }
 
+// --- Marked content ---
+
+// BeginMarkedContent emits BMC (begin marked content with tag only).
+func (s *Stream) BeginMarkedContent(tag string) {
+	fmt.Fprintf(&s.buf, "/%s BMC\n", tag)
+}
+
+// BeginMarkedContentProp emits BDC (begin marked content with properties).
+// mcid is the marked content identifier used to link to the structure tree.
+func (s *Stream) BeginMarkedContentProp(tag string, mcid int) {
+	fmt.Fprintf(&s.buf, "/%s <</MCID %d>> BDC\n", tag, mcid)
+}
+
+// EndMarkedContent emits EMC (end marked content).
+func (s *Stream) EndMarkedContent() {
+	s.buf.WriteString("EMC\n")
+}
+
 // --- Raw ---
 
 // Raw writes an arbitrary operator string followed by newline.

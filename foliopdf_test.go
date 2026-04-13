@@ -4804,6 +4804,140 @@ func TestECLevelConstants(t *testing.T) {
 	}
 }
 
+// === Tagged PDF ===
+
+func TestTaggedPDFBasic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetTagged(true)
+	doc.SetFont("helvetica", "", 16)
+	page := doc.AddPage(A4)
+
+	page.BeginTag("H1")
+	page.TextAt(20, 20, "Chapter 1")
+	page.EndTag()
+
+	page.BeginTag("P")
+	page.TextAt(20, 40, "This is a paragraph.")
+	page.EndTag()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	// Verify structure tree is present.
+	if !strings.Contains(s, "/Type /StructTreeRoot") {
+		t.Error("missing StructTreeRoot")
+	}
+	if !strings.Contains(s, "/Type /StructElem") {
+		t.Error("missing StructElem")
+	}
+	if !strings.Contains(s, "/S /H1") {
+		t.Error("missing H1 structure element")
+	}
+	if !strings.Contains(s, "/S /P") {
+		t.Error("missing P structure element")
+	}
+	// Verify marked content operators in content stream.
+	if !strings.Contains(s, "/H1 <</MCID 0>> BDC") {
+		t.Error("missing H1 BDC operator")
+	}
+	if !strings.Contains(s, "EMC") {
+		t.Error("missing EMC operator")
+	}
+	// Verify MarkInfo in catalog.
+	if !strings.Contains(s, "/MarkInfo <</Marked true>>") {
+		t.Error("missing MarkInfo")
+	}
+	// Verify StructParents on page.
+	if !strings.Contains(s, "/StructParents 0") {
+		t.Error("missing StructParents on page")
+	}
+}
+
+func TestTaggedPDFWithAltText(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetTagged(true)
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.BeginTagAlt("Figure", "A photo of a sunset")
+	page.Rect(20, 20, 100, 60, "D")
+	page.EndTag()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/S /Figure") {
+		t.Error("missing Figure structure element")
+	}
+	if !strings.Contains(s, "/Alt (A photo of a sunset)") {
+		t.Error("missing alt text")
+	}
+}
+
+func TestTaggedPDFNested(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetTagged(true)
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.BeginTag("Table")
+	page.BeginTag("TR")
+	page.BeginTag("TD")
+	page.TextAt(20, 20, "Cell 1")
+	page.EndTag() // TD
+	page.BeginTag("TD")
+	page.TextAt(80, 20, "Cell 2")
+	page.EndTag() // TD
+	page.EndTag() // TR
+	page.EndTag() // Table
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if !strings.Contains(s, "/S /Table") {
+		t.Error("missing Table structure element")
+	}
+	if !strings.Contains(s, "/S /TR") {
+		t.Error("missing TR structure element")
+	}
+	if !strings.Contains(s, "/S /TD") {
+		t.Error("missing TD structure element")
+	}
+}
+
+func TestTaggedPDFDisabled(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	// These should be no-ops when tagging is disabled.
+	page.BeginTag("H1")
+	page.TextAt(20, 20, "Test")
+	page.EndTag()
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+
+	if strings.Contains(s, "/StructTreeRoot") {
+		t.Error("StructTreeRoot should not be present when tagging is disabled")
+	}
+	if strings.Contains(s, "BDC") {
+		t.Error("BDC operator should not be present when tagging is disabled")
+	}
+}
+
 // === AutoTable (F8) ===
 
 func TestAutoTableFromStructs(t *testing.T) {

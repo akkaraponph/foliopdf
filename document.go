@@ -96,6 +96,10 @@ type Document struct {
 	// PDF/A conformance
 	pdfaLevel *pdfaConf
 
+	// tagged PDF (accessibility)
+	tagged     bool
+	structRoot *structElement
+
 	// encryption (password protection)
 	encrypted   bool
 	userPw      string
