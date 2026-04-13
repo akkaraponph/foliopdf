@@ -4712,6 +4712,98 @@ func TestQRCodeInvalidEC(t *testing.T) {
 	}
 }
 
+func TestQRCodeQuartileEC(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.QRCode(20, 30, 50, "Hello World", ECQuartile)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	rectCount := strings.Count(s, " re\n")
+	if rectCount < 10 {
+		t.Errorf("QR code (Q) should have many rects, got %d", rectCount)
+	}
+}
+
+func TestQRCodeHighEC(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.QRCode(20, 30, 50, "Hello World", ECHigh)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	rectCount := strings.Count(s, " re\n")
+	if rectCount < 10 {
+		t.Errorf("QR code (H) should have many rects, got %d", rectCount)
+	}
+}
+
+func TestQRCodeHighECLongData(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	// Test with data that requires multi-block RS (V5-H or higher)
+	data := strings.Repeat("X", 40)
+	page.QRCode(20, 30, 60, data, ECHigh)
+
+	_, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBarcode128WithText(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.Barcode128WithText(20, 30, 100, 30, "FOLIO-2024", 8)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	// Should have the barcode bars and the text
+	if !strings.Contains(s, "FOLIO-2024") {
+		t.Error("missing human-readable text under barcode")
+	}
+}
+
+func TestBarcodeEAN13WithText(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	page := doc.AddPage(A4)
+
+	page.BarcodeEAN13WithText(20, 30, 80, 30, "590123412345", 8)
+
+	b, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "590123412345") {
+		t.Error("missing human-readable text under EAN-13 barcode")
+	}
+}
+
+func TestECLevelConstants(t *testing.T) {
+	if ECLow != 0 || ECMedium != 1 || ECQuartile != 2 || ECHigh != 3 {
+		t.Error("EC level constants have wrong values")
+	}
+}
+
 // === AutoTable (F8) ===
 
 func TestAutoTableFromStructs(t *testing.T) {

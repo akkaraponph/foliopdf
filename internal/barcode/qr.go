@@ -4,10 +4,10 @@ import "fmt"
 
 // QRCode encodes data as a QR code matrix. Returns a 2D boolean grid
 // where true = black module. Supports byte mode, versions 1-10,
-// error correction levels L and M.
+// error correction levels L(0), M(1), Q(2), and H(3).
 func QRCode(data string, ecLevel int) ([][]bool, error) {
-	if ecLevel < 0 || ecLevel > 1 {
-		return nil, fmt.Errorf("QR: unsupported EC level %d (0=L, 1=M)", ecLevel)
+	if ecLevel < 0 || ecLevel > 3 {
+		return nil, fmt.Errorf("QR: unsupported EC level %d (0=L, 1=M, 2=Q, 3=H)", ecLevel)
 	}
 
 	dataBytes := []byte(data)
@@ -27,24 +27,63 @@ func QRCode(data string, ecLevel int) ([][]bool, error) {
 
 	size := 17 + ver*4
 
-	// Encode data bits.
-	bits := encodeDataBits(dataBytes, ver, ecLevel)
+	// Encode data using block interleaving.
+	groups := blockStructure[ecLevel][ver-1]
 
-	// Add error correction.
+	// Compute total data CW across all blocks.
+	totalDataCW := 0
+	for _, g := range groups {
+		totalDataCW += g.count * g.dataCW
+	}
+
+	// Encode data bits and pad to fill all data codewords.
+	bits := encodeDataBits(dataBytes, ver, totalDataCW)
 	codewords := bitsToCodewords(bits)
-	ecCW := ecCodewords[ecLevel][ver-1]
-	totalCW := totalCodewords[ver-1]
-	dataCW := totalCW - ecCW
-
-	// Pad data codewords.
-	for len(codewords) < dataCW {
+	for len(codewords) < totalDataCW {
 		codewords = append(codewords, 0)
 	}
-	codewords = codewords[:dataCW]
+	codewords = codewords[:totalDataCW]
 
-	// Generate EC codewords using Reed-Solomon.
-	ecBytes := reedSolomon(codewords, ecCW)
-	allCW := append(codewords, ecBytes...)
+	// Split data into blocks and generate EC for each.
+	type rsBlock struct {
+		data []byte
+		ec   []byte
+	}
+	var blocks []rsBlock
+	offset := 0
+	maxDataCW := 0
+	maxECCW := 0
+	for _, g := range groups {
+		for b := 0; b < g.count; b++ {
+			blockData := codewords[offset : offset+g.dataCW]
+			offset += g.dataCW
+			ecBytes := reedSolomon(blockData, g.ecCW)
+			blocks = append(blocks, rsBlock{data: blockData, ec: ecBytes})
+			if g.dataCW > maxDataCW {
+				maxDataCW = g.dataCW
+			}
+			if g.ecCW > maxECCW {
+				maxECCW = g.ecCW
+			}
+		}
+	}
+
+	// Interleave: data codewords from all blocks, then EC codewords.
+	var allCW []byte
+	for i := 0; i < maxDataCW; i++ {
+		for _, bl := range blocks {
+			if i < len(bl.data) {
+				allCW = append(allCW, bl.data[i])
+			}
+		}
+	}
+	for i := 0; i < maxECCW; i++ {
+		for _, bl := range blocks {
+			if i < len(bl.ec) {
+				allCW = append(allCW, bl.ec[i])
+			}
+		}
+	}
 
 	// Convert to bit stream.
 	var bitStream []bool
@@ -126,21 +165,71 @@ func QRCode(data string, ecLevel int) ([][]bool, error) {
 	return matrix, nil
 }
 
-// Data capacity in bytes for EC levels L(0) and M(1), versions 1-10.
-var dataCapacity = [2][10]int{
-	0: {17, 32, 53, 78, 106, 134, 154, 192, 230, 271},  // L
-	1: {14, 26, 42, 62, 84, 106, 122, 152, 180, 213},    // M
+// Data capacity in bytes for EC levels L(0), M(1), Q(2), H(3), versions 1-10.
+var dataCapacity = [4][10]int{
+	0: {17, 32, 53, 78, 106, 134, 154, 192, 230, 271}, // L
+	1: {14, 26, 42, 62, 84, 106, 122, 152, 180, 213},  // M
+	2: {11, 20, 32, 46, 60, 74, 86, 108, 130, 151},    // Q
+	3: {7, 14, 24, 34, 44, 58, 64, 84, 98, 119},       // H
 }
 
-// EC codewords per block for versions 1-10.
-var ecCodewords = [2][10]int{
-	0: {7, 10, 15, 20, 26, 18, 20, 24, 30, 18},   // L
-	1: {10, 16, 26, 18, 24, 16, 18, 22, 22, 26},   // M
+// qrBlockGroup defines a group of RS blocks: count blocks, each with
+// dataCW data codewords and ecCW error correction codewords.
+type qrBlockGroup struct {
+	count  int
+	dataCW int
+	ecCW   int
 }
 
-// Total codewords for versions 1-10.
-var totalCodewords = [10]int{
-	26, 44, 70, 100, 134, 172, 196, 242, 292, 346,
+// blockStructure defines the RS block layout for each EC level and version.
+// Index: [ecLevel][version-1]. Each entry has 1-2 groups of blocks.
+var blockStructure [4][10][]qrBlockGroup
+
+func init() {
+	// L level
+	blockStructure[0][0] = []qrBlockGroup{{1, 19, 7}}
+	blockStructure[0][1] = []qrBlockGroup{{1, 34, 10}}
+	blockStructure[0][2] = []qrBlockGroup{{1, 55, 15}}
+	blockStructure[0][3] = []qrBlockGroup{{1, 80, 20}}
+	blockStructure[0][4] = []qrBlockGroup{{1, 108, 26}}
+	blockStructure[0][5] = []qrBlockGroup{{2, 68, 18}}
+	blockStructure[0][6] = []qrBlockGroup{{2, 78, 20}}
+	blockStructure[0][7] = []qrBlockGroup{{2, 97, 24}}
+	blockStructure[0][8] = []qrBlockGroup{{2, 116, 30}}
+	blockStructure[0][9] = []qrBlockGroup{{2, 68, 18}, {2, 69, 18}}
+	// M level
+	blockStructure[1][0] = []qrBlockGroup{{1, 16, 10}}
+	blockStructure[1][1] = []qrBlockGroup{{1, 28, 16}}
+	blockStructure[1][2] = []qrBlockGroup{{1, 44, 26}}
+	blockStructure[1][3] = []qrBlockGroup{{2, 32, 18}}
+	blockStructure[1][4] = []qrBlockGroup{{2, 43, 24}}
+	blockStructure[1][5] = []qrBlockGroup{{4, 27, 16}}
+	blockStructure[1][6] = []qrBlockGroup{{4, 31, 18}}
+	blockStructure[1][7] = []qrBlockGroup{{2, 38, 22}, {2, 39, 22}}
+	blockStructure[1][8] = []qrBlockGroup{{3, 36, 22}, {2, 37, 22}}
+	blockStructure[1][9] = []qrBlockGroup{{4, 43, 26}, {1, 44, 26}}
+	// Q level
+	blockStructure[2][0] = []qrBlockGroup{{1, 13, 13}}
+	blockStructure[2][1] = []qrBlockGroup{{1, 22, 22}}
+	blockStructure[2][2] = []qrBlockGroup{{2, 17, 18}}
+	blockStructure[2][3] = []qrBlockGroup{{2, 24, 26}}
+	blockStructure[2][4] = []qrBlockGroup{{2, 15, 18}, {2, 16, 18}}
+	blockStructure[2][5] = []qrBlockGroup{{4, 19, 24}}
+	blockStructure[2][6] = []qrBlockGroup{{2, 14, 18}, {4, 15, 18}}
+	blockStructure[2][7] = []qrBlockGroup{{4, 18, 22}, {2, 19, 22}}
+	blockStructure[2][8] = []qrBlockGroup{{4, 16, 20}, {4, 17, 20}}
+	blockStructure[2][9] = []qrBlockGroup{{6, 19, 24}, {2, 20, 24}}
+	// H level
+	blockStructure[3][0] = []qrBlockGroup{{1, 9, 17}}
+	blockStructure[3][1] = []qrBlockGroup{{1, 16, 28}}
+	blockStructure[3][2] = []qrBlockGroup{{2, 13, 22}}
+	blockStructure[3][3] = []qrBlockGroup{{4, 9, 16}}
+	blockStructure[3][4] = []qrBlockGroup{{2, 11, 22}, {2, 12, 22}}
+	blockStructure[3][5] = []qrBlockGroup{{4, 15, 28}}
+	blockStructure[3][6] = []qrBlockGroup{{4, 13, 26}, {1, 14, 26}}
+	blockStructure[3][7] = []qrBlockGroup{{4, 14, 26}, {2, 15, 26}}
+	blockStructure[3][8] = []qrBlockGroup{{4, 12, 24}, {4, 13, 24}}
+	blockStructure[3][9] = []qrBlockGroup{{6, 15, 28}, {2, 16, 28}}
 }
 
 // Alignment pattern center positions for versions 2-10.
@@ -156,11 +245,8 @@ var alignmentPositions = [9][]int{
 	{6, 28, 50},     // v10
 }
 
-func encodeDataBits(data []byte, ver, ecLevel int) []bool {
-	totalCW := totalCodewords[ver-1]
-	ecCW := ecCodewords[ecLevel][ver-1]
-	dataCW := totalCW - ecCW
-	dataBits := dataCW * 8
+func encodeDataBits(data []byte, ver int, totalDataCW int) []bool {
+	dataBits := totalDataCW * 8
 
 	var bits []bool
 
@@ -416,7 +502,7 @@ func bch15_5(data uint32) uint32 {
 
 func placeFormatInfo(matrix [][]bool, size, ecLevel, mask int) {
 	// EC level indicators: L=01, M=00, Q=11, H=10
-	ecIndicator := [2]int{1, 0} // L=1, M=0
+	ecIndicator := [4]int{1, 0, 3, 2} // L=1, M=0, Q=3, H=2
 	info := formatInfoBits[ecIndicator[ecLevel]*8+mask]
 
 	// Place around top-left finder.
