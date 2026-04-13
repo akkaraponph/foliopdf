@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 const (
@@ -16,12 +16,12 @@ const (
 )
 
 func main() {
-	doc := foliopdf.New(foliopdf.WithCompression(false))
+	doc := presspdf.New(presspdf.WithCompression(false))
 	doc.SetTitle("Resume - Bob Smith")
 	doc.SetAuthor("Bob Smith")
 	doc.SetMargins(marginL, marginT, marginR)
 
-	page := doc.AddPage(foliopdf.A4)
+	page := doc.AddPage(presspdf.A4)
 
 	// ── Header: Name ──
 	doc.SetFont("helvetica", "B", 24)
@@ -113,7 +113,7 @@ func main() {
 	// ── Projects ──
 	sectionHeader(doc, page, "PROJECTS")
 
-	projectEntry(doc, page, "Folio", "github.com/akkaraponph/foliopdf",
+	projectEntry(doc, page, "Folio", "github.com/akkaraponph/presspdf",
 		"Layered PDF generation library for Go. Clean 4-layer architecture with core font support, "+
 			"JPEG image embedding, cell/multicell with word wrapping, and resource deduplication.")
 
@@ -131,7 +131,7 @@ func main() {
 }
 
 // sectionHeader draws a section title with a thin line underneath.
-func sectionHeader(doc *foliopdf.Document, page *foliopdf.Page, title string) {
+func sectionHeader(doc *presspdf.Document, page *presspdf.Page, title string) {
 	doc.SetFont("helvetica", "B", 11)
 	doc.SetTextColor(40, 80, 140)
 	page.SetXY(marginL, page.GetY())
@@ -144,7 +144,7 @@ func sectionHeader(doc *foliopdf.Document, page *foliopdf.Page, title string) {
 }
 
 // jobEntry draws a single work experience block.
-func jobEntry(doc *foliopdf.Document, page *foliopdf.Page, title, company, dates string, bullets []string) {
+func jobEntry(doc *presspdf.Document, page *presspdf.Page, title, company, dates string, bullets []string) {
 	// Title row
 	doc.SetFont("helvetica", "B", 10)
 	doc.SetTextColor(30, 30, 30)
@@ -173,7 +173,7 @@ func jobEntry(doc *foliopdf.Document, page *foliopdf.Page, title, company, dates
 }
 
 // skillRow draws a label + value row for skills.
-func skillRow(doc *foliopdf.Document, page *foliopdf.Page, label, value string) {
+func skillRow(doc *presspdf.Document, page *presspdf.Page, label, value string) {
 	doc.SetFont("helvetica", "B", 9)
 	doc.SetTextColor(40, 40, 40)
 	page.SetXY(marginL, page.GetY())
@@ -184,7 +184,7 @@ func skillRow(doc *foliopdf.Document, page *foliopdf.Page, label, value string) 
 }
 
 // projectEntry draws a project block with name, url, and description.
-func projectEntry(doc *foliopdf.Document, page *foliopdf.Page, name, url, description string) {
+func projectEntry(doc *presspdf.Document, page *presspdf.Page, name, url, description string) {
 	doc.SetFont("helvetica", "B", 10)
 	doc.SetTextColor(30, 30, 30)
 	page.SetXY(marginL, page.GetY())

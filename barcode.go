@@ -1,10 +1,10 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
 
-	"github.com/akkaraponph/foliopdf/internal/barcode"
-	"github.com/akkaraponph/foliopdf/internal/state"
+	"github.com/akkaraponph/presspdf/internal/barcode"
+	"github.com/akkaraponph/presspdf/internal/state"
 )
 
 // QR code error correction levels.

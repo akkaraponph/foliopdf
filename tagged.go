@@ -1,12 +1,12 @@
-package foliopdf
+package presspdf
 
 // Tagged PDF (structure tree) support for accessibility.
 //
 // Usage:
 //
-//	doc := foliopdf.New()
+//	doc := presspdf.New()
 //	doc.SetTagged(true)
-//	page := doc.AddPage(foliopdf.A4)
+//	page := doc.AddPage(presspdf.A4)
 //
 //	page.BeginTag("H1")
 //	page.TextAt(20, 20, "Chapter 1")

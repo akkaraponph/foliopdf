@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 // ColumnLayout provides a multi-column layout mode. While active,
 // existing text methods (Cell, MultiCell, Write) automatically flow
@@ -7,7 +7,7 @@ package foliopdf
 //
 // Usage:
 //
-//	cols := folio.NewColumnLayout(doc, page, 2, 5)
+//	cols := presspdf.NewColumnLayout(doc, page, 2, 5)
 //	cols.Begin()
 //	page.MultiCell(0, 5, leftText, "", "L", false)
 //	cols.NextColumn()

@@ -10,7 +10,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 func main() {
@@ -19,17 +19,17 @@ func main() {
 	fmt.Printf("Generated %d sample images\n\n", len(samples))
 
 	// 1. Auto-fit: each page sized to its image.
-	err := foliopdf.ImagesToPDF("output/autofit.pdf", samples)
+	err := presspdf.ImagesToPDF("output/autofit.pdf", samples)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("output/autofit.pdf        — pages sized to each image")
 
 	// 2. Fixed A4 pages, images scaled to fit with margins.
-	err = foliopdf.ImagesToPDF("output/a4_fit.pdf", samples,
-		foliopdf.ImagePageSize(foliopdf.A4),
-		foliopdf.ImageMargin(36),
-		foliopdf.ImageFit("fit"),
+	err = presspdf.ImagesToPDF("output/a4_fit.pdf", samples,
+		presspdf.ImagePageSize(presspdf.A4),
+		presspdf.ImageMargin(36),
+		presspdf.ImageFit("fit"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -37,10 +37,10 @@ func main() {
 	fmt.Println("output/a4_fit.pdf         — A4 pages, fit mode")
 
 	// 3. Fixed A4, stretch to fill.
-	err = foliopdf.ImagesToPDF("output/a4_stretch.pdf", samples,
-		foliopdf.ImagePageSize(foliopdf.A4),
-		foliopdf.ImageMargin(36),
-		foliopdf.ImageFit("stretch"),
+	err = presspdf.ImagesToPDF("output/a4_stretch.pdf", samples,
+		presspdf.ImagePageSize(presspdf.A4),
+		presspdf.ImageMargin(36),
+		presspdf.ImageFit("stretch"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -48,8 +48,8 @@ func main() {
 	fmt.Println("output/a4_stretch.pdf     — A4 pages, stretch mode")
 
 	// 4. High DPI (smaller auto-fit pages).
-	err = foliopdf.ImagesToPDF("output/high_dpi.pdf", samples,
-		foliopdf.ImageDPI(300),
+	err = presspdf.ImagesToPDF("output/high_dpi.pdf", samples,
+		presspdf.ImageDPI(300),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -57,10 +57,10 @@ func main() {
 	fmt.Println("output/high_dpi.pdf       — auto-fit at 300 DPI")
 
 	// 5. Landscape A4 with fill mode.
-	err = foliopdf.ImagesToPDF("output/landscape.pdf", samples,
-		foliopdf.ImagePageSize(foliopdf.A4.Landscape()),
-		foliopdf.ImageMargin(24),
-		foliopdf.ImageFit("fill"),
+	err = presspdf.ImagesToPDF("output/landscape.pdf", samples,
+		presspdf.ImagePageSize(presspdf.A4.Landscape()),
+		presspdf.ImageMargin(24),
+		presspdf.ImageFit("fill"),
 	)
 	if err != nil {
 		log.Fatal(err)

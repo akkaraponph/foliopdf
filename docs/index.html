@@ -284,7 +284,7 @@
 <span class="badge badge-pure">Pure Go</span>
 
 <div class="install">
-  <span class="prompt">$</span> go get github.com/akkaraponph/foliopdf
+  <span class="prompt">$</span> go get github.com/akkaraponph/presspdf
 </div>
 
 <div class="features">
@@ -320,14 +320,14 @@
 <h3 id="hello-world">Hello World</h3>
 <pre><code><span class="kw">package</span> main
 
-<span class="kw">import</span> <span class="st">"github.com/akkaraponph/foliopdf"</span>
+<span class="kw">import</span> <span class="st">"github.com/akkaraponph/presspdf"</span>
 
 <span class="kw">func</span> <span class="fn">main</span>() {
-    doc := foliopdf.<span class="fn">New</span>()
+    doc := presspdf.<span class="fn">New</span>()
     doc.<span class="fn">SetTitle</span>(<span class="st">"My First PDF"</span>)
     doc.<span class="fn">SetFont</span>(<span class="st">"helvetica"</span>, <span class="st">""</span>, <span class="nu">12</span>)
 
-    page := doc.<span class="fn">AddPage</span>(foliopdf.A4)
+    page := doc.<span class="fn">AddPage</span>(presspdf.A4)
     page.<span class="fn">TextAt</span>(<span class="nu">20</span>, <span class="nu">20</span>, <span class="st">"Hello, World!"</span>)
 
     doc.<span class="fn">Save</span>(<span class="st">"output.pdf"</span>)
@@ -337,19 +337,19 @@
 
 <pre><code><span class="cm">// Default unit is millimeters. Other units available:</span>
 <span class="cm">// state.UnitPt (points), state.UnitCM, state.UnitInch</span>
-doc := foliopdf.<span class="fn">New</span>(foliopdf.<span class="fn">WithUnit</span>(foliopdf.UnitPt))    <span class="cm">// points (1/72 inch)</span>
-doc := foliopdf.<span class="fn">New</span>(foliopdf.<span class="fn">WithUnit</span>(foliopdf.UnitInch))  <span class="cm">// inches</span>
-doc := foliopdf.<span class="fn">New</span>(foliopdf.<span class="fn">WithUnit</span>(foliopdf.UnitCM))    <span class="cm">// centimeters</span></code></pre>
+doc := presspdf.<span class="fn">New</span>(presspdf.<span class="fn">WithUnit</span>(presspdf.UnitPt))    <span class="cm">// points (1/72 inch)</span>
+doc := presspdf.<span class="fn">New</span>(presspdf.<span class="fn">WithUnit</span>(presspdf.UnitInch))  <span class="cm">// inches</span>
+doc := presspdf.<span class="fn">New</span>(presspdf.<span class="fn">WithUnit</span>(presspdf.UnitCM))    <span class="cm">// centimeters</span></code></pre>
 
 
 <!-- DOCUMENT -->
 <h2 id="document">Document</h2>
 
 <h3>Options</h3>
-<pre><code>doc := foliopdf.<span class="fn">New</span>(
-    foliopdf.<span class="fn">WithUnit</span>(foliopdf.UnitMM),       <span class="cm">// measurement unit (default: mm)</span>
-    foliopdf.<span class="fn">WithCompression</span>(<span class="kw">true</span>),       <span class="cm">// zlib compression (default: true)</span>
-    foliopdf.<span class="fn">WithPDFA</span>(<span class="st">"1b"</span>),              <span class="cm">// PDF/A compliance ("1b" or "2b")</span>
+<pre><code>doc := presspdf.<span class="fn">New</span>(
+    presspdf.<span class="fn">WithUnit</span>(presspdf.UnitMM),       <span class="cm">// measurement unit (default: mm)</span>
+    presspdf.<span class="fn">WithCompression</span>(<span class="kw">true</span>),       <span class="cm">// zlib compression (default: true)</span>
+    presspdf.<span class="fn">WithPDFA</span>(<span class="st">"1b"</span>),              <span class="cm">// PDF/A compliance ("1b" or "2b")</span>
 )</code></pre>
 
 <h3>Metadata</h3>
@@ -367,18 +367,18 @@ err := doc.<span class="fn">Err</span>()                    <span class="cm">// 
 
 <!-- PAGES -->
 <h2 id="pages">Pages &amp; Layout</h2>
-<pre><code>page := doc.<span class="fn">AddPage</span>(foliopdf.A4)
-page := doc.<span class="fn">AddPage</span>(foliopdf.A4.<span class="fn">Landscape</span>())
-page := doc.<span class="fn">AddPage</span>(foliopdf.Letter)
+<pre><code>page := doc.<span class="fn">AddPage</span>(presspdf.A4)
+page := doc.<span class="fn">AddPage</span>(presspdf.A4.<span class="fn">Landscape</span>())
+page := doc.<span class="fn">AddPage</span>(presspdf.Letter)
 
 doc.<span class="fn">SetMargins</span>(<span class="nu">15</span>, <span class="nu">15</span>, <span class="nu">15</span>)          <span class="cm">// left, top, right</span>
 doc.<span class="fn">SetAutoPageBreak</span>(<span class="kw">true</span>, <span class="nu">15</span>)     <span class="cm">// auto break, bottom margin</span></code></pre>
 
 <h3>Headers &amp; Footers</h3>
-<pre><code>doc.<span class="fn">SetHeaderFunc</span>(<span class="kw">func</span>(p *foliopdf.Page) {
+<pre><code>doc.<span class="fn">SetHeaderFunc</span>(<span class="kw">func</span>(p *presspdf.Page) {
     p.<span class="fn">TextAt</span>(<span class="nu">20</span>, <span class="nu">10</span>, <span class="st">"My Report"</span>)
 })
-doc.<span class="fn">SetFooterFunc</span>(<span class="kw">func</span>(p *foliopdf.Page) {
+doc.<span class="fn">SetFooterFunc</span>(<span class="kw">func</span>(p *presspdf.Page) {
     p.<span class="fn">TextAt</span>(<span class="nu">100</span>, <span class="nu">-10</span>, fmt.<span class="fn">Sprintf</span>(<span class="st">"Page %d"</span>, doc.<span class="fn">PageNo</span>()))
 })</code></pre>
 
@@ -408,7 +408,7 @@ doc.<span class="fn">AddUTF8FontFromFile</span>(<span class="st">"myfont"</span>
 doc.<span class="fn">AddUTF8Font</span>(<span class="st">"myfont"</span>, <span class="st">"B"</span>, fontData)
 
 <span class="cm">// Built-in font packages</span>
-<span class="kw">import</span> <span class="st">"github.com/akkaraponph/foliopdf/fonts/sarabun"</span>
+<span class="kw">import</span> <span class="st">"github.com/akkaraponph/presspdf/fonts/sarabun"</span>
 sarabun.<span class="fn">Register</span>(doc)  <span class="cm">// registers "sarabun" in all 4 styles</span></code></pre>
 
 <h3>Typography</h3>
@@ -488,11 +488,11 @@ page.<span class="fn">DrawImageRect</span>(<span class="st">"photo"</span>, <spa
 <h2 id="tables">Tables</h2>
 
 <h3>Simple Table</h3>
-<pre><code>tbl := foliopdf.<span class="fn">NewTable</span>(doc, page)
+<pre><code>tbl := presspdf.<span class="fn">NewTable</span>(doc, page)
 tbl.<span class="fn">SetWidths</span>(<span class="nu">20</span>, <span class="nu">100</span>, <span class="nu">40</span>)
 tbl.<span class="fn">SetAligns</span>(<span class="st">"C"</span>, <span class="st">"L"</span>, <span class="st">"R"</span>)
 
-tbl.<span class="fn">SetHeaderStyle</span>(foliopdf.CellStyle{
+tbl.<span class="fn">SetHeaderStyle</span>(presspdf.CellStyle{
     FontFamily: <span class="st">"helvetica"</span>, FontStyle: <span class="st">"B"</span>, FontSize: <span class="nu">12</span>,
     TextColor: [<span class="nu">3</span>]<span class="ty">int</span>{<span class="nu">255</span>, <span class="nu">255</span>, <span class="nu">255</span>},
     FillColor: [<span class="nu">3</span>]<span class="ty">int</span>{<span class="nu">0</span>, <span class="nu">51</span>, <span class="nu">102</span>},
@@ -520,40 +520,40 @@ tbl.<span class="fn">Row</span>(<span class="st">"2"</span>, <span class="st">"G
 <h2 id="complex-tables">Complex Tables</h2>
 <p>Use <code>AddRow</code>/<code>AddHeader</code> + <code>Render()</code> for colspan, rowspan, multi-line wrapping, and per-cell styling.</p>
 
-<pre><code>tbl := foliopdf.<span class="fn">NewTable</span>(doc, page)
+<pre><code>tbl := presspdf.<span class="fn">NewTable</span>(doc, page)
 tbl.<span class="fn">SetWidths</span>(<span class="nu">40</span>, <span class="nu">40</span>, <span class="nu">40</span>, <span class="nu">40</span>)
 tbl.<span class="fn">SetCellPadding</span>(<span class="nu">2</span>)
 
 <span class="cm">// ColSpan: title spanning all 4 columns</span>
-tbl.<span class="fn">AddHeader</span>(foliopdf.TableCell{Text: <span class="st">"Quarterly Report"</span>, ColSpan: <span class="nu">4</span>, Align: <span class="st">"C"</span>})
+tbl.<span class="fn">AddHeader</span>(presspdf.TableCell{Text: <span class="st">"Quarterly Report"</span>, ColSpan: <span class="nu">4</span>, Align: <span class="st">"C"</span>})
 
 <span class="cm">// Regular header row</span>
 tbl.<span class="fn">AddHeader</span>(
-    foliopdf.TableCell{Text: <span class="st">"Region"</span>},
-    foliopdf.TableCell{Text: <span class="st">"Q1"</span>},
-    foliopdf.TableCell{Text: <span class="st">"Q2"</span>},
-    foliopdf.TableCell{Text: <span class="st">"Total"</span>},
+    presspdf.TableCell{Text: <span class="st">"Region"</span>},
+    presspdf.TableCell{Text: <span class="st">"Q1"</span>},
+    presspdf.TableCell{Text: <span class="st">"Q2"</span>},
+    presspdf.TableCell{Text: <span class="st">"Total"</span>},
 )
 
 <span class="cm">// RowSpan: "North" spans 2 rows</span>
 tbl.<span class="fn">AddRow</span>(
-    foliopdf.TableCell{Text: <span class="st">"North"</span>, RowSpan: <span class="nu">2</span>},
-    foliopdf.TableCell{Text: <span class="st">"100"</span>},
-    foliopdf.TableCell{Text: <span class="st">"150"</span>},
-    foliopdf.TableCell{Text: <span class="st">"250"</span>},
+    presspdf.TableCell{Text: <span class="st">"North"</span>, RowSpan: <span class="nu">2</span>},
+    presspdf.TableCell{Text: <span class="st">"100"</span>},
+    presspdf.TableCell{Text: <span class="st">"150"</span>},
+    presspdf.TableCell{Text: <span class="st">"250"</span>},
 )
 tbl.<span class="fn">AddRow</span>(
     <span class="cm">// column 0 occupied by rowspan</span>
-    foliopdf.TableCell{Text: <span class="st">"200"</span>},
-    foliopdf.TableCell{Text: <span class="st">"180"</span>},
-    foliopdf.TableCell{Text: <span class="st">"380"</span>},
+    presspdf.TableCell{Text: <span class="st">"200"</span>},
+    presspdf.TableCell{Text: <span class="st">"180"</span>},
+    presspdf.TableCell{Text: <span class="st">"380"</span>},
 )
 
 <span class="cm">// Per-cell styling</span>
-red := &foliopdf.CellStyle{TextColor: [<span class="nu">3</span>]<span class="ty">int</span>{<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>}}
+red := &presspdf.CellStyle{TextColor: [<span class="nu">3</span>]<span class="ty">int</span>{<span class="nu">255</span>, <span class="nu">0</span>, <span class="nu">0</span>}}
 tbl.<span class="fn">AddRow</span>(
-    foliopdf.TableCell{Text: <span class="st">"Total"</span>, ColSpan: <span class="nu">3</span>, Align: <span class="st">"R"</span>},
-    foliopdf.TableCell{Text: <span class="st">"630"</span>, Style: red},
+    presspdf.TableCell{Text: <span class="st">"Total"</span>, ColSpan: <span class="nu">3</span>, Align: <span class="st">"R"</span>},
+    presspdf.TableCell{Text: <span class="st">"630"</span>, Style: red},
 )
 
 tbl.<span class="fn">Render</span>()</code></pre>
@@ -570,11 +570,11 @@ tbl.<span class="fn">Render</span>()</code></pre>
 
 <h3>AutoTable</h3>
 <pre><code><span class="cm">// From Go structs</span>
-at := foliopdf.<span class="fn">AutoTableFromStructs</span>(doc, page, mySlice)
+at := presspdf.<span class="fn">AutoTableFromStructs</span>(doc, page, mySlice)
 at.<span class="fn">Render</span>()
 
 <span class="cm">// From JSON</span>
-at, _ := foliopdf.<span class="fn">AutoTableFromJSON</span>(doc, page, jsonBytes)
+at, _ := presspdf.<span class="fn">AutoTableFromJSON</span>(doc, page, jsonBytes)
 at.<span class="fn">AutoFitWidths</span>(<span class="nu">170</span>)
 at.<span class="fn">Render</span>()</code></pre>
 
@@ -641,7 +641,7 @@ This is **bold** and *italic* text with ` + "`code`" + `.
 ---
 
 [Link text](https://example.com)
-`</span>, foliopdf.<span class="fn">WithBookmarks</span>())</code></pre>
+`</span>, presspdf.<span class="fn">WithBookmarks</span>())</code></pre>
 
 
 <!-- TRANSFORMS -->
@@ -662,20 +662,20 @@ page.<span class="fn">TextRotatedAt</span>(<span class="nu">100</span>, <span cl
 <!-- GRADIENTS -->
 <h2 id="gradients">Gradients</h2>
 <pre><code>page.<span class="fn">LinearGradient</span>(<span class="nu">20</span>, <span class="nu">20</span>, <span class="nu">100</span>, <span class="nu">50</span>, <span class="nu">0</span>, <span class="nu">0</span>, <span class="nu">1</span>, <span class="nu">0</span>,
-    foliopdf.GradientStop{Pos: <span class="nu">0</span>, R: <span class="nu">255</span>, G: <span class="nu">0</span>, B: <span class="nu">0</span>},
-    foliopdf.GradientStop{Pos: <span class="nu">1</span>, R: <span class="nu">0</span>, G: <span class="nu">0</span>, B: <span class="nu">255</span>},
+    presspdf.GradientStop{Pos: <span class="nu">0</span>, R: <span class="nu">255</span>, G: <span class="nu">0</span>, B: <span class="nu">0</span>},
+    presspdf.GradientStop{Pos: <span class="nu">1</span>, R: <span class="nu">0</span>, G: <span class="nu">0</span>, B: <span class="nu">255</span>},
 )
 
 page.<span class="fn">RadialGradient</span>(<span class="nu">20</span>, <span class="nu">80</span>, <span class="nu">100</span>, <span class="nu">50</span>, <span class="nu">0.5</span>, <span class="nu">0.5</span>, <span class="nu">0.5</span>,
-    foliopdf.GradientStop{Pos: <span class="nu">0</span>, R: <span class="nu">255</span>, G: <span class="nu">255</span>, B: <span class="nu">0</span>},
-    foliopdf.GradientStop{Pos: <span class="nu">1</span>, R: <span class="nu">255</span>, G: <span class="nu">0</span>, B: <span class="nu">0</span>},
+    presspdf.GradientStop{Pos: <span class="nu">0</span>, R: <span class="nu">255</span>, G: <span class="nu">255</span>, B: <span class="nu">0</span>},
+    presspdf.GradientStop{Pos: <span class="nu">1</span>, R: <span class="nu">255</span>, G: <span class="nu">0</span>, B: <span class="nu">0</span>},
 )</code></pre>
 
 
 <!-- TEMPLATES -->
 <h2 id="templates">Templates</h2>
 <p>Define reusable content blocks (Form XObjects) &mdash; drawn once, stamped onto multiple pages.</p>
-<pre><code>doc.<span class="fn">BeginTemplate</span>(foliopdf.A4)
+<pre><code>doc.<span class="fn">BeginTemplate</span>(presspdf.A4)
 <span class="cm">// draw template content...</span>
 name := doc.<span class="fn">EndTemplate</span>()
 
@@ -684,18 +684,18 @@ page.<span class="fn">UseTemplate</span>(name, <span class="nu">20</span>, <span
 
 <!-- TOC -->
 <h2 id="toc">Table of Contents</h2>
-<pre><code>toc := foliopdf.<span class="fn">NewTOC</span>(doc)
+<pre><code>toc := presspdf.<span class="fn">NewTOC</span>(doc)
 toc.<span class="fn">Add</span>(<span class="st">"Introduction"</span>, <span class="nu">0</span>, page1, <span class="nu">20</span>)
 toc.<span class="fn">Add</span>(<span class="st">"Chapter 1"</span>, <span class="nu">0</span>, page2, <span class="nu">20</span>)
 toc.<span class="fn">Add</span>(<span class="st">"Section 1.1"</span>, <span class="nu">1</span>, page2, <span class="nu">80</span>)
 
-tocPage := doc.<span class="fn">AddPage</span>(foliopdf.A4)
+tocPage := doc.<span class="fn">AddPage</span>(presspdf.A4)
 toc.<span class="fn">RenderWithPageNums</span>(tocPage, <span class="nu">8</span>, <span class="nu">0</span>)</code></pre>
 
 
 <!-- COLUMNS -->
 <h2 id="columns">Column Layout</h2>
-<pre><code>cl := foliopdf.<span class="fn">NewColumnLayout</span>(doc, page, <span class="nu">2</span>, <span class="nu">10</span>)  <span class="cm">// 2 columns, 10mm gutter</span>
+<pre><code>cl := presspdf.<span class="fn">NewColumnLayout</span>(doc, page, <span class="nu">2</span>, <span class="nu">10</span>)  <span class="cm">// 2 columns, 10mm gutter</span>
 cl.<span class="fn">Begin</span>()
 page.<span class="fn">MultiCell</span>(<span class="nu">0</span>, <span class="nu">5</span>, <span class="st">"Left column text..."</span>, <span class="st">""</span>, <span class="st">"L"</span>, <span class="kw">false</span>)
 cl.<span class="fn">NextColumn</span>()
@@ -728,8 +728,8 @@ page.<span class="fn">Stack</span>(<span class="nu">8</span>, <span class="kw">f
 <!-- FORMS -->
 <h2 id="forms">Form Fields (AcroForms)</h2>
 <pre><code>page.<span class="fn">FormTextField</span>(<span class="st">"name"</span>, <span class="nu">20</span>, <span class="nu">40</span>, <span class="nu">100</span>, <span class="nu">10</span>,
-    foliopdf.<span class="fn">WithDefaultValue</span>(<span class="st">"John"</span>),
-    foliopdf.<span class="fn">WithMaxLen</span>(<span class="nu">50</span>),
+    presspdf.<span class="fn">WithDefaultValue</span>(<span class="st">"John"</span>),
+    presspdf.<span class="fn">WithMaxLen</span>(<span class="nu">50</span>),
 )
 page.<span class="fn">FormCheckbox</span>(<span class="st">"agree"</span>, <span class="nu">20</span>, <span class="nu">60</span>, <span class="nu">5</span>, <span class="kw">true</span>)
 page.<span class="fn">FormDropdown</span>(<span class="st">"country"</span>, <span class="nu">20</span>, <span class="nu">75</span>, <span class="nu">80</span>, <span class="nu">10</span>,
@@ -741,7 +741,7 @@ page.<span class="fn">FormDropdown</span>(<span class="st">"country"</span>, <sp
 <h2 id="security">Security</h2>
 
 <h3>Password Protection</h3>
-<pre><code>doc.<span class="fn">SetProtection</span>(<span class="st">"userpass"</span>, <span class="st">"ownerpass"</span>, foliopdf.PermPrint|foliopdf.PermCopy)</code></pre>
+<pre><code>doc.<span class="fn">SetProtection</span>(<span class="st">"userpass"</span>, <span class="st">"ownerpass"</span>, presspdf.PermPrint|presspdf.PermCopy)</code></pre>
 
 <table>
   <tr><th>Flag</th><th>Description</th></tr>
@@ -753,14 +753,14 @@ page.<span class="fn">FormDropdown</span>(<span class="st">"country"</span>, <sp
 </table>
 
 <h3>Digital Signatures</h3>
-<pre><code>doc.<span class="fn">Sign</span>(cert, key, page, <span class="nu">20</span>, <span class="nu">250</span>, <span class="nu">80</span>, <span class="nu">30</span>, foliopdf.SignOptions{
+<pre><code>doc.<span class="fn">Sign</span>(cert, key, page, <span class="nu">20</span>, <span class="nu">250</span>, <span class="nu">80</span>, <span class="nu">30</span>, presspdf.SignOptions{
     Name:     <span class="st">"John Doe"</span>,
     Reason:   <span class="st">"Approval"</span>,
     Location: <span class="st">"Bangkok"</span>,
 })</code></pre>
 
 <h3>PDF/A Compliance</h3>
-<pre><code>doc := foliopdf.<span class="fn">New</span>(foliopdf.<span class="fn">WithPDFA</span>(<span class="st">"1b"</span>))  <span class="cm">// or "2b"</span></code></pre>
+<pre><code>doc := presspdf.<span class="fn">New</span>(presspdf.<span class="fn">WithPDFA</span>(<span class="st">"1b"</span>))  <span class="cm">// or "2b"</span></code></pre>
 
 
 <!-- FLUENT API -->
@@ -777,19 +777,19 @@ page.<span class="fn">Shape</span>().<span class="fn">Circle</span>(<span class=
 <!-- PDF TOOLS -->
 <h2 id="split">Split PDF</h2>
 <pre><code><span class="cm">// Split every page into a separate file</span>
-paths, err := foliopdf.<span class="fn">SplitPDF</span>(<span class="st">"report.pdf"</span>, <span class="st">"output/"</span>)
+paths, err := presspdf.<span class="fn">SplitPDF</span>(<span class="st">"report.pdf"</span>, <span class="st">"output/"</span>)
 
 <span class="cm">// Split by page ranges</span>
-paths, err := foliopdf.<span class="fn">SplitPDF</span>(<span class="st">"report.pdf"</span>, <span class="st">"output/"</span>,
-    foliopdf.<span class="fn">WithRanges</span>(
-        foliopdf.PageRange{From: <span class="nu">1</span>, To: <span class="nu">5</span>},
-        foliopdf.PageRange{From: <span class="nu">6</span>, To: <span class="nu">10</span>},
+paths, err := presspdf.<span class="fn">SplitPDF</span>(<span class="st">"report.pdf"</span>, <span class="st">"output/"</span>,
+    presspdf.<span class="fn">WithRanges</span>(
+        presspdf.PageRange{From: <span class="nu">1</span>, To: <span class="nu">5</span>},
+        presspdf.PageRange{From: <span class="nu">6</span>, To: <span class="nu">10</span>},
     ),
 )</code></pre>
 
 
 <h2 id="merge">Merge PDF</h2>
-<pre><code>err := foliopdf.<span class="fn">MergePDF</span>(<span class="st">"combined.pdf"</span>,
+<pre><code>err := presspdf.<span class="fn">MergePDF</span>(<span class="st">"combined.pdf"</span>,
     <span class="st">"chapter1.pdf"</span>,
     <span class="st">"chapter2.pdf"</span>,
     <span class="st">"appendix.pdf"</span>,
@@ -799,22 +799,22 @@ paths, err := foliopdf.<span class="fn">SplitPDF</span>(<span class="st">"report
 <h2 id="watermark">Watermark PDF</h2>
 
 <h3>Text Watermark</h3>
-<pre><code>foliopdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
-    foliopdf.<span class="fn">WatermarkText</span>(<span class="st">"DRAFT"</span>),
-    foliopdf.<span class="fn">WatermarkFontSize</span>(<span class="nu">100</span>),
-    foliopdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.3</span>),
-    foliopdf.<span class="fn">WatermarkRotation</span>(<span class="nu">45</span>),
+<pre><code>presspdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
+    presspdf.<span class="fn">WatermarkText</span>(<span class="st">"DRAFT"</span>),
+    presspdf.<span class="fn">WatermarkFontSize</span>(<span class="nu">100</span>),
+    presspdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.3</span>),
+    presspdf.<span class="fn">WatermarkRotation</span>(<span class="nu">45</span>),
 )</code></pre>
 
 <h3>Image Watermark</h3>
-<pre><code>foliopdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
-    foliopdf.<span class="fn">WatermarkImage</span>(<span class="st">"logo.png"</span>),
-    foliopdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.15</span>),
-    foliopdf.<span class="fn">WatermarkScale</span>(<span class="nu">0.5</span>),
+<pre><code>presspdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
+    presspdf.<span class="fn">WatermarkImage</span>(<span class="st">"logo.png"</span>),
+    presspdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.15</span>),
+    presspdf.<span class="fn">WatermarkScale</span>(<span class="nu">0.5</span>),
 )</code></pre>
 
 <h3>Templates</h3>
-<pre><code>foliopdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>, foliopdf.<span class="fn">WatermarkTemplate</span>(<span class="st">"draft"</span>))</code></pre>
+<pre><code>presspdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>, presspdf.<span class="fn">WatermarkTemplate</span>(<span class="st">"draft"</span>))</code></pre>
 
 <table>
   <tr><th>Template</th><th>Text</th><th>Color</th><th>Opacity</th></tr>
@@ -826,11 +826,11 @@ paths, err := foliopdf.<span class="fn">SplitPDF</span>(<span class="st">"report
 </table>
 
 <h3>Pattern Mode</h3>
-<pre><code>foliopdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
-    foliopdf.<span class="fn">WatermarkText</span>(<span class="st">"INTERNAL"</span>),
-    foliopdf.<span class="fn">WatermarkPattern</span>(<span class="nu">180</span>, <span class="nu">180</span>),
-    foliopdf.<span class="fn">WatermarkFontSize</span>(<span class="nu">28</span>),
-    foliopdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.08</span>),
+<pre><code>presspdf.<span class="fn">WatermarkPDF</span>(<span class="st">"in.pdf"</span>, <span class="st">"out.pdf"</span>,
+    presspdf.<span class="fn">WatermarkText</span>(<span class="st">"INTERNAL"</span>),
+    presspdf.<span class="fn">WatermarkPattern</span>(<span class="nu">180</span>, <span class="nu">180</span>),
+    presspdf.<span class="fn">WatermarkFontSize</span>(<span class="nu">28</span>),
+    presspdf.<span class="fn">WatermarkOpacity</span>(<span class="nu">0.08</span>),
 )</code></pre>
 
 <h3>All Watermark Options</h3>
@@ -851,13 +851,13 @@ paths, err := foliopdf.<span class="fn">SplitPDF</span>(<span class="st">"report
 
 <h2 id="images-to-pdf">Images to PDF</h2>
 <pre><code><span class="cm">// Auto-fit: each page sized to its image</span>
-foliopdf.<span class="fn">ImagesToPDF</span>(<span class="st">"album.pdf"</span>, []<span class="ty">string</span>{<span class="st">"a.jpg"</span>, <span class="st">"b.png"</span>, <span class="st">"c.jpg"</span>})
+presspdf.<span class="fn">ImagesToPDF</span>(<span class="st">"album.pdf"</span>, []<span class="ty">string</span>{<span class="st">"a.jpg"</span>, <span class="st">"b.png"</span>, <span class="st">"c.jpg"</span>})
 
 <span class="cm">// Fixed A4 pages with margins</span>
-foliopdf.<span class="fn">ImagesToPDF</span>(<span class="st">"album.pdf"</span>, images,
-    foliopdf.<span class="fn">ImagePageSize</span>(foliopdf.A4),
-    foliopdf.<span class="fn">ImageMargin</span>(<span class="nu">36</span>),
-    foliopdf.<span class="fn">ImageFit</span>(<span class="st">"fit"</span>),
+presspdf.<span class="fn">ImagesToPDF</span>(<span class="st">"album.pdf"</span>, images,
+    presspdf.<span class="fn">ImagePageSize</span>(presspdf.A4),
+    presspdf.<span class="fn">ImageMargin</span>(<span class="nu">36</span>),
+    presspdf.<span class="fn">ImageFit</span>(<span class="st">"fit"</span>),
 )</code></pre>
 
 <table>
@@ -871,11 +871,11 @@ foliopdf.<span class="fn">ImagesToPDF</span>(<span class="st">"album.pdf"</span>
 
 <h2 id="compress">Compress PDF</h2>
 <pre><code><span class="cm">// Basic: FlateDecode + object deduplication</span>
-foliopdf.<span class="fn">CompressPDF</span>(<span class="st">"input.pdf"</span>, <span class="st">"smaller.pdf"</span>)
+presspdf.<span class="fn">CompressPDF</span>(<span class="st">"input.pdf"</span>, <span class="st">"smaller.pdf"</span>)
 
 <span class="cm">// Re-encode JPEG images at lower quality</span>
-foliopdf.<span class="fn">CompressPDF</span>(<span class="st">"photos.pdf"</span>, <span class="st">"smaller.pdf"</span>,
-    foliopdf.<span class="fn">CompressImageQuality</span>(<span class="nu">60</span>),
+presspdf.<span class="fn">CompressPDF</span>(<span class="st">"photos.pdf"</span>, <span class="st">"smaller.pdf"</span>,
+    presspdf.<span class="fn">CompressImageQuality</span>(<span class="nu">60</span>),
 )</code></pre>
 
 <table>
@@ -887,32 +887,32 @@ foliopdf.<span class="fn">CompressPDF</span>(<span class="st">"photos.pdf"</span
 
 <h2 id="decrypt">Decrypt PDF</h2>
 <pre><code><span class="cm">// Remove password protection</span>
-foliopdf.<span class="fn">DecryptPDF</span>(<span class="st">"locked.pdf"</span>, <span class="st">"unlocked.pdf"</span>, <span class="st">"mypassword"</span>)
+presspdf.<span class="fn">DecryptPDF</span>(<span class="st">"locked.pdf"</span>, <span class="st">"unlocked.pdf"</span>, <span class="st">"mypassword"</span>)
 
 <span class="cm">// Works with user or owner password</span>
-foliopdf.<span class="fn">DecryptPDF</span>(<span class="st">"locked.pdf"</span>, <span class="st">"unlocked.pdf"</span>, <span class="st">"ownerpass"</span>)
+presspdf.<span class="fn">DecryptPDF</span>(<span class="st">"locked.pdf"</span>, <span class="st">"unlocked.pdf"</span>, <span class="st">"ownerpass"</span>)
 
 <span class="cm">// Unencrypted PDFs are copied as-is</span>
-foliopdf.<span class="fn">DecryptPDF</span>(<span class="st">"plain.pdf"</span>, <span class="st">"output.pdf"</span>, <span class="st">""</span>)</code></pre>
+presspdf.<span class="fn">DecryptPDF</span>(<span class="st">"plain.pdf"</span>, <span class="st">"output.pdf"</span>, <span class="st">""</span>)</code></pre>
 <p>Supports PDF Standard Security Handler V=1, R=2 (40-bit RC4).</p>
 
 
 <h2 id="convert">PDF to Image</h2>
 <pre><code><span class="cm">// Convert all pages to PNG</span>
-paths, err := foliopdf.<span class="fn">ConvertToImages</span>(<span class="st">"doc.pdf"</span>, <span class="st">"images/"</span>)
+paths, err := presspdf.<span class="fn">ConvertToImages</span>(<span class="st">"doc.pdf"</span>, <span class="st">"images/"</span>)
 
 <span class="cm">// Specific pages as JPEG at 300 DPI</span>
-paths, err := foliopdf.<span class="fn">ConvertToImages</span>(<span class="st">"doc.pdf"</span>, <span class="st">"images/"</span>,
-    foliopdf.<span class="fn">WithFormat</span>(foliopdf.JPEG),
-    foliopdf.<span class="fn">WithDPI</span>(<span class="nu">300</span>),
-    foliopdf.<span class="fn">WithPages</span>(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">5</span>),
+paths, err := presspdf.<span class="fn">ConvertToImages</span>(<span class="st">"doc.pdf"</span>, <span class="st">"images/"</span>,
+    presspdf.<span class="fn">WithFormat</span>(presspdf.JPEG),
+    presspdf.<span class="fn">WithDPI</span>(<span class="nu">300</span>),
+    presspdf.<span class="fn">WithPages</span>(<span class="nu">1</span>, <span class="nu">3</span>, <span class="nu">5</span>),
 )</code></pre>
 <p>Requires <code>pdftoppm</code>, <code>mutool</code>, or <code>gs</code> on PATH.</p>
 
 
 <!-- THAI -->
 <h2 id="thai">Thai Language Support</h2>
-<pre><code><span class="kw">import</span> <span class="st">"github.com/akkaraponph/foliopdf/thai"</span>
+<pre><code><span class="kw">import</span> <span class="st">"github.com/akkaraponph/presspdf/thai"</span>
 
 thai.<span class="fn">Setup</span>(doc)  <span class="cm">// installs word breaker for line wrapping</span>
 
@@ -931,10 +931,10 @@ words := thai.<span class="fn">Segment</span>(<span class="st">"สวัสด�
   <tr><td><code>Letter</code></td><td>216 &times; 279</td></tr>
   <tr><td><code>Legal</code></td><td>216 &times; 356</td></tr>
 </table>
-<pre><code>foliopdf.A4.<span class="fn">Landscape</span>()   <span class="cm">// 297 x 210</span>
+<pre><code>presspdf.A4.<span class="fn">Landscape</span>()   <span class="cm">// 297 x 210</span>
 
 <span class="cm">// Custom size</span>
-foliopdf.PageSize{WidthPt: <span class="nu">500</span>, HeightPt: <span class="nu">300</span>}</code></pre>
+presspdf.PageSize{WidthPt: <span class="nu">500</span>, HeightPt: <span class="nu">300</span>}</code></pre>
 
 
 <!-- ARCHITECTURE -->

@@ -1,13 +1,13 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
 	"math"
 	"strings"
 
-	"github.com/akkaraponph/foliopdf/internal/content"
-	"github.com/akkaraponph/foliopdf/internal/resources"
-	"github.com/akkaraponph/foliopdf/internal/state"
+	"github.com/akkaraponph/presspdf/internal/content"
+	"github.com/akkaraponph/presspdf/internal/resources"
+	"github.com/akkaraponph/presspdf/internal/state"
 )
 
 // Page represents a single PDF page with drawing methods.

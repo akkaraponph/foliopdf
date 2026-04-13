@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func WithPages(pages ...int) ConvertOption {
 
 // ErrNoRenderer is returned when no supported PDF renderer is found on PATH.
 // Deprecated: check for *ToolNotFoundError instead.
-var ErrNoRenderer = fmt.Errorf("folio: no PDF renderer found (install poppler-utils, mupdf-tools, or ghostscript)")
+var ErrNoRenderer = fmt.Errorf("presspdf: no PDF renderer found (install poppler-utils, mupdf-tools, or ghostscript)")
 
 // ConvertToImages converts each page of a PDF file into an image file
 // saved to outputDir. Returns the paths of the generated image files
@@ -67,7 +67,7 @@ func ConvertToImages(pdfPath, outputDir string, opts ...ConvertOption) ([]string
 	}
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return nil, fmt.Errorf("folio: create output dir: %w", err)
+		return nil, fmt.Errorf("presspdf: create output dir: %w", err)
 	}
 
 	return backend.convert(pdfPath, outputDir, cfg)
@@ -89,7 +89,7 @@ func ConvertPage(pdfPath string, page int, opts ...ConvertOption) (image.Image, 
 		return nil, err
 	}
 
-	tmpDir, cleanup, err := TempDir("folio-convert-*")
+	tmpDir, cleanup, err := TempDir("presspdf-convert-*")
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +100,12 @@ func ConvertPage(pdfPath string, page int, opts ...ConvertOption) (image.Image, 
 		return nil, err
 	}
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("folio: page %d not found in PDF", page)
+		return nil, fmt.Errorf("presspdf: page %d not found in PDF", page)
 	}
 
 	f, err := os.Open(paths[0])
 	if err != nil {
-		return nil, fmt.Errorf("folio: open rendered image: %w", err)
+		return nil, fmt.Errorf("presspdf: open rendered image: %w", err)
 	}
 	defer f.Close()
 
@@ -274,7 +274,7 @@ func collectConvertOutput(dir string, format ImageFormat) ([]string, error) {
 	}
 
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("folio: no output images generated")
+		return nil, fmt.Errorf("presspdf: no output images generated")
 	}
 
 	return paths, nil

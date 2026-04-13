@@ -17,8 +17,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/akkaraponph/foliopdf"
-	"github.com/akkaraponph/foliopdf/fonts/sarabun"
+	"github.com/akkaraponph/presspdf"
+	"github.com/akkaraponph/presspdf/fonts/sarabun"
 )
 
 const outDir = "examples/pdf"
@@ -55,27 +55,27 @@ func main() {
 	}
 }
 
-func save(doc *foliopdf.Document, name string) error {
+func save(doc *presspdf.Document, name string) error {
 	return doc.Save(outDir + "/" + name + ".pdf")
 }
 
 // --- 01: Landscape Orientation ---
 
 func demoLandscape() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 24)
-	p := doc.AddPage(foliopdf.A4.Landscape())
+	p := doc.AddPage(presspdf.A4.Landscape())
 
 	doc.SetTextColor(50, 50, 150)
 	p.TextAt(30, 30, "Landscape A4 Page")
 	doc.SetFont("helvetica", "", 14)
 	doc.SetTextColor(0, 0, 0)
 	p.TextAt(30, 45, fmt.Sprintf("Page size: %.0f x %.0f points",
-		foliopdf.A4Landscape.WidthPt, foliopdf.A4Landscape.HeightPt))
+		presspdf.A4Landscape.WidthPt, presspdf.A4Landscape.HeightPt))
 
 	// Draw a wide table to show the benefit
 	doc.SetFont("helvetica", "", 11)
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	p.SetXY(30, 65)
 	tbl.SetWidths(120, 120, 120, 120, 120, 120)
 	tbl.Header("Month", "Revenue", "Expenses", "Profit", "Growth", "Notes")
@@ -89,12 +89,12 @@ func demoLandscape() error {
 // --- 02: Bookmarks/Outlines ---
 
 func demoBookmarks() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
 
 	chapters := []string{"Introduction", "Getting Started", "Advanced Topics", "API Reference"}
 	for _, ch := range chapters {
-		p := doc.AddPage(foliopdf.A4)
+		p := doc.AddPage(presspdf.A4)
 		doc.SetFont("helvetica", "B", 20)
 		doc.AddBookmark(ch, 0)
 		p.TextAt(20, 25, ch)
@@ -121,9 +121,9 @@ func demoBookmarks() error {
 // --- 03: SVG Path Import ---
 
 func demoSVGPath() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "SVG Path Import")
 
 	doc.SetFont("helvetica", "", 11)
@@ -153,11 +153,11 @@ func demoSVGPath() error {
 // --- 04: Page Templates ---
 
 func demoTemplate() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
 
 	// Create a letterhead template
-	tpl := doc.BeginTemplate(foliopdf.A4)
+	tpl := doc.BeginTemplate(presspdf.A4)
 	tpl.SetFillColorRGB(30, 60, 120)
 	tpl.Rect(0, 0, 210, 25, "F")
 	tpl.SetFont("helvetica", "B", 16)
@@ -174,7 +174,7 @@ func demoTemplate() error {
 
 	// Use template on multiple pages
 	for i := 1; i <= 3; i++ {
-		p := doc.AddPage(foliopdf.A4)
+		p := doc.AddPage(presspdf.A4)
 		p.UseTemplate(tplName, 0, 0, 210, 297)
 
 		doc.SetFont("helvetica", "", 12)
@@ -193,15 +193,15 @@ func demoTemplate() error {
 // --- 05: Table of Contents ---
 
 func demoTOC() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
 
 	// Create TOC page first (will be rendered last)
-	tocPage := doc.AddPage(foliopdf.A4)
+	tocPage := doc.AddPage(presspdf.A4)
 	doc.SetFont("helvetica", "B", 20)
 	tocPage.TextAt(20, 20, "Table of Contents")
 
-	toc := foliopdf.NewTOC(doc)
+	toc := presspdf.NewTOC(doc)
 
 	// Add content pages
 	sections := []struct {
@@ -218,7 +218,7 @@ func demoTOC() error {
 	}
 
 	for _, s := range sections {
-		p := doc.AddPage(foliopdf.A4)
+		p := doc.AddPage(presspdf.A4)
 		if s.level == 0 {
 			doc.SetFont("helvetica", "B", 18)
 		} else {
@@ -243,15 +243,15 @@ func demoTOC() error {
 // --- 06: Multi-Column Layout ---
 
 func demoColumns() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 15, "Multi-Column Layout")
 
 	doc.SetFont("helvetica", "", 10)
 	p.SetXY(10, 30)
 
-	cols := foliopdf.NewColumnLayout(doc, p, 3, 5)
+	cols := presspdf.NewColumnLayout(doc, p, 3, 5)
 	cols.Begin()
 
 	p.MultiCell(0, 5, "Column 1: Lorem ipsum dolor sit amet, "+
@@ -278,9 +278,9 @@ func demoColumns() error {
 // --- 07: Barcode & QR Code ---
 
 func demoBarcodeQR() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "Barcode & QR Code")
 
 	// Code 128
@@ -317,9 +317,9 @@ func demoBarcodeQR() error {
 // --- 08: Auto Table from JSON ---
 
 func demoAutoTable() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "Auto Table from Structs & JSON")
 
 	// From structs
@@ -340,8 +340,8 @@ func demoAutoTable() error {
 	p.TextAt(20, 35, "From Structs:")
 	doc.SetFont("helvetica", "", 10)
 	p.SetXY(20, 40)
-	at := foliopdf.AutoTableFromStructs(doc, p, employees)
-	at.SetHeaderStyle(foliopdf.CellStyle{
+	at := presspdf.AutoTableFromStructs(doc, p, employees)
+	at.SetHeaderStyle(presspdf.CellStyle{
 		FillColor: [3]int{40, 60, 120},
 		TextColor: [3]int{255, 255, 255},
 		FontStyle: "B",
@@ -361,7 +361,7 @@ func demoAutoTable() error {
 	doc.SetFont("helvetica", "", 10)
 	p.SetY(p.GetY() + 5)
 	p.SetX(20)
-	jt, err := foliopdf.AutoTableFromJSON(doc, p, jsonData)
+	jt, err := presspdf.AutoTableFromJSON(doc, p, jsonData)
 	if err != nil {
 		return err
 	}
@@ -373,9 +373,9 @@ func demoAutoTable() error {
 // --- 09: Password Protection ---
 
 func demoEncryption() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 25, "Password Protected PDF")
 
 	doc.SetFont("helvetica", "", 12)
@@ -385,7 +385,7 @@ func demoEncryption() error {
 		"Owner password: \"owner456\" (required to change permissions)\n\n"+
 		"Permissions: Print + Copy allowed, Modify restricted.", "", "L", false)
 
-	doc.SetProtection("user123", "owner456", foliopdf.PermPrint|foliopdf.PermCopy)
+	doc.SetProtection("user123", "owner456", presspdf.PermPrint|presspdf.PermCopy)
 
 	return save(doc, "09_encryption")
 }
@@ -393,19 +393,19 @@ func demoEncryption() error {
 // --- 10: AcroForms ---
 
 func demoAcroForms() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "Interactive Form Fields")
 
 	doc.SetFont("helvetica", "", 12)
 
 	// Text fields
 	p.TextAt(20, 40, "Full Name:")
-	p.FormTextField("name", 70, 36, 100, 8, foliopdf.WithDefaultValue("John Doe"))
+	p.FormTextField("name", 70, 36, 100, 8, presspdf.WithDefaultValue("John Doe"))
 
 	p.TextAt(20, 55, "Email:")
-	p.FormTextField("email", 70, 51, 100, 8, foliopdf.WithMaxLen(50))
+	p.FormTextField("email", 70, 51, 100, 8, presspdf.WithMaxLen(50))
 
 	p.TextAt(20, 70, "Phone:")
 	p.FormTextField("phone", 70, 66, 100, 8)
@@ -428,9 +428,9 @@ func demoAcroForms() error {
 // --- 11: Digital Signature ---
 
 func demoSignature() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "B", 18)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "Digitally Signed Document")
 
 	doc.SetFont("helvetica", "", 12)
@@ -466,7 +466,7 @@ func demoSignature() error {
 	certDER, _ := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
 	cert, _ := x509.ParseCertificate(certDER)
 
-	doc.Sign(cert, key, p, 20, 90, 80, 25, foliopdf.SignOptions{
+	doc.Sign(cert, key, p, 20, 90, 80, 25, presspdf.SignOptions{
 		Name:     "Test Authority",
 		Reason:   "Document approval",
 		Location: "Bangkok, Thailand",
@@ -478,7 +478,7 @@ func demoSignature() error {
 // --- 12: PDF/A Compliance ---
 
 func demoPDFA() error {
-	doc := foliopdf.New(foliopdf.WithPDFA("1b"))
+	doc := presspdf.New(presspdf.WithPDFA("1b"))
 	doc.SetTitle("PDF/A-1b Example")
 	doc.SetAuthor("Folio Library")
 
@@ -488,7 +488,7 @@ func demoPDFA() error {
 	}
 	doc.SetFont("sarabun", "", 14)
 
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 	p.TextAt(20, 20, "PDF/A-1b Compliant Document")
 
 	doc.SetFont("sarabun", "", 11)
@@ -516,9 +516,9 @@ func demoPDFA() error {
 // --- 13: Fluent Builder API ---
 
 func demoFluentAPI() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 
 	// Title via fluent text builder
 	p.Text("Fluent Builder API").Bold().Size(22).Color(30, 60, 120).At(20, 20).Draw()
@@ -549,9 +549,9 @@ func demoFluentAPI() error {
 // --- 14: Markdown Renderer ---
 
 func demoMarkdown() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 
 	md := `# Folio Markdown Demo
 
@@ -575,7 +575,7 @@ This paragraph shows **bold text**, *italic text*, and ` + "`inline code`" + `.
 
 ### Code Example
 
-Use ` + "`foliopdf.New()`" + ` to create a document, then ` + "`doc.AddPage()`" + ` for pages.
+Use ` + "`presspdf.New()`" + ` to create a document, then ` + "`doc.AddPage()`" + ` for pages.
 
 ## Nested Content
 
@@ -584,7 +584,7 @@ Use ` + "`foliopdf.New()`" + ` to create a document, then ` + "`doc.AddPage()`" 
 - Item with a [link](https://example.com)
 `
 
-	p.Markdown(md, foliopdf.WithBookmarks(), foliopdf.WithLineHeight(5.5))
+	p.Markdown(md, presspdf.WithBookmarks(), presspdf.WithLineHeight(5.5))
 
 	return save(doc, "14_markdown")
 }
@@ -592,9 +592,9 @@ Use ` + "`foliopdf.New()`" + ` to create a document, then ` + "`doc.AddPage()`" 
 // --- 15: HTML-to-PDF ---
 
 func demoHTML() error {
-	doc := foliopdf.New()
+	doc := presspdf.New()
 	doc.SetFont("helvetica", "", 12)
-	p := doc.AddPage(foliopdf.A4)
+	p := doc.AddPage(presspdf.A4)
 
 	html := `<h1>HTML to PDF</h1>
 

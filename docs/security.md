@@ -9,10 +9,10 @@
 Encrypt the PDF with user and owner passwords:
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 // ... add content ...
 
-doc.SetProtection("user123", "owner456", foliopdf.PermPrint|foliopdf.PermCopy)
+doc.SetProtection("user123", "owner456", presspdf.PermPrint|presspdf.PermCopy)
 doc.Save("protected.pdf")
 ```
 
@@ -25,16 +25,16 @@ Control what users can do with the document:
 
 | Flag | Allows |
 |------|--------|
-| `foliopdf.PermPrint` | Printing |
-| `foliopdf.PermModify` | Modifying contents |
-| `foliopdf.PermCopy` | Copying/extracting text |
-| `foliopdf.PermAnnotate` | Adding annotations |
-| `foliopdf.PermAll` | All of the above |
+| `presspdf.PermPrint` | Printing |
+| `presspdf.PermModify` | Modifying contents |
+| `presspdf.PermCopy` | Copying/extracting text |
+| `presspdf.PermAnnotate` | Adding annotations |
+| `presspdf.PermAll` | All of the above |
 
 Combine flags with `|`:
 
 ```go
-doc.SetProtection("", "owner", foliopdf.PermPrint|foliopdf.PermCopy)
+doc.SetProtection("", "owner", presspdf.PermPrint|presspdf.PermCopy)
 // Empty user password = no password to open, but permissions are enforced
 ```
 
@@ -50,7 +50,7 @@ import (
     "crypto/x509"
 )
 
-doc.Sign(cert, key, page, 20, 90, 80, 25, foliopdf.SignOptions{
+doc.Sign(cert, key, page, 20, 90, 80, 25, presspdf.SignOptions{
     Name:     "John Doe",
     Reason:   "Document approval",
     Location: "Bangkok, Thailand",
@@ -78,7 +78,7 @@ template := &x509.Certificate{
 certDER, _ := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
 cert, _ := x509.ParseCertificate(certDER)
 
-doc.Sign(cert, key, page, 20, 90, 80, 25, foliopdf.SignOptions{
+doc.Sign(cert, key, page, 20, 90, 80, 25, presspdf.SignOptions{
     Name: "Test Signer",
 })
 ```
@@ -91,9 +91,9 @@ Add fillable form fields (AcroForms) that users can complete in their PDF viewer
 
 ```go
 page.FormTextField("full_name", 70, 36, 100, 8)
-page.FormTextField("email", 70, 50, 100, 8, foliopdf.WithMaxLen(50))
+page.FormTextField("email", 70, 50, 100, 8, presspdf.WithMaxLen(50))
 page.FormTextField("notes", 70, 64, 100, 20,
-    foliopdf.WithDefaultValue("Enter notes here"),
+    presspdf.WithDefaultValue("Enter notes here"),
 )
 ```
 
@@ -116,15 +116,15 @@ page.FormDropdown("country", 70, 100, 80, 8,
 
 | Option | Effect |
 |--------|--------|
-| `foliopdf.WithDefaultValue(s)` | Pre-fill the field |
-| `foliopdf.WithMaxLen(n)` | Maximum character length |
+| `presspdf.WithDefaultValue(s)` | Pre-fill the field |
+| `presspdf.WithMaxLen(n)` | Maximum character length |
 
 ### Example: registration form
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 doc.SetFont("helvetica", "", 12)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 
 page.Text("Registration Form").Bold().Size(18).At(20, 20).Draw()
 
@@ -132,7 +132,7 @@ page.TextAt(20, 40, "Name:")
 page.FormTextField("name", 70, 36, 100, 8)
 
 page.TextAt(20, 55, "Email:")
-page.FormTextField("email", 70, 51, 100, 8, foliopdf.WithMaxLen(50))
+page.FormTextField("email", 70, 51, 100, 8, presspdf.WithMaxLen(50))
 
 page.TextAt(20, 70, "Country:")
 page.FormDropdown("country", 70, 66, 80, 8,
@@ -150,7 +150,7 @@ doc.Save("form.pdf")
 Create documents that conform to PDF/A for long-term preservation:
 
 ```go
-doc := foliopdf.New(foliopdf.WithPDFA("1b"))  // or "2b"
+doc := presspdf.New(presspdf.WithPDFA("1b"))  // or "2b"
 ```
 
 ### What PDF/A adds
@@ -165,13 +165,13 @@ doc := foliopdf.New(foliopdf.WithPDFA("1b"))  // or "2b"
 PDF/A requires embedded fonts. Use TrueType fonts instead of core fonts:
 
 ```go
-doc := foliopdf.New(foliopdf.WithPDFA("1b"))
+doc := presspdf.New(presspdf.WithPDFA("1b"))
 doc.SetTitle("Archival Document")
 
 sarabun.Register(doc)  // or any TTF font
 doc.SetFont("sarabun", "", 12)
 
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 page.TextAt(20, 20, "This document is PDF/A-1b compliant.")
 doc.Save("archival.pdf")
 ```

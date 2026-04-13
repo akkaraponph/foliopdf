@@ -1,4 +1,4 @@
-// Package thai provides built-in Thai language support for foliopdf.
+// Package thai provides built-in Thai language support for presspdf.
 //
 // It bundles a Thai word segmenter (dictionary-based, ~15K words) that
 // enables proper line wrapping at word boundaries in Thai text. No
@@ -6,17 +6,17 @@
 //
 // Usage:
 //
-//	import "github.com/akkaraponph/foliopdf/thai"
+//	import "github.com/akkaraponph/presspdf/thai"
 //
-//	doc := foliopdf.New()
+//	doc := presspdf.New()
 //	thai.Setup(doc) // installs Thai word breaker
 //
 // This replaces the previous approach of importing github.com/veer66/mapkha.
 package thai
 
 import (
-	"github.com/akkaraponph/foliopdf"
-	"github.com/akkaraponph/foliopdf/internal/wordcut"
+	"github.com/akkaraponph/presspdf"
+	"github.com/akkaraponph/presspdf/internal/wordcut"
 )
 
 // wc is the package-level wordcut instance (initialized once).
@@ -29,7 +29,7 @@ func init() {
 // Setup installs the Thai word breaker on the document so that
 // MultiCell, Write, and other text-wrapping functions break lines
 // at Thai word boundaries instead of mid-word.
-func Setup(doc *foliopdf.Document) {
+func Setup(doc *presspdf.Document) {
 	doc.SetWordBreaker(func(paragraph string) []string {
 		return wc.Segment(paragraph)
 	})

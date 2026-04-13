@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
-	"github.com/akkaraponph/foliopdf/fonts/sarabun"
+	"github.com/akkaraponph/presspdf"
+	"github.com/akkaraponph/presspdf/fonts/sarabun"
 )
 
 func main() {
-	doc := foliopdf.New(foliopdf.WithCompression(false))
+	doc := presspdf.New(presspdf.WithCompression(false))
 	doc.SetTitle("Thai Language Demo")
 	doc.SetAuthor("Folio")
 	doc.SetMargins(15, 15, 15)
@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	page := doc.AddPage(foliopdf.A4)
+	page := doc.AddPage(presspdf.A4)
 
 	// Title
 	doc.SetFont("sarabun", "B", 24)

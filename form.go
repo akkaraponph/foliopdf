@@ -1,10 +1,10 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/akkaraponph/foliopdf/internal/state"
+	"github.com/akkaraponph/presspdf/internal/state"
 )
 
 // formField represents an AcroForm field stored on a page.

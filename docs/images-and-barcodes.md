@@ -70,9 +70,9 @@ Higher levels make the QR code larger but more resilient to damage.
 ### Barcode example: invoice
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 doc.SetFont("helvetica", "", 10)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 
 // Product barcode
 page.TextAt(20, 20, "Product:")
@@ -94,10 +94,10 @@ doc.Save("invoice.pdf")
 Convert PDF pages to PNG or JPEG images. This requires an external renderer on your system PATH.
 
 ```go
-files, err := foliopdf.ConvertToImages("input.pdf", "output/",
-    foliopdf.WithDPI(300),
-    foliopdf.WithFormat(foliopdf.JPEG),
-    foliopdf.WithPages(1, 2, 3),  // specific pages (1-indexed)
+files, err := presspdf.ConvertToImages("input.pdf", "output/",
+    presspdf.WithDPI(300),
+    presspdf.WithFormat(presspdf.JPEG),
+    presspdf.WithPages(1, 2, 3),  // specific pages (1-indexed)
 )
 // files = ["output/page-1.jpg", "output/page-2.jpg", "output/page-3.jpg"]
 ```
@@ -107,7 +107,7 @@ files, err := foliopdf.ConvertToImages("input.pdf", "output/",
 | Option | Default | Description |
 |--------|---------|-------------|
 | `WithDPI(n)` | 150 | Rendering resolution |
-| `WithFormat(f)` | PNG | Output format: `foliopdf.PNG` or `foliopdf.JPEG` |
+| `WithFormat(f)` | PNG | Output format: `presspdf.PNG` or `presspdf.JPEG` |
 | `WithPages(p...)` | all | Specific pages to convert (1-indexed) |
 
 ### Required external tools

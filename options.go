@@ -1,6 +1,6 @@
-package foliopdf
+package presspdf
 
-import "github.com/akkaraponph/foliopdf/internal/state"
+import "github.com/akkaraponph/presspdf/internal/state"
 
 // PageSize defines page dimensions in PDF points.
 type PageSize struct {

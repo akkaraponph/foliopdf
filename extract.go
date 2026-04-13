@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // ExtractText extracts all text from a PDF file, returning one string per page.

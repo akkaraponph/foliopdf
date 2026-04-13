@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 const (
@@ -28,48 +28,48 @@ const (
 
 // Shared styles
 var (
-	hdr = &foliopdf.CellStyle{
+	hdr = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 9,
 		TextColor: [3]int{255, 255, 255},
 		FillColor: [3]int{44, 62, 80},
 		Fill:      true,
 	}
-	bodyBold = &foliopdf.CellStyle{
+	bodyBold = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 8,
 	}
-	catStyle = &foliopdf.CellStyle{
+	catStyle = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 8,
 		FillColor: [3]int{236, 240, 241},
 		Fill:      true,
 	}
-	totalStyle = &foliopdf.CellStyle{
+	totalStyle = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 8,
 		FillColor: [3]int{44, 62, 80},
 		TextColor: [3]int{255, 255, 255},
 		Fill:      true,
 	}
-	subtotalStyle = &foliopdf.CellStyle{
+	subtotalStyle = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 8,
 		FillColor: [3]int{189, 195, 199},
 		Fill:      true,
 	}
-	zebraEven = &foliopdf.CellStyle{
+	zebraEven = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "", FontSize: 8,
 		FillColor: [3]int{245, 247, 250},
 		Fill:      true,
 	}
-	zebraOdd = &foliopdf.CellStyle{
+	zebraOdd = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "", FontSize: 8,
 		FillColor: [3]int{255, 255, 255},
 		Fill:      true,
 	}
-	accentHdr = &foliopdf.CellStyle{
+	accentHdr = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 9,
 		TextColor: [3]int{255, 255, 255},
 		FillColor: [3]int{41, 128, 185},
 		Fill:      true,
 	}
-	greenHdr = &foliopdf.CellStyle{
+	greenHdr = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 9,
 		TextColor: [3]int{255, 255, 255},
 		FillColor: [3]int{39, 174, 96},
@@ -78,7 +78,7 @@ var (
 )
 
 func main() {
-	doc := foliopdf.New(foliopdf.WithUnit(foliopdf.UnitMM))
+	doc := presspdf.New(presspdf.WithUnit(presspdf.UnitMM))
 	doc.SetTitle("Folio Table Pattern Catalog")
 	doc.SetAuthor("Folio Library")
 	doc.SetMargins(lM, tM, lM)
@@ -99,12 +99,12 @@ func main() {
 
 // ─── Page 1: Simple Table & Comparison Table ─────────────────────────
 
-func page1Simple(doc *foliopdf.Document) {
-	p := doc.AddPage(foliopdf.A4)
+func page1Simple(doc *presspdf.Document) {
+	p := doc.AddPage(presspdf.A4)
 	sectionTitle(doc, p, "1. Simple Data Table")
 	subtitle(doc, p, "One header row, one value per cell. Best for flat data, exports, CSV-like records.")
 
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	tbl.SetWidths(15, 50, 30, 30, 35, 30)
 	tbl.SetRowHeight(7)
 	tbl.SetCellPadding(1.5)
@@ -112,12 +112,12 @@ func page1Simple(doc *foliopdf.Document) {
 	tbl.SetBorder("1")
 
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "ID", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Employee", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Department", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Role", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Start Date", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Salary", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "ID", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Employee", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Department", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Role", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Start Date", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Salary", Style: hdr, Align: "R"},
 	)
 	rows := [][6]string{
 		{"001", "Alice Chen", "Engineering", "Senior Dev", "2021-03-15", "$142,000"},
@@ -130,12 +130,12 @@ func page1Simple(doc *foliopdf.Document) {
 	}
 	for _, r := range rows {
 		tbl.AddRow(
-			foliopdf.TableCell{Text: r[0], Align: "C"},
-			foliopdf.TableCell{Text: r[1]},
-			foliopdf.TableCell{Text: r[2]},
-			foliopdf.TableCell{Text: r[3]},
-			foliopdf.TableCell{Text: r[4], Align: "C"},
-			foliopdf.TableCell{Text: r[5], Align: "R"},
+			presspdf.TableCell{Text: r[0], Align: "C"},
+			presspdf.TableCell{Text: r[1]},
+			presspdf.TableCell{Text: r[2]},
+			presspdf.TableCell{Text: r[3]},
+			presspdf.TableCell{Text: r[4], Align: "C"},
+			presspdf.TableCell{Text: r[5], Align: "R"},
 		)
 	}
 	tbl.Render()
@@ -145,7 +145,7 @@ func page1Simple(doc *foliopdf.Document) {
 	sectionTitle(doc, p, "2. Comparison Table")
 	subtitle(doc, p, "Features in rows, options in columns. Best for product comparisons, plan tiers.")
 
-	tbl2 := foliopdf.NewTable(doc, p)
+	tbl2 := presspdf.NewTable(doc, p)
 	tbl2.SetWidths(55, 45, 45, 45)
 	tbl2.SetRowHeight(7)
 	tbl2.SetCellPadding(1.5)
@@ -153,10 +153,10 @@ func page1Simple(doc *foliopdf.Document) {
 	tbl2.SetBorder("1")
 
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "Feature", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Starter", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Professional", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Enterprise", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Feature", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Starter", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Professional", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Enterprise", Style: greenHdr, Align: "C"},
 	)
 	features := [][4]string{
 		{"Monthly Price", "$9", "$29", "$99"},
@@ -171,10 +171,10 @@ func page1Simple(doc *foliopdf.Document) {
 	}
 	for _, f := range features {
 		tbl2.AddRow(
-			foliopdf.TableCell{Text: f[0], Style: bodyBold},
-			foliopdf.TableCell{Text: f[1], Align: "C"},
-			foliopdf.TableCell{Text: f[2], Align: "C"},
-			foliopdf.TableCell{Text: f[3], Align: "C"},
+			presspdf.TableCell{Text: f[0], Style: bodyBold},
+			presspdf.TableCell{Text: f[1], Align: "C"},
+			presspdf.TableCell{Text: f[2], Align: "C"},
+			presspdf.TableCell{Text: f[3], Align: "C"},
 		)
 	}
 	tbl2.Render()
@@ -182,12 +182,12 @@ func page1Simple(doc *foliopdf.Document) {
 
 // ─── Page 2: Grouped Rows & Multi-Level Headers ─────────────────────
 
-func page2Grouped(doc *foliopdf.Document) {
-	p := doc.AddPage(foliopdf.A4)
+func page2Grouped(doc *presspdf.Document) {
+	p := doc.AddPage(presspdf.A4)
 	sectionTitle(doc, p, "3. Grouped Rows Table (vertical merge)")
 	subtitle(doc, p, "Repeated category values merged vertically. Best for hierarchical data, org charts.")
 
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	tbl.SetWidths(35, 45, 45, 35, 30)
 	tbl.SetRowHeight(7)
 	tbl.SetCellPadding(1.5)
@@ -195,66 +195,66 @@ func page2Grouped(doc *foliopdf.Document) {
 	tbl.SetBorder("1")
 
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Department", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Team", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Project", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Status", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Budget", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Department", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Team", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Project", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Status", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Budget", Style: hdr, Align: "R"},
 	)
 
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Engineering", Style: catStyle, RowSpan: 4, Align: "C"},
-		foliopdf.TableCell{Text: "Backend", RowSpan: 2},
-		foliopdf.TableCell{Text: "API v3 Migration"},
-		foliopdf.TableCell{Text: "In Progress", Align: "C"},
-		foliopdf.TableCell{Text: "$180,000", Align: "R"},
+		presspdf.TableCell{Text: "Engineering", Style: catStyle, RowSpan: 4, Align: "C"},
+		presspdf.TableCell{Text: "Backend", RowSpan: 2},
+		presspdf.TableCell{Text: "API v3 Migration"},
+		presspdf.TableCell{Text: "In Progress", Align: "C"},
+		presspdf.TableCell{Text: "$180,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Database Sharding"},
-		foliopdf.TableCell{Text: "Planning", Align: "C"},
-		foliopdf.TableCell{Text: "$250,000", Align: "R"},
+		presspdf.TableCell{Text: "Database Sharding"},
+		presspdf.TableCell{Text: "Planning", Align: "C"},
+		presspdf.TableCell{Text: "$250,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Frontend", RowSpan: 2},
-		foliopdf.TableCell{Text: "Design System v2"},
-		foliopdf.TableCell{Text: "Complete", Align: "C"},
-		foliopdf.TableCell{Text: "$90,000", Align: "R"},
+		presspdf.TableCell{Text: "Frontend", RowSpan: 2},
+		presspdf.TableCell{Text: "Design System v2"},
+		presspdf.TableCell{Text: "Complete", Align: "C"},
+		presspdf.TableCell{Text: "$90,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Performance Audit"},
-		foliopdf.TableCell{Text: "In Progress", Align: "C"},
-		foliopdf.TableCell{Text: "$45,000", Align: "R"},
+		presspdf.TableCell{Text: "Performance Audit"},
+		presspdf.TableCell{Text: "In Progress", Align: "C"},
+		presspdf.TableCell{Text: "$45,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Marketing", Style: catStyle, RowSpan: 3, Align: "C"},
-		foliopdf.TableCell{Text: "Growth", RowSpan: 2},
-		foliopdf.TableCell{Text: "Q2 Campaign"},
-		foliopdf.TableCell{Text: "In Progress", Align: "C"},
-		foliopdf.TableCell{Text: "$120,000", Align: "R"},
+		presspdf.TableCell{Text: "Marketing", Style: catStyle, RowSpan: 3, Align: "C"},
+		presspdf.TableCell{Text: "Growth", RowSpan: 2},
+		presspdf.TableCell{Text: "Q2 Campaign"},
+		presspdf.TableCell{Text: "In Progress", Align: "C"},
+		presspdf.TableCell{Text: "$120,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "SEO Overhaul"},
-		foliopdf.TableCell{Text: "Planning", Align: "C"},
-		foliopdf.TableCell{Text: "$60,000", Align: "R"},
+		presspdf.TableCell{Text: "SEO Overhaul"},
+		presspdf.TableCell{Text: "Planning", Align: "C"},
+		presspdf.TableCell{Text: "$60,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Brand"},
-		foliopdf.TableCell{Text: "Rebranding Initiative"},
-		foliopdf.TableCell{Text: "Complete", Align: "C"},
-		foliopdf.TableCell{Text: "$200,000", Align: "R"},
+		presspdf.TableCell{Text: "Brand"},
+		presspdf.TableCell{Text: "Rebranding Initiative"},
+		presspdf.TableCell{Text: "Complete", Align: "C"},
+		presspdf.TableCell{Text: "$200,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Operations", Style: catStyle, RowSpan: 2, Align: "C"},
-		foliopdf.TableCell{Text: "IT"},
-		foliopdf.TableCell{Text: "Cloud Migration"},
-		foliopdf.TableCell{Text: "In Progress", Align: "C"},
-		foliopdf.TableCell{Text: "$340,000", Align: "R"},
+		presspdf.TableCell{Text: "Operations", Style: catStyle, RowSpan: 2, Align: "C"},
+		presspdf.TableCell{Text: "IT"},
+		presspdf.TableCell{Text: "Cloud Migration"},
+		presspdf.TableCell{Text: "In Progress", Align: "C"},
+		presspdf.TableCell{Text: "$340,000", Align: "R"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "HR"},
-		foliopdf.TableCell{Text: "Onboarding Revamp"},
-		foliopdf.TableCell{Text: "Planning", Align: "C"},
-		foliopdf.TableCell{Text: "$75,000", Align: "R"},
+		presspdf.TableCell{Text: "HR"},
+		presspdf.TableCell{Text: "Onboarding Revamp"},
+		presspdf.TableCell{Text: "Planning", Align: "C"},
+		presspdf.TableCell{Text: "$75,000", Align: "R"},
 	)
 	tbl.Render()
 
@@ -263,7 +263,7 @@ func page2Grouped(doc *foliopdf.Document) {
 	sectionTitle(doc, p, "4. Multi-Level Header Table")
 	subtitle(doc, p, "Two+ header rows with column groups (colspan). Best for financial reports, schedules.")
 
-	tbl2 := foliopdf.NewTable(doc, p)
+	tbl2 := presspdf.NewTable(doc, p)
 	tbl2.SetWidths(40, 25, 25, 25, 25, 25, 25)
 	tbl2.SetRowHeight(7)
 	tbl2.SetCellPadding(1.5)
@@ -271,18 +271,18 @@ func page2Grouped(doc *foliopdf.Document) {
 	tbl2.SetBorder("1")
 
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "", Style: hdr},
-		foliopdf.TableCell{Text: "2024", ColSpan: 3, Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "2025", ColSpan: 3, Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "", Style: hdr},
+		presspdf.TableCell{Text: "2024", ColSpan: 3, Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "2025", ColSpan: 3, Style: greenHdr, Align: "C"},
 	)
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "Region", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Q1", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Q2", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Q3", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Q1", Style: greenHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Q2", Style: greenHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Q3", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Region", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Q1", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Q2", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Q3", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Q1", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Q2", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Q3", Style: greenHdr, Align: "C"},
 	)
 	regions := [][7]string{
 		{"North America", "2.4M", "2.8M", "3.1M", "3.3M", "3.6M", "3.9M"},
@@ -293,13 +293,13 @@ func page2Grouped(doc *foliopdf.Document) {
 	}
 	for _, r := range regions {
 		tbl2.AddRow(
-			foliopdf.TableCell{Text: r[0], Style: bodyBold},
-			foliopdf.TableCell{Text: r[1], Align: "R"},
-			foliopdf.TableCell{Text: r[2], Align: "R"},
-			foliopdf.TableCell{Text: r[3], Align: "R"},
-			foliopdf.TableCell{Text: r[4], Align: "R"},
-			foliopdf.TableCell{Text: r[5], Align: "R"},
-			foliopdf.TableCell{Text: r[6], Align: "R"},
+			presspdf.TableCell{Text: r[0], Style: bodyBold},
+			presspdf.TableCell{Text: r[1], Align: "R"},
+			presspdf.TableCell{Text: r[2], Align: "R"},
+			presspdf.TableCell{Text: r[3], Align: "R"},
+			presspdf.TableCell{Text: r[4], Align: "R"},
+			presspdf.TableCell{Text: r[5], Align: "R"},
+			presspdf.TableCell{Text: r[6], Align: "R"},
 		)
 	}
 	tbl2.Render()
@@ -307,12 +307,12 @@ func page2Grouped(doc *foliopdf.Document) {
 
 // ─── Page 3: Matrix & Summary Tables ────────────────────────────────
 
-func page3MatrixSummary(doc *foliopdf.Document) {
-	p := doc.AddPage(foliopdf.A4)
+func page3MatrixSummary(doc *presspdf.Document) {
+	p := doc.AddPage(presspdf.A4)
 	sectionTitle(doc, p, "5. Matrix Table")
 	subtitle(doc, p, "Row dimensions on left, column dimensions on top, values in body. Best for schedules, cross-tabs.")
 
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	tbl.SetWidths(30, 22, 22, 22, 22, 22, 22, 22)
 	tbl.SetRowHeight(7)
 	tbl.SetCellPadding(1.5)
@@ -320,14 +320,14 @@ func page3MatrixSummary(doc *foliopdf.Document) {
 	tbl.SetBorder("1")
 
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Skill \\ Level", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Mon", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Tue", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Wed", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Thu", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Fri", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Sat", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Sun", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Skill \\ Level", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Mon", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Tue", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Wed", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Thu", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Fri", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Sat", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Sun", Style: hdr, Align: "C"},
 	)
 	matrix := [][8]string{
 		{"Go", "4h", "3h", "4h", "2h", "4h", "1h", "-"},
@@ -339,14 +339,14 @@ func page3MatrixSummary(doc *foliopdf.Document) {
 	}
 	for _, r := range matrix {
 		tbl.AddRow(
-			foliopdf.TableCell{Text: r[0], Style: bodyBold, Align: "L"},
-			foliopdf.TableCell{Text: r[1], Align: "C"},
-			foliopdf.TableCell{Text: r[2], Align: "C"},
-			foliopdf.TableCell{Text: r[3], Align: "C"},
-			foliopdf.TableCell{Text: r[4], Align: "C"},
-			foliopdf.TableCell{Text: r[5], Align: "C"},
-			foliopdf.TableCell{Text: r[6], Align: "C"},
-			foliopdf.TableCell{Text: r[7], Align: "C"},
+			presspdf.TableCell{Text: r[0], Style: bodyBold, Align: "L"},
+			presspdf.TableCell{Text: r[1], Align: "C"},
+			presspdf.TableCell{Text: r[2], Align: "C"},
+			presspdf.TableCell{Text: r[3], Align: "C"},
+			presspdf.TableCell{Text: r[4], Align: "C"},
+			presspdf.TableCell{Text: r[5], Align: "C"},
+			presspdf.TableCell{Text: r[6], Align: "C"},
+			presspdf.TableCell{Text: r[7], Align: "C"},
 		)
 	}
 	tbl.Render()
@@ -356,7 +356,7 @@ func page3MatrixSummary(doc *foliopdf.Document) {
 	sectionTitle(doc, p, "6. Summary Table with Subtotals & Grand Total")
 	subtitle(doc, p, "Includes category subtotals and grand total row. Best for financial statements, invoices.")
 
-	tbl2 := foliopdf.NewTable(doc, p)
+	tbl2 := presspdf.NewTable(doc, p)
 	tbl2.SetWidths(50, 50, 30, 30, 30)
 	tbl2.SetRowHeight(7)
 	tbl2.SetCellPadding(1.5)
@@ -364,82 +364,82 @@ func page3MatrixSummary(doc *foliopdf.Document) {
 	tbl2.SetBorder("1")
 
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "Category", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Item", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Qty", Style: hdr, Align: "R"},
-		foliopdf.TableCell{Text: "Unit Price", Style: hdr, Align: "R"},
-		foliopdf.TableCell{Text: "Amount", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Category", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Item", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Qty", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Unit Price", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Amount", Style: hdr, Align: "R"},
 	)
 
 	// Hardware
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Hardware", Style: catStyle, RowSpan: 3},
-		foliopdf.TableCell{Text: "Laptop (M4 Pro)"},
-		foliopdf.TableCell{Text: "5", Align: "R"},
-		foliopdf.TableCell{Text: "$2,499", Align: "R"},
-		foliopdf.TableCell{Text: "$12,495", Align: "R"},
+		presspdf.TableCell{Text: "Hardware", Style: catStyle, RowSpan: 3},
+		presspdf.TableCell{Text: "Laptop (M4 Pro)"},
+		presspdf.TableCell{Text: "5", Align: "R"},
+		presspdf.TableCell{Text: "$2,499", Align: "R"},
+		presspdf.TableCell{Text: "$12,495", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Monitor 4K 32\""},
-		foliopdf.TableCell{Text: "5", Align: "R"},
-		foliopdf.TableCell{Text: "$599", Align: "R"},
-		foliopdf.TableCell{Text: "$2,995", Align: "R"},
+		presspdf.TableCell{Text: "Monitor 4K 32\""},
+		presspdf.TableCell{Text: "5", Align: "R"},
+		presspdf.TableCell{Text: "$599", Align: "R"},
+		presspdf.TableCell{Text: "$2,995", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Keyboard + Mouse"},
-		foliopdf.TableCell{Text: "5", Align: "R"},
-		foliopdf.TableCell{Text: "$199", Align: "R"},
-		foliopdf.TableCell{Text: "$995", Align: "R"},
+		presspdf.TableCell{Text: "Keyboard + Mouse"},
+		presspdf.TableCell{Text: "5", Align: "R"},
+		presspdf.TableCell{Text: "$199", Align: "R"},
+		presspdf.TableCell{Text: "$995", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "", ColSpan: 3, Style: subtotalStyle},
-		foliopdf.TableCell{Text: "Subtotal", Style: subtotalStyle, Align: "R"},
-		foliopdf.TableCell{Text: "$16,485", Style: subtotalStyle, Align: "R"},
+		presspdf.TableCell{Text: "", ColSpan: 3, Style: subtotalStyle},
+		presspdf.TableCell{Text: "Subtotal", Style: subtotalStyle, Align: "R"},
+		presspdf.TableCell{Text: "$16,485", Style: subtotalStyle, Align: "R"},
 	)
 
 	// Software
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Software", Style: catStyle, RowSpan: 3},
-		foliopdf.TableCell{Text: "IDE License (annual)"},
-		foliopdf.TableCell{Text: "5", Align: "R"},
-		foliopdf.TableCell{Text: "$289", Align: "R"},
-		foliopdf.TableCell{Text: "$1,445", Align: "R"},
+		presspdf.TableCell{Text: "Software", Style: catStyle, RowSpan: 3},
+		presspdf.TableCell{Text: "IDE License (annual)"},
+		presspdf.TableCell{Text: "5", Align: "R"},
+		presspdf.TableCell{Text: "$289", Align: "R"},
+		presspdf.TableCell{Text: "$1,445", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Cloud Platform"},
-		foliopdf.TableCell{Text: "1", Align: "R"},
-		foliopdf.TableCell{Text: "$4,800", Align: "R"},
-		foliopdf.TableCell{Text: "$4,800", Align: "R"},
+		presspdf.TableCell{Text: "Cloud Platform"},
+		presspdf.TableCell{Text: "1", Align: "R"},
+		presspdf.TableCell{Text: "$4,800", Align: "R"},
+		presspdf.TableCell{Text: "$4,800", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "Monitoring SaaS"},
-		foliopdf.TableCell{Text: "1", Align: "R"},
-		foliopdf.TableCell{Text: "$1,200", Align: "R"},
-		foliopdf.TableCell{Text: "$1,200", Align: "R"},
+		presspdf.TableCell{Text: "Monitoring SaaS"},
+		presspdf.TableCell{Text: "1", Align: "R"},
+		presspdf.TableCell{Text: "$1,200", Align: "R"},
+		presspdf.TableCell{Text: "$1,200", Align: "R"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "", ColSpan: 3, Style: subtotalStyle},
-		foliopdf.TableCell{Text: "Subtotal", Style: subtotalStyle, Align: "R"},
-		foliopdf.TableCell{Text: "$7,445", Style: subtotalStyle, Align: "R"},
+		presspdf.TableCell{Text: "", ColSpan: 3, Style: subtotalStyle},
+		presspdf.TableCell{Text: "Subtotal", Style: subtotalStyle, Align: "R"},
+		presspdf.TableCell{Text: "$7,445", Style: subtotalStyle, Align: "R"},
 	)
 
 	// Grand total
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "", ColSpan: 3, Style: totalStyle},
-		foliopdf.TableCell{Text: "Grand Total", Style: totalStyle, Align: "R"},
-		foliopdf.TableCell{Text: "$23,930", Style: totalStyle, Align: "R"},
+		presspdf.TableCell{Text: "", ColSpan: 3, Style: totalStyle},
+		presspdf.TableCell{Text: "Grand Total", Style: totalStyle, Align: "R"},
+		presspdf.TableCell{Text: "$23,930", Style: totalStyle, Align: "R"},
 	)
 	tbl2.Render()
 }
 
 // ─── Page 4: Irregular Table ────────────────────────────────────────
 
-func page4Irregular(doc *foliopdf.Document) {
-	p := doc.AddPage(foliopdf.A4)
+func page4Irregular(doc *presspdf.Document) {
+	p := doc.AddPage(presspdf.A4)
 	sectionTitle(doc, p, "7. Irregular Table (complex merges)")
 	subtitle(doc, p, "Not every cell maps to a flat header. Combines rowspan + colspan + per-cell styling.")
 
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	tbl.SetWidths(30, 30, 25, 25, 25, 25, 30)
 	tbl.SetRowHeight(7)
 	tbl.SetCellPadding(1.5)
@@ -448,78 +448,78 @@ func page4Irregular(doc *foliopdf.Document) {
 
 	// Complex header: 3 rows deep
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Test Suite Results", ColSpan: 7, Align: "C", Style: hdr},
+		presspdf.TableCell{Text: "Test Suite Results", ColSpan: 7, Align: "C", Style: hdr},
 	)
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Module", Style: hdr, Align: "C", RowSpan: 2},
-		foliopdf.TableCell{Text: "Component", Style: hdr, Align: "C", RowSpan: 2},
-		foliopdf.TableCell{Text: "Unit Tests", ColSpan: 2, Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Integration", ColSpan: 2, Style: greenHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Overall", Style: hdr, Align: "C", RowSpan: 2},
+		presspdf.TableCell{Text: "Module", Style: hdr, Align: "C", RowSpan: 2},
+		presspdf.TableCell{Text: "Component", Style: hdr, Align: "C", RowSpan: 2},
+		presspdf.TableCell{Text: "Unit Tests", ColSpan: 2, Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Integration", ColSpan: 2, Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Overall", Style: hdr, Align: "C", RowSpan: 2},
 	)
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Pass", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Fail", Style: accentHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Pass", Style: greenHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Fail", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Pass", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Fail", Style: accentHdr, Align: "C"},
+		presspdf.TableCell{Text: "Pass", Style: greenHdr, Align: "C"},
+		presspdf.TableCell{Text: "Fail", Style: greenHdr, Align: "C"},
 	)
 
 	// Body with mixed rowspan
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Auth", Style: catStyle, RowSpan: 3, Align: "C"},
-		foliopdf.TableCell{Text: "Login"},
-		foliopdf.TableCell{Text: "42", Align: "C"},
-		foliopdf.TableCell{Text: "0", Align: "C"},
-		foliopdf.TableCell{Text: "8", Align: "C"},
-		foliopdf.TableCell{Text: "1", Align: "C"},
-		foliopdf.TableCell{Text: "98%", Align: "C"},
+		presspdf.TableCell{Text: "Auth", Style: catStyle, RowSpan: 3, Align: "C"},
+		presspdf.TableCell{Text: "Login"},
+		presspdf.TableCell{Text: "42", Align: "C"},
+		presspdf.TableCell{Text: "0", Align: "C"},
+		presspdf.TableCell{Text: "8", Align: "C"},
+		presspdf.TableCell{Text: "1", Align: "C"},
+		presspdf.TableCell{Text: "98%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "OAuth"},
-		foliopdf.TableCell{Text: "28", Align: "C"},
-		foliopdf.TableCell{Text: "2", Align: "C"},
-		foliopdf.TableCell{Text: "5", Align: "C"},
-		foliopdf.TableCell{Text: "0", Align: "C"},
-		foliopdf.TableCell{Text: "94%", Align: "C"},
+		presspdf.TableCell{Text: "OAuth"},
+		presspdf.TableCell{Text: "28", Align: "C"},
+		presspdf.TableCell{Text: "2", Align: "C"},
+		presspdf.TableCell{Text: "5", Align: "C"},
+		presspdf.TableCell{Text: "0", Align: "C"},
+		presspdf.TableCell{Text: "94%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "2FA"},
-		foliopdf.TableCell{Text: "15", Align: "C"},
-		foliopdf.TableCell{Text: "1", Align: "C"},
-		foliopdf.TableCell{Text: "3", Align: "C"},
-		foliopdf.TableCell{Text: "0", Align: "C"},
-		foliopdf.TableCell{Text: "95%", Align: "C"},
+		presspdf.TableCell{Text: "2FA"},
+		presspdf.TableCell{Text: "15", Align: "C"},
+		presspdf.TableCell{Text: "1", Align: "C"},
+		presspdf.TableCell{Text: "3", Align: "C"},
+		presspdf.TableCell{Text: "0", Align: "C"},
+		presspdf.TableCell{Text: "95%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "API", Style: catStyle, RowSpan: 2, Align: "C"},
-		foliopdf.TableCell{Text: "REST"},
-		foliopdf.TableCell{Text: "87", Align: "C"},
-		foliopdf.TableCell{Text: "3", Align: "C"},
-		foliopdf.TableCell{Text: "12", Align: "C"},
-		foliopdf.TableCell{Text: "1", Align: "C"},
-		foliopdf.TableCell{Text: "96%", Align: "C"},
+		presspdf.TableCell{Text: "API", Style: catStyle, RowSpan: 2, Align: "C"},
+		presspdf.TableCell{Text: "REST"},
+		presspdf.TableCell{Text: "87", Align: "C"},
+		presspdf.TableCell{Text: "3", Align: "C"},
+		presspdf.TableCell{Text: "12", Align: "C"},
+		presspdf.TableCell{Text: "1", Align: "C"},
+		presspdf.TableCell{Text: "96%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "GraphQL"},
-		foliopdf.TableCell{Text: "64", Align: "C"},
-		foliopdf.TableCell{Text: "5", Align: "C"},
-		foliopdf.TableCell{Text: "9", Align: "C"},
-		foliopdf.TableCell{Text: "2", Align: "C"},
-		foliopdf.TableCell{Text: "91%", Align: "C"},
+		presspdf.TableCell{Text: "GraphQL"},
+		presspdf.TableCell{Text: "64", Align: "C"},
+		presspdf.TableCell{Text: "5", Align: "C"},
+		presspdf.TableCell{Text: "9", Align: "C"},
+		presspdf.TableCell{Text: "2", Align: "C"},
+		presspdf.TableCell{Text: "91%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Storage", Style: catStyle, Align: "C"},
-		foliopdf.TableCell{Text: "S3 + DB"},
-		foliopdf.TableCell{Text: "53", Align: "C"},
-		foliopdf.TableCell{Text: "0", Align: "C"},
-		foliopdf.TableCell{Text: "7", Align: "C"},
-		foliopdf.TableCell{Text: "0", Align: "C"},
-		foliopdf.TableCell{Text: "100%", Align: "C"},
+		presspdf.TableCell{Text: "Storage", Style: catStyle, Align: "C"},
+		presspdf.TableCell{Text: "S3 + DB"},
+		presspdf.TableCell{Text: "53", Align: "C"},
+		presspdf.TableCell{Text: "0", Align: "C"},
+		presspdf.TableCell{Text: "7", Align: "C"},
+		presspdf.TableCell{Text: "0", Align: "C"},
+		presspdf.TableCell{Text: "100%", Align: "C"},
 	)
 
 	// Full-width summary row
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Total: 289 passed, 11 failed, 44 integration - 96.3% overall", ColSpan: 7, Style: totalStyle, Align: "C"},
+		presspdf.TableCell{Text: "Total: 289 passed, 11 failed, 44 integration - 96.3% overall", ColSpan: 7, Style: totalStyle, Align: "C"},
 	)
 	tbl.Render()
 
@@ -528,7 +528,7 @@ func page4Irregular(doc *foliopdf.Document) {
 	sectionTitle(doc, p, "8. Irregular Table - Mixed Body Merges")
 	subtitle(doc, p, "Full-width note rows, section breaks, and body-level colspan for annotations.")
 
-	tbl2 := foliopdf.NewTable(doc, p)
+	tbl2 := presspdf.NewTable(doc, p)
 	tbl2.SetWidths(38, 38, 38, 38, 38)
 	tbl2.SetRowHeight(7)
 	tbl2.SetCellPadding(1.5)
@@ -536,67 +536,67 @@ func page4Irregular(doc *foliopdf.Document) {
 	tbl2.SetBorder("1")
 
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "Server", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Region", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "CPU", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Memory", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Status", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Server", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Region", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "CPU", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Memory", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Status", Style: hdr, Align: "C"},
 	)
 
 	// Section header row
-	tbl2.AddRow(foliopdf.TableCell{Text: "Production Cluster", ColSpan: 5, Style: catStyle, Align: "L"})
+	tbl2.AddRow(presspdf.TableCell{Text: "Production Cluster", ColSpan: 5, Style: catStyle, Align: "L"})
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "web-prod-01"},
-		foliopdf.TableCell{Text: "us-east-1", Align: "C"},
-		foliopdf.TableCell{Text: "72%", Align: "C"},
-		foliopdf.TableCell{Text: "84%", Align: "C"},
-		foliopdf.TableCell{Text: "Healthy", Align: "C"},
+		presspdf.TableCell{Text: "web-prod-01"},
+		presspdf.TableCell{Text: "us-east-1", Align: "C"},
+		presspdf.TableCell{Text: "72%", Align: "C"},
+		presspdf.TableCell{Text: "84%", Align: "C"},
+		presspdf.TableCell{Text: "Healthy", Align: "C"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "web-prod-02"},
-		foliopdf.TableCell{Text: "us-east-1", Align: "C"},
-		foliopdf.TableCell{Text: "68%", Align: "C"},
-		foliopdf.TableCell{Text: "79%", Align: "C"},
-		foliopdf.TableCell{Text: "Healthy", Align: "C"},
+		presspdf.TableCell{Text: "web-prod-02"},
+		presspdf.TableCell{Text: "us-east-1", Align: "C"},
+		presspdf.TableCell{Text: "68%", Align: "C"},
+		presspdf.TableCell{Text: "79%", Align: "C"},
+		presspdf.TableCell{Text: "Healthy", Align: "C"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "web-prod-03"},
-		foliopdf.TableCell{Text: "eu-west-1", Align: "C"},
-		foliopdf.TableCell{Text: "45%", Align: "C"},
-		foliopdf.TableCell{Text: "62%", Align: "C"},
-		foliopdf.TableCell{Text: "Healthy", Align: "C"},
+		presspdf.TableCell{Text: "web-prod-03"},
+		presspdf.TableCell{Text: "eu-west-1", Align: "C"},
+		presspdf.TableCell{Text: "45%", Align: "C"},
+		presspdf.TableCell{Text: "62%", Align: "C"},
+		presspdf.TableCell{Text: "Healthy", Align: "C"},
 	)
 
 	// Section header row
-	tbl2.AddRow(foliopdf.TableCell{Text: "Staging Cluster", ColSpan: 5, Style: catStyle, Align: "L"})
+	tbl2.AddRow(presspdf.TableCell{Text: "Staging Cluster", ColSpan: 5, Style: catStyle, Align: "L"})
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "web-stg-01"},
-		foliopdf.TableCell{Text: "us-west-2", Align: "C"},
-		foliopdf.TableCell{Text: "12%", Align: "C"},
-		foliopdf.TableCell{Text: "34%", Align: "C"},
-		foliopdf.TableCell{Text: "Healthy", Align: "C"},
+		presspdf.TableCell{Text: "web-stg-01"},
+		presspdf.TableCell{Text: "us-west-2", Align: "C"},
+		presspdf.TableCell{Text: "12%", Align: "C"},
+		presspdf.TableCell{Text: "34%", Align: "C"},
+		presspdf.TableCell{Text: "Healthy", Align: "C"},
 	)
 	tbl2.AddRow(
-		foliopdf.TableCell{Text: "web-stg-02"},
-		foliopdf.TableCell{Text: "us-west-2", Align: "C"},
-		foliopdf.TableCell{Text: "8%", Align: "C"},
-		foliopdf.TableCell{Text: "28%", Align: "C"},
-		foliopdf.TableCell{Text: "Degraded", Align: "C"},
+		presspdf.TableCell{Text: "web-stg-02"},
+		presspdf.TableCell{Text: "us-west-2", Align: "C"},
+		presspdf.TableCell{Text: "8%", Align: "C"},
+		presspdf.TableCell{Text: "28%", Align: "C"},
+		presspdf.TableCell{Text: "Degraded", Align: "C"},
 	)
 
 	// Full-width annotation
-	tbl2.AddRow(foliopdf.TableCell{Text: "Note: web-stg-02 disk I/O latency elevated since 2026-04-12 03:22 UTC. Investigation ongoing.", ColSpan: 5, Style: bodyBold, Align: "L"})
+	tbl2.AddRow(presspdf.TableCell{Text: "Note: web-stg-02 disk I/O latency elevated since 2026-04-12 03:22 UTC. Investigation ongoing.", ColSpan: 5, Style: bodyBold, Align: "L"})
 	tbl2.Render()
 }
 
 // ─── Page 5: Visual Patterns ────────────────────────────────────────
 
-func page5Visual(doc *foliopdf.Document) {
-	p := doc.AddPage(foliopdf.A4)
+func page5Visual(doc *presspdf.Document) {
+	p := doc.AddPage(presspdf.A4)
 	sectionTitle(doc, p, "9. Visual Patterns - Zebra Striping")
 	subtitle(doc, p, "Alternating row colors improve scanability for long datasets.")
 
-	tbl := foliopdf.NewTable(doc, p)
+	tbl := presspdf.NewTable(doc, p)
 	tbl.SetWidths(15, 50, 40, 40, 45)
 	tbl.SetRowHeight(7)
 	tbl.SetCellPadding(1.5)
@@ -604,11 +604,11 @@ func page5Visual(doc *foliopdf.Document) {
 	tbl.SetBorder("1")
 
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "#", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Transaction", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Date", Style: hdr, Align: "C"},
-		foliopdf.TableCell{Text: "Category", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Amount", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "#", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Transaction", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Date", Style: hdr, Align: "C"},
+		presspdf.TableCell{Text: "Category", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Amount", Style: hdr, Align: "R"},
 	)
 
 	txns := [][5]string{
@@ -629,11 +629,11 @@ func page5Visual(doc *foliopdf.Document) {
 			style = zebraOdd
 		}
 		tbl.AddRow(
-			foliopdf.TableCell{Text: t[0], Style: style, Align: "C"},
-			foliopdf.TableCell{Text: t[1], Style: style},
-			foliopdf.TableCell{Text: t[2], Style: style, Align: "C"},
-			foliopdf.TableCell{Text: t[3], Style: style},
-			foliopdf.TableCell{Text: t[4], Style: style, Align: "R"},
+			presspdf.TableCell{Text: t[0], Style: style, Align: "C"},
+			presspdf.TableCell{Text: t[1], Style: style},
+			presspdf.TableCell{Text: t[2], Style: style, Align: "C"},
+			presspdf.TableCell{Text: t[3], Style: style},
+			presspdf.TableCell{Text: t[4], Style: style, Align: "R"},
 		)
 	}
 	tbl.Render()
@@ -643,7 +643,7 @@ func page5Visual(doc *foliopdf.Document) {
 	sectionTitle(doc, p, "10. Minimal Borders - Horizontal Lines Only")
 	subtitle(doc, p, "Reduced visual noise. Best for clean reports and dashboards.")
 
-	tbl2 := foliopdf.NewTable(doc, p)
+	tbl2 := presspdf.NewTable(doc, p)
 	tbl2.SetWidths(50, 40, 40, 30, 30)
 	tbl2.SetRowHeight(7)
 	tbl2.SetCellPadding(1.5)
@@ -651,11 +651,11 @@ func page5Visual(doc *foliopdf.Document) {
 	tbl2.SetBorder("TB") // top + bottom borders only
 
 	tbl2.AddHeader(
-		foliopdf.TableCell{Text: "Metric", Style: hdr, Align: "L"},
-		foliopdf.TableCell{Text: "Current", Style: hdr, Align: "R"},
-		foliopdf.TableCell{Text: "Previous", Style: hdr, Align: "R"},
-		foliopdf.TableCell{Text: "Change", Style: hdr, Align: "R"},
-		foliopdf.TableCell{Text: "Target", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Metric", Style: hdr, Align: "L"},
+		presspdf.TableCell{Text: "Current", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Previous", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Change", Style: hdr, Align: "R"},
+		presspdf.TableCell{Text: "Target", Style: hdr, Align: "R"},
 	)
 
 	metrics := [][5]string{
@@ -668,11 +668,11 @@ func page5Visual(doc *foliopdf.Document) {
 	}
 	for _, m := range metrics {
 		tbl2.AddRow(
-			foliopdf.TableCell{Text: m[0], Style: bodyBold},
-			foliopdf.TableCell{Text: m[1], Align: "R"},
-			foliopdf.TableCell{Text: m[2], Align: "R"},
-			foliopdf.TableCell{Text: m[3], Align: "R"},
-			foliopdf.TableCell{Text: m[4], Align: "R"},
+			presspdf.TableCell{Text: m[0], Style: bodyBold},
+			presspdf.TableCell{Text: m[1], Align: "R"},
+			presspdf.TableCell{Text: m[2], Align: "R"},
+			presspdf.TableCell{Text: m[3], Align: "R"},
+			presspdf.TableCell{Text: m[4], Align: "R"},
 		)
 	}
 	tbl2.Render()
@@ -680,14 +680,14 @@ func page5Visual(doc *foliopdf.Document) {
 
 // --- Helpers ---
 
-func sectionTitle(doc *foliopdf.Document, p *foliopdf.Page, title string) {
+func sectionTitle(doc *presspdf.Document, p *presspdf.Page, title string) {
 	doc.SetFont("helvetica", "B", 14)
 	doc.SetTextColor(44, 62, 80)
 	p.SetX(lM)
 	p.Cell(bW, 10, title, "", "L", false, 1)
 }
 
-func subtitle(doc *foliopdf.Document, p *foliopdf.Page, text string) {
+func subtitle(doc *presspdf.Document, p *presspdf.Page, text string) {
 	doc.SetFont("helvetica", "", 9)
 	doc.SetTextColor(127, 140, 141)
 	p.SetX(lM)

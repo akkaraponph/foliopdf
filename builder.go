@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 // TextBuilder provides a fluent API for drawing text on a page.
 // Create one with Page.Text(s), configure with chained calls, and

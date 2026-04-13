@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
@@ -33,7 +33,7 @@ type ToolError struct {
 }
 
 func (e *ToolError) Error() string {
-	msg := fmt.Sprintf("folio: %s failed: %v", e.Tool, e.Err)
+	msg := fmt.Sprintf("presspdf: %s failed: %v", e.Tool, e.Err)
 	if len(e.Output) > 0 {
 		msg += ": " + strings.TrimSpace(string(e.Output))
 	}
@@ -61,7 +61,7 @@ type ToolNotFoundError struct {
 }
 
 func (e *ToolNotFoundError) Error() string {
-	return fmt.Sprintf("folio: no tool found on PATH (tried: %s)", strings.Join(e.Tried, ", "))
+	return fmt.Sprintf("presspdf: no tool found on PATH (tried: %s)", strings.Join(e.Tried, ", "))
 }
 
 // TempDir creates a temporary directory with the given pattern and returns
@@ -70,7 +70,7 @@ func (e *ToolNotFoundError) Error() string {
 func TempDir(pattern string) (dir string, cleanup func(), err error) {
 	dir, err = os.MkdirTemp("", pattern)
 	if err != nil {
-		return "", func() {}, fmt.Errorf("folio: create temp dir: %w", err)
+		return "", func() {}, fmt.Errorf("presspdf: create temp dir: %w", err)
 	}
 	return dir, func() { os.RemoveAll(dir) }, nil
 }
@@ -80,7 +80,7 @@ func TempDir(pattern string) (dir string, cleanup func(), err error) {
 func CollectFiles(dir, ext string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("folio: read output dir: %w", err)
+		return nil, fmt.Errorf("presspdf: read output dir: %w", err)
 	}
 
 	ext = strings.ToLower(ext)

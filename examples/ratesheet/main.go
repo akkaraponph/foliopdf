@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 // --- Layout constants ---
@@ -42,26 +42,26 @@ const (
 
 // Styles
 var (
-	darkHdr = &foliopdf.CellStyle{
+	darkHdr = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 5.5,
 		TextColor: [3]int{255, 255, 255},
 		FillColor: [3]int{40, 40, 40},
 		Fill:      true,
 	}
-	bodyReg = &foliopdf.CellStyle{
+	bodyReg = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "", FontSize: 5,
 	}
-	bodyB = &foliopdf.CellStyle{
+	bodyB = &presspdf.CellStyle{
 		FontFamily: "helvetica", FontStyle: "B", FontSize: 5,
 	}
 )
 
 func main() {
-	doc := foliopdf.New(foliopdf.WithUnit(foliopdf.UnitMM))
+	doc := presspdf.New(presspdf.WithUnit(presspdf.UnitMM))
 	doc.SetTitle("Commercial Lending Rate Sheet")
 	doc.SetMargins(marginL, marginT, marginL)
 
-	page := doc.AddPage(foliopdf.LetterLandscape)
+	page := doc.AddPage(presspdf.LetterLandscape)
 
 	// --- Top row ---
 	ltvBottom := drawLTVTable(doc, page, col1X, marginT)
@@ -85,8 +85,8 @@ func main() {
 	fmt.Printf("Rate sheet PDF saved to %s\n", out)
 }
 
-func newTbl(doc *foliopdf.Document, page *foliopdf.Page) *foliopdf.Table {
-	tbl := foliopdf.NewTable(doc, page)
+func newTbl(doc *presspdf.Document, page *presspdf.Page) *presspdf.Table {
+	tbl := presspdf.NewTable(doc, page)
 	tbl.SetRowHeight(rowH)
 	tbl.SetCellPadding(padding)
 	tbl.SetLineHeight(lineH)
@@ -95,7 +95,7 @@ func newTbl(doc *foliopdf.Document, page *foliopdf.Page) *foliopdf.Table {
 }
 
 // drawLTVTable returns the Y position of its bottom edge.
-func drawLTVTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) float64 {
+func drawLTVTable(doc *presspdf.Document, page *presspdf.Page, x, y float64) float64 {
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 
@@ -105,31 +105,31 @@ func drawLTVTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) flo
 
 	// Header row 0
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Max LTV by Tier", ColSpan: 3, Align: "C", Style: darkHdr},
-		foliopdf.TableCell{Text: "Owner Occupied", ColSpan: 4, Align: "C", Style: darkHdr},
-		foliopdf.TableCell{Text: "Non-Owner & Mixed Use", ColSpan: 4, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Max LTV by Tier", ColSpan: 3, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Owner Occupied", ColSpan: 4, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Non-Owner & Mixed Use", ColSpan: 4, Align: "C", Style: darkHdr},
 	)
 	// Header row 1
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "", ColSpan: 3, Style: darkHdr},
-		foliopdf.TableCell{Text: "Standard", ColSpan: 2, Align: "C", Style: darkHdr},
-		foliopdf.TableCell{Text: "Reduced Doc", ColSpan: 2, Align: "C", Style: darkHdr},
-		foliopdf.TableCell{Text: "Standard", ColSpan: 2, Align: "C", Style: darkHdr},
-		foliopdf.TableCell{Text: "Reduced Doc", ColSpan: 2, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "", ColSpan: 3, Style: darkHdr},
+		presspdf.TableCell{Text: "Standard", ColSpan: 2, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Reduced Doc", ColSpan: 2, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Standard", ColSpan: 2, Align: "C", Style: darkHdr},
+		presspdf.TableCell{Text: "Reduced Doc", ColSpan: 2, Align: "C", Style: darkHdr},
 	)
 	// Header row 2
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Loan Amount", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Liquidity", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "DSCR", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Loan Amount", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Liquidity", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "DSCR", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Purch. &\nRefi", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "C/O", Style: darkHdr, Align: "C"},
 	)
 
 	type row struct {
@@ -152,16 +152,16 @@ func drawLTVTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) flo
 	}
 
 	for _, r := range data {
-		var cells []foliopdf.TableCell
+		var cells []presspdf.TableCell
 		if r.amount != "" {
 			cells = append(cells,
-				foliopdf.TableCell{Text: r.amount, RowSpan: r.span, Style: bodyB, Align: "L"},
-				foliopdf.TableCell{Text: r.liquidity, RowSpan: r.span, Align: "C"},
+				presspdf.TableCell{Text: r.amount, RowSpan: r.span, Style: bodyB, Align: "L"},
+				presspdf.TableCell{Text: r.liquidity, RowSpan: r.span, Align: "C"},
 			)
 		}
-		cells = append(cells, foliopdf.TableCell{Text: r.dscr, Align: "C"})
+		cells = append(cells, presspdf.TableCell{Text: r.dscr, Align: "C"})
 		for _, v := range r.vals {
-			cells = append(cells, foliopdf.TableCell{Text: v, Align: "C"})
+			cells = append(cells, presspdf.TableCell{Text: v, Align: "C"})
 		}
 		tbl.AddRow(cells...)
 	}
@@ -170,48 +170,48 @@ func drawLTVTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) flo
 	return page.GetY()
 }
 
-func drawOverlays(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) {
+func drawOverlays(doc *presspdf.Document, page *presspdf.Page, x, y float64) {
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 	tbl.SetWidths(16, 28)
 
-	tbl.AddHeader(foliopdf.TableCell{Text: "Special Rules", ColSpan: 2, Style: darkHdr, Align: "C"})
-	tbl.AddHeader(foliopdf.TableCell{Text: "", ColSpan: 2, Style: darkHdr})
-	tbl.AddHeader(foliopdf.TableCell{Text: "Overlays", ColSpan: 2, Style: darkHdr, Align: "C"})
+	tbl.AddHeader(presspdf.TableCell{Text: "Special Rules", ColSpan: 2, Style: darkHdr, Align: "C"})
+	tbl.AddHeader(presspdf.TableCell{Text: "", ColSpan: 2, Style: darkHdr})
+	tbl.AddHeader(presspdf.TableCell{Text: "Overlays", ColSpan: 2, Style: darkHdr, Align: "C"})
 
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "IO Only:", Style: bodyB},
-		foliopdf.TableCell{Text: "- Max 75% LTV", Style: bodyReg},
+		presspdf.TableCell{Text: "IO Only:", Style: bodyB},
+		presspdf.TableCell{Text: "- Max 75% LTV", Style: bodyReg},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Bridge:", Style: bodyB},
-		foliopdf.TableCell{Text: "- 12 mo term max", Style: bodyReg},
+		presspdf.TableCell{Text: "Bridge:", Style: bodyB},
+		presspdf.TableCell{Text: "- 12 mo term max", Style: bodyReg},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "", RowSpan: 2},
-		foliopdf.TableCell{Text: "- Max 70% LTV (Purch)", Style: bodyReg},
+		presspdf.TableCell{Text: "", RowSpan: 2},
+		presspdf.TableCell{Text: "- Max 70% LTV (Purch)", Style: bodyReg},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "- Max 60% LTV (Refi)", Style: bodyReg},
+		presspdf.TableCell{Text: "- Max 60% LTV (Refi)", Style: bodyReg},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Mixed Use", Style: bodyB, RowSpan: 3},
-		foliopdf.TableCell{Text: "- No subordinate liens", Style: bodyReg},
+		presspdf.TableCell{Text: "Mixed Use", Style: bodyB, RowSpan: 3},
+		presspdf.TableCell{Text: "- No subordinate liens", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "- Prepayment penalty", Style: bodyReg})
-	tbl.AddRow(foliopdf.TableCell{Text: "  may apply", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "- Prepayment penalty", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "  may apply", Style: bodyReg})
 
 	tbl.Render()
 }
 
-func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) {
+func drawProgramRequirements(doc *presspdf.Document, page *presspdf.Page, x, y float64) {
 	// Limits
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 	tbl.SetWidths(40, 34)
 
-	tbl.AddHeader(foliopdf.TableCell{Text: "Program Parameters", ColSpan: 2, Style: darkHdr, Align: "C"})
-	tbl.AddHeader(foliopdf.TableCell{Text: "Limits", ColSpan: 2, Style: darkHdr, Align: "C"})
+	tbl.AddHeader(presspdf.TableCell{Text: "Program Parameters", ColSpan: 2, Style: darkHdr, Align: "C"})
+	tbl.AddHeader(presspdf.TableCell{Text: "Limits", ColSpan: 2, Style: darkHdr, Align: "C"})
 
 	limits := [][2]string{
 		{"Minimum Loan Amount", "$150,000"},
@@ -226,8 +226,8 @@ func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y f
 	}
 	for _, r := range limits {
 		tbl.AddRow(
-			foliopdf.TableCell{Text: r[0], Style: bodyReg},
-			foliopdf.TableCell{Text: r[1], Style: bodyReg, Align: "R"},
+			presspdf.TableCell{Text: r[0], Style: bodyReg},
+			presspdf.TableCell{Text: r[1], Style: bodyReg, Align: "R"},
 		)
 	}
 	tbl.Render()
@@ -236,8 +236,8 @@ func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y f
 	page.SetXY(x, page.GetY())
 	tbl2 := newTbl(doc, page)
 	tbl2.SetWidths(col3W)
-	tbl2.AddHeader(foliopdf.TableCell{Text: "Products", Style: darkHdr, Align: "C"})
-	tbl2.AddRow(foliopdf.TableCell{Text: "5Y Fixed  7/1 ARM  10/1 ARM  15Y Fixed  30Y Fixed", Style: bodyReg, Align: "C"})
+	tbl2.AddHeader(presspdf.TableCell{Text: "Products", Style: darkHdr, Align: "C"})
+	tbl2.AddRow(presspdf.TableCell{Text: "5Y Fixed  7/1 ARM  10/1 ARM  15Y Fixed  30Y Fixed", Style: bodyReg, Align: "C"})
 	tbl2.Render()
 
 	// Property Type
@@ -245,9 +245,9 @@ func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y f
 	tbl3 := newTbl(doc, page)
 	tbl3.SetWidths(28, 23, 23)
 	tbl3.AddHeader(
-		foliopdf.TableCell{Text: "Property Type", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "LTV Max", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Notes", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Property Type", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "LTV Max", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Notes", Style: darkHdr, Align: "C"},
 	)
 	for _, r := range [][3]string{
 		{"Office / Retail", "75%", "-"},
@@ -256,9 +256,9 @@ func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y f
 		{"Multi-Family 5+", "80%", "-"},
 	} {
 		tbl3.AddRow(
-			foliopdf.TableCell{Text: r[0], Style: bodyReg},
-			foliopdf.TableCell{Text: r[1], Style: bodyReg, Align: "C"},
-			foliopdf.TableCell{Text: r[2], Style: bodyReg, Align: "C"},
+			presspdf.TableCell{Text: r[0], Style: bodyReg},
+			presspdf.TableCell{Text: r[1], Style: bodyReg, Align: "C"},
+			presspdf.TableCell{Text: r[2], Style: bodyReg, Align: "C"},
 		)
 	}
 	tbl3.Render()
@@ -267,77 +267,77 @@ func drawProgramRequirements(doc *foliopdf.Document, page *foliopdf.Page, x, y f
 	page.SetXY(x, page.GetY())
 	tbl4 := newTbl(doc, page)
 	tbl4.SetWidths(22, 52)
-	tbl4.AddHeader(foliopdf.TableCell{Text: "State Restrictions", ColSpan: 2, Style: darkHdr, Align: "C"})
+	tbl4.AddHeader(presspdf.TableCell{Text: "State Restrictions", ColSpan: 2, Style: darkHdr, Align: "C"})
 	tbl4.AddRow(
-		foliopdf.TableCell{Text: "New York", Style: bodyB},
-		foliopdf.TableCell{Text: "Commercial rent control overlay", Style: bodyReg},
+		presspdf.TableCell{Text: "New York", Style: bodyB},
+		presspdf.TableCell{Text: "Commercial rent control overlay", Style: bodyReg},
 	)
 	tbl4.AddRow(
-		foliopdf.TableCell{Text: "California", Style: bodyB},
-		foliopdf.TableCell{Text: "Seismic report required > $2M", Style: bodyReg},
+		presspdf.TableCell{Text: "California", Style: bodyB},
+		presspdf.TableCell{Text: "Seismic report required > $2M", Style: bodyReg},
 	)
 	tbl4.Render()
 }
 
-func drawIncomeTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) float64 {
+func drawIncomeTable(doc *presspdf.Document, page *presspdf.Page, x, y float64) float64 {
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 	tbl.SetWidths(28, col1W-28)
 
-	tbl.AddHeader(foliopdf.TableCell{Text: "Income Verification", ColSpan: 2, Style: darkHdr, Align: "L"})
+	tbl.AddHeader(presspdf.TableCell{Text: "Income Verification", ColSpan: 2, Style: darkHdr, Align: "L"})
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Full Documentation", Style: bodyB, RowSpan: 2},
-		foliopdf.TableCell{Text: "2 Years Business Tax Returns + K-1 / Schedule E", Style: bodyReg},
+		presspdf.TableCell{Text: "Full Documentation", Style: bodyB, RowSpan: 2},
+		presspdf.TableCell{Text: "2 Years Business Tax Returns + K-1 / Schedule E", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "Current YTD Profit & Loss Statement (CPA prepared)", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "Current YTD Profit & Loss Statement (CPA prepared)", Style: bodyReg})
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "DSCR Only", Style: bodyB},
-		foliopdf.TableCell{Text: "Qualify on property cash flow; No personal income docs required", Style: bodyReg},
+		presspdf.TableCell{Text: "DSCR Only", Style: bodyB},
+		presspdf.TableCell{Text: "Qualify on property cash flow; No personal income docs required", Style: bodyReg},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Reduced Doc\n(Owner-Occ Only)\n(Min 2 yrs in business)", Style: bodyB, RowSpan: 3},
-		foliopdf.TableCell{Text: "12 or 24 Months Business Bank Statements", Style: bodyReg},
+		presspdf.TableCell{Text: "Reduced Doc\n(Owner-Occ Only)\n(Min 2 yrs in business)", Style: bodyB, RowSpan: 3},
+		presspdf.TableCell{Text: "12 or 24 Months Business Bank Statements", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "12 or 24 Months 1099 Income", Style: bodyReg})
-	tbl.AddRow(foliopdf.TableCell{Text: "CPA Letter + 12 Month P&L", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "12 or 24 Months 1099 Income", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "CPA Letter + 12 Month P&L", Style: bodyReg})
 
 	tbl.Render()
 	return page.GetY()
 }
 
-func drawARMFeatures(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) {
+func drawARMFeatures(doc *presspdf.Document, page *presspdf.Page, x, y float64) {
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 	w := col2W / 3
 	tbl.SetWidths(w, w, w)
 
-	tbl.AddHeader(foliopdf.TableCell{Text: "ARM Rate Caps", ColSpan: 3, Style: darkHdr, Align: "C"})
+	tbl.AddHeader(presspdf.TableCell{Text: "ARM Rate Caps", ColSpan: 3, Style: darkHdr, Align: "C"})
 	tbl.AddHeader(
-		foliopdf.TableCell{Text: "Product", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Adjust", Style: darkHdr, Align: "C"},
-		foliopdf.TableCell{Text: "Life Cap", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Product", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Adjust", Style: darkHdr, Align: "C"},
+		presspdf.TableCell{Text: "Life Cap", Style: darkHdr, Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "7/1 ARM", Align: "C"},
-		foliopdf.TableCell{Text: "2/2/5", Align: "C"},
-		foliopdf.TableCell{Text: "5%", Align: "C"},
+		presspdf.TableCell{Text: "7/1 ARM", Align: "C"},
+		presspdf.TableCell{Text: "2/2/5", Align: "C"},
+		presspdf.TableCell{Text: "5%", Align: "C"},
 	)
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "10/1 ARM", Align: "C"},
-		foliopdf.TableCell{Text: "2/2/5", Align: "C"},
-		foliopdf.TableCell{Text: "5%", Align: "C"},
+		presspdf.TableCell{Text: "10/1 ARM", Align: "C"},
+		presspdf.TableCell{Text: "2/2/5", Align: "C"},
+		presspdf.TableCell{Text: "5%", Align: "C"},
 	)
 
 	tbl.Render()
 }
 
-func drawGuidelinesTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float64) {
+func drawGuidelinesTable(doc *presspdf.Document, page *presspdf.Page, x, y float64) {
 	page.SetXY(x, y)
 	tbl := newTbl(doc, page)
 	bodyW := col1W + 2 + col2W + 2 + col3W // full width
 	tbl.SetWidths(28, bodyW-28)
 
-	tbl.AddHeader(foliopdf.TableCell{Text: "Guidelines", ColSpan: 2, Style: darkHdr, Align: "L"})
+	tbl.AddHeader(presspdf.TableCell{Text: "Guidelines", ColSpan: 2, Style: darkHdr, Align: "L"})
 
 	rows := [][2]string{
 		{"Occupancy", "Owner-Occupied, Non-Owner Occupied, Investment"},
@@ -349,36 +349,36 @@ func drawGuidelinesTable(doc *foliopdf.Document, page *foliopdf.Page, x, y float
 	}
 	for _, r := range rows {
 		tbl.AddRow(
-			foliopdf.TableCell{Text: r[0], Style: bodyB},
-			foliopdf.TableCell{Text: r[1], Style: bodyReg},
+			presspdf.TableCell{Text: r[0], Style: bodyB},
+			presspdf.TableCell{Text: r[1], Style: bodyReg},
 		)
 	}
 
 	// Appraisal — rowspan 2
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Appraisal", Style: bodyB, RowSpan: 2},
-		foliopdf.TableCell{Text: "Full commercial appraisal with income approach required; MAI designated appraiser for loans > $1M", Style: bodyReg},
+		presspdf.TableCell{Text: "Appraisal", Style: bodyB, RowSpan: 2},
+		presspdf.TableCell{Text: "Full commercial appraisal with income approach required; MAI designated appraiser for loans > $1M", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "Phase I Environmental required for all transactions; Phase II if recommended", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "Phase I Environmental required for all transactions; Phase II if recommended", Style: bodyReg})
 
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Insurance", Style: bodyB},
-		foliopdf.TableCell{Text: "Hazard, liability, and business income coverage required; flood insurance if in SFHA", Style: bodyReg},
+		presspdf.TableCell{Text: "Insurance", Style: bodyB},
+		presspdf.TableCell{Text: "Hazard, liability, and business income coverage required; flood insurance if in SFHA", Style: bodyReg},
 	)
 
 	// Reserves — rowspan 2
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Reserves", Style: bodyB, RowSpan: 2},
-		foliopdf.TableCell{Text: "6 months PITIA required for loans <= $2.5M; 12 months for loans > $2.5M; 18 months for non-owner occupied > $5M", Style: bodyReg},
+		presspdf.TableCell{Text: "Reserves", Style: bodyB, RowSpan: 2},
+		presspdf.TableCell{Text: "6 months PITIA required for loans <= $2.5M; 12 months for loans > $2.5M; 18 months for non-owner occupied > $5M", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "Replacement reserves may be required based on property condition report findings", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "Replacement reserves may be required based on property condition report findings", Style: bodyReg})
 
 	// Compliance — rowspan 2
 	tbl.AddRow(
-		foliopdf.TableCell{Text: "Compliance", Style: bodyB, RowSpan: 2},
-		foliopdf.TableCell{Text: "All loans must comply with applicable federal, state, and local regulations including CRA requirements", Style: bodyReg},
+		presspdf.TableCell{Text: "Compliance", Style: bodyB, RowSpan: 2},
+		presspdf.TableCell{Text: "All loans must comply with applicable federal, state, and local regulations including CRA requirements", Style: bodyReg},
 	)
-	tbl.AddRow(foliopdf.TableCell{Text: "No predatory lending; all fees must be within state-specific caps", Style: bodyReg})
+	tbl.AddRow(presspdf.TableCell{Text: "No predatory lending; all fees must be within state-specific caps", Style: bodyReg})
 
 	tbl.Render()
 }

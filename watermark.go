@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // WatermarkOption configures PDF watermarking.
@@ -173,27 +173,27 @@ func WatermarkPDF(inputPath, outputPath string, opts ...WatermarkOption) error {
 		o(cfg)
 	}
 	if cfg.text == "" && cfg.imgPath == "" {
-		return fmt.Errorf("folio: watermark requires text or image")
+		return fmt.Errorf("presspdf: watermark requires text or image")
 	}
 
 	// Ensure output directory exists.
 	if dir := filepath.Dir(outputPath); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("folio: create output dir: %w", err)
+			return fmt.Errorf("presspdf: create output dir: %w", err)
 		}
 	}
 
 	data, err := os.ReadFile(inputPath)
 	if err != nil {
-		return fmt.Errorf("folio: read PDF: %w", err)
+		return fmt.Errorf("presspdf: read PDF: %w", err)
 	}
 	r, err := pdfcore.ReadPDF(data)
 	if err != nil {
-		return fmt.Errorf("folio: parse PDF: %w", err)
+		return fmt.Errorf("presspdf: parse PDF: %w", err)
 	}
 	pageRefs, err := r.PageRefs()
 	if err != nil {
-		return fmt.Errorf("folio: read pages: %w", err)
+		return fmt.Errorf("presspdf: read pages: %w", err)
 	}
 
 	// Load image if needed.
@@ -201,7 +201,7 @@ func WatermarkPDF(inputPath, outputPath string, opts ...WatermarkOption) error {
 	if cfg.imgPath != "" {
 		wmImg, err = loadWmImage(cfg.imgPath)
 		if err != nil {
-			return fmt.Errorf("folio: load watermark image: %w", err)
+			return fmt.Errorf("presspdf: load watermark image: %w", err)
 		}
 	}
 

@@ -12,7 +12,7 @@ Folio is built as four independent layers. Each has a single job and depends onl
 
 ```
 ┌──────────────────────────────────────────────┐
-│  foliopdf (public API)                       │
+│  presspdf (public API)                       │
 │  Document, Page, options, serialization      │
 ├──────────────────────────────────────────────┤
 │  internal/state      │  internal/resources   │
@@ -35,7 +35,7 @@ Folio is built as four independent layers. Each has a single job and depends onl
 | **content** | PDF operators (BT, m, re, Tj...) | Object IDs, document structure |
 | **resources** | Font metrics, glyph data, image bytes, dedup | Serialization order, page layout |
 | **state** | Unit conversion, color math | PDF syntax, fonts, pages |
-| **foliopdf** (root) | Everything — it orchestrates all layers | — |
+| **presspdf** (root) | Everything — it orchestrates all layers | — |
 
 This separation means you can add a new drawing primitive without touching serialization, or add a new resource type without touching the content stream.
 
@@ -91,9 +91,9 @@ folio/
 ### Step 1: User draws content
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 doc.SetFont("helvetica", "", 16)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 page.TextAt(40, 60, "Hello")
 ```
 
@@ -179,9 +179,9 @@ PDF operators emitted by `internal/content/stream.go`:
 Folio uses error accumulation. The `Document` stores a single `err` field. Every method checks it first and returns early if set. This lets users write linear code without `if err != nil` on every line:
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 doc.SetFont("bad", "", 12)  // sets d.err
-page := doc.AddPage(foliopdf.A4) // no-op, returns dummy page
+page := doc.AddPage(presspdf.A4) // no-op, returns dummy page
 page.TextAt(10, 10, "test")   // no-op
 err := doc.Save("out.pdf")    // returns the stored error
 ```

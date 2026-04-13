@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Folio is a layered PDF generation library for Go with zero external dependencies. Module: `github.com/akkaraponph/foliopdf`. Go 1.26+.
+Folio is a layered PDF generation library for Go with zero external dependencies. Module: `github.com/akkaraponph/presspdf`. Go 1.26+.
 
 ## Architecture
 
@@ -15,7 +15,7 @@ Folio is a layered PDF generation library for Go with zero external dependencies
 | 2 | `internal/resources` | Font/image registry and deduplication |
 | 1 | `internal/state` | Unit conversion and color math |
 
-The root `foliopdf` package is the public API that orchestrates all layers.
+The root `presspdf` package is the public API that orchestrates all layers.
 
 **Key rule:** Layers must not import upward. `pdfcore` knows nothing about fonts. `content` knows nothing about object IDs. `resources` knows nothing about serialization.
 
@@ -42,7 +42,7 @@ The root `foliopdf` package is the public API that orchestrates all layers.
 go test ./...           # all tests
 go test ./... -v        # verbose
 go test -run TestFoo    # specific test
-go run ./cmd/demo       # generate demo PDF to /tmp/foliopdf_demo.pdf
+go run ./cmd/demo       # generate demo PDF to /tmp/presspdf_demo.pdf
 go run ./examples/showcase  # generate all feature PDFs
 ```
 
@@ -50,8 +50,8 @@ Tests write PDFs to `bytes.Buffer` and verify PDF structure strings. Visual veri
 
 ## Common tasks
 
-- After adding a new Page method, add a test in `foliopdf_test.go`
-- After changing serialization, verify with `go run ./cmd/demo && open /tmp/foliopdf_demo.pdf`
+- After adding a new Page method, add a test in `presspdf_test.go`
+- After changing serialization, verify with `go run ./cmd/demo && open /tmp/presspdf_demo.pdf`
 - After changing font handling, test with both core fonts AND TTF (sarabun)
 - After changing text layout, test with Thai text (needs word segmentation)
 

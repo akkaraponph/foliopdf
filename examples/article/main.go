@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/akkaraponph/foliopdf"
-	"github.com/akkaraponph/foliopdf/fonts/sarabun"
-	"github.com/akkaraponph/foliopdf/thai"
+	"github.com/akkaraponph/presspdf"
+	"github.com/akkaraponph/presspdf/fonts/sarabun"
+	"github.com/akkaraponph/presspdf/thai"
 )
 
 // writer wraps the document + current page and handles page breaks.
 type writer struct {
-	doc       *foliopdf.Document
-	page      *foliopdf.Page
+	doc       *presspdf.Document
+	page      *presspdf.Page
 	pageH     float64 // page height in user units (mm)
 	bMargin   float64 // bottom margin
 	lMargin   float64 // left margin
@@ -20,7 +20,7 @@ type writer struct {
 }
 
 func (w *writer) newPage() {
-	w.page = w.doc.AddPage(foliopdf.A4)
+	w.page = w.doc.AddPage(presspdf.A4)
 	w.page.SetXY(w.lMargin, 15)
 }
 
@@ -32,7 +32,7 @@ func (w *writer) needsBreak(h float64) {
 }
 
 func main() {
-	doc := foliopdf.New(foliopdf.WithCompression(true))
+	doc := presspdf.New(presspdf.WithCompression(true))
 	doc.SetTitle("ประสิทธิภาพและความเหมาะสมของภาษาโปรแกรม Go (Golang)")
 	doc.SetAuthor("Folio Thai Article Example")
 	doc.SetMargins(20, 15, 20)

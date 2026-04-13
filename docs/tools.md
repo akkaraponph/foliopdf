@@ -12,14 +12,14 @@ Split a PDF into multiple files — one per page, or by custom page ranges.
 
 ```go
 // Split every page into a separate file.
-paths, err := foliopdf.SplitPDF("report.pdf", "output/")
+paths, err := presspdf.SplitPDF("report.pdf", "output/")
 // output/page-001.pdf, output/page-002.pdf, ...
 
 // Split by page ranges.
-paths, err := foliopdf.SplitPDF("report.pdf", "output/",
-    foliopdf.WithRanges(
-        foliopdf.PageRange{From: 1, To: 5},   // pages 1-5
-        foliopdf.PageRange{From: 6, To: 10},  // pages 6-10
+paths, err := presspdf.SplitPDF("report.pdf", "output/",
+    presspdf.WithRanges(
+        presspdf.PageRange{From: 1, To: 5},   // pages 1-5
+        presspdf.PageRange{From: 6, To: 10},  // pages 6-10
     ),
 )
 // output/pages-001.pdf, output/pages-002.pdf
@@ -32,7 +32,7 @@ Returns the paths of all generated files in order.
 Combine multiple PDFs into a single file. Pages appear in the order the files are listed.
 
 ```go
-err := foliopdf.MergePDF("combined.pdf",
+err := presspdf.MergePDF("combined.pdf",
     "chapter1.pdf",
     "chapter2.pdf",
     "appendix.pdf",
@@ -47,12 +47,12 @@ Split and merge compose naturally:
 
 ```go
 // Extract pages 3-5 from a document.
-parts, _ := foliopdf.SplitPDF("big.pdf", "tmp/",
-    foliopdf.WithRanges(foliopdf.PageRange{From: 3, To: 5}),
+parts, _ := presspdf.SplitPDF("big.pdf", "tmp/",
+    presspdf.WithRanges(presspdf.PageRange{From: 3, To: 5}),
 )
 
 // Merge with another document.
-foliopdf.MergePDF("result.pdf", parts[0], "extra.pdf")
+presspdf.MergePDF("result.pdf", parts[0], "extra.pdf")
 ```
 
 ## Watermark PDF
@@ -62,12 +62,12 @@ Add text or image watermarks to every page of an existing PDF.
 ### Text watermark
 
 ```go
-err := foliopdf.WatermarkPDF("input.pdf", "output.pdf",
-    foliopdf.WatermarkText("DRAFT"),
-    foliopdf.WatermarkFontSize(100),
-    foliopdf.WatermarkColor(200, 200, 200),
-    foliopdf.WatermarkOpacity(0.3),
-    foliopdf.WatermarkRotation(45),
+err := presspdf.WatermarkPDF("input.pdf", "output.pdf",
+    presspdf.WatermarkText("DRAFT"),
+    presspdf.WatermarkFontSize(100),
+    presspdf.WatermarkColor(200, 200, 200),
+    presspdf.WatermarkOpacity(0.3),
+    presspdf.WatermarkRotation(45),
 )
 ```
 
@@ -76,10 +76,10 @@ err := foliopdf.WatermarkPDF("input.pdf", "output.pdf",
 Supports JPEG and PNG (including transparency).
 
 ```go
-err := foliopdf.WatermarkPDF("input.pdf", "output.pdf",
-    foliopdf.WatermarkImage("logo.png"),
-    foliopdf.WatermarkOpacity(0.15),
-    foliopdf.WatermarkScale(0.5),
+err := presspdf.WatermarkPDF("input.pdf", "output.pdf",
+    presspdf.WatermarkImage("logo.png"),
+    presspdf.WatermarkOpacity(0.15),
+    presspdf.WatermarkScale(0.5),
 )
 ```
 
@@ -88,11 +88,11 @@ err := foliopdf.WatermarkPDF("input.pdf", "output.pdf",
 Pre-configured watermark presets for common use cases:
 
 ```go
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("draft"))
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("confidential"))
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("copy"))
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("sample"))
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("do-not-copy"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("draft"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("confidential"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("copy"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("sample"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("do-not-copy"))
 ```
 
 | Template | Text | Color | Size | Opacity |
@@ -106,10 +106,10 @@ foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("do-not-co
 Templates can be combined with other options to override individual settings:
 
 ```go
-foliopdf.WatermarkPDF("in.pdf", "out.pdf",
-    foliopdf.WatermarkTemplate("confidential"),
-    foliopdf.WatermarkOpacity(0.5),        // override opacity
-    foliopdf.WatermarkRotation(30),        // override angle
+presspdf.WatermarkPDF("in.pdf", "out.pdf",
+    presspdf.WatermarkTemplate("confidential"),
+    presspdf.WatermarkOpacity(0.5),        // override opacity
+    presspdf.WatermarkRotation(30),        // override angle
 )
 ```
 
@@ -118,11 +118,11 @@ foliopdf.WatermarkPDF("in.pdf", "out.pdf",
 Repeat the watermark across the entire page in a grid:
 
 ```go
-foliopdf.WatermarkPDF("in.pdf", "out.pdf",
-    foliopdf.WatermarkText("INTERNAL"),
-    foliopdf.WatermarkPattern(180, 180),   // spacing in points
-    foliopdf.WatermarkFontSize(28),
-    foliopdf.WatermarkOpacity(0.08),
+presspdf.WatermarkPDF("in.pdf", "out.pdf",
+    presspdf.WatermarkText("INTERNAL"),
+    presspdf.WatermarkPattern(180, 180),   // spacing in points
+    presspdf.WatermarkFontSize(28),
+    presspdf.WatermarkOpacity(0.08),
 )
 ```
 
@@ -134,10 +134,10 @@ By default, the watermark is centered on each page. Override with:
 
 ```go
 // Absolute position (in PDF points from bottom-left).
-foliopdf.WatermarkPosition(400, 30)
+presspdf.WatermarkPosition(400, 30)
 
 // Center (default).
-foliopdf.WatermarkCenter()
+presspdf.WatermarkCenter()
 ```
 
 ### All watermark options
@@ -162,21 +162,21 @@ Convert JPEG and PNG images into a PDF — one page per image.
 
 ```go
 // Auto-fit: each page sized to its image.
-err := foliopdf.ImagesToPDF("album.pdf", []string{
+err := presspdf.ImagesToPDF("album.pdf", []string{
     "photo1.jpg",
     "photo2.jpg",
     "scan.png",
 })
 
 // Fixed A4 pages with margins, images scaled to fit.
-err := foliopdf.ImagesToPDF("album.pdf", images,
-    foliopdf.ImagePageSize(foliopdf.A4),
-    foliopdf.ImageMargin(36),       // 0.5 inch margin
-    foliopdf.ImageFit("fit"),       // preserve aspect ratio
+err := presspdf.ImagesToPDF("album.pdf", images,
+    presspdf.ImagePageSize(presspdf.A4),
+    presspdf.ImageMargin(36),       // 0.5 inch margin
+    presspdf.ImageFit("fit"),       // preserve aspect ratio
 )
 
 // High DPI (smaller pages in auto-fit mode).
-err := foliopdf.ImagesToPDF("hires.pdf", images, foliopdf.ImageDPI(300))
+err := presspdf.ImagesToPDF("hires.pdf", images, presspdf.ImageDPI(300))
 ```
 
 ### Options
@@ -204,13 +204,13 @@ Remove password protection from an encrypted PDF. Pure Go — no external tools 
 
 ```go
 // Decrypt with user password.
-err := foliopdf.DecryptPDF("locked.pdf", "unlocked.pdf", "mypassword")
+err := presspdf.DecryptPDF("locked.pdf", "unlocked.pdf", "mypassword")
 
 // Decrypt with owner password.
-err := foliopdf.DecryptPDF("locked.pdf", "unlocked.pdf", "ownerpass")
+err := presspdf.DecryptPDF("locked.pdf", "unlocked.pdf", "ownerpass")
 
 // Not encrypted — just copies the file.
-err := foliopdf.DecryptPDF("plain.pdf", "output.pdf", "")
+err := presspdf.DecryptPDF("plain.pdf", "output.pdf", "")
 ```
 
 ### What it does
@@ -235,16 +235,16 @@ Rewrite a PDF with compressed streams and optional image quality reduction. Pure
 
 ```go
 // Basic compression: FlateDecode + object deduplication.
-err := foliopdf.CompressPDF("input.pdf", "smaller.pdf")
+err := presspdf.CompressPDF("input.pdf", "smaller.pdf")
 
 // Re-encode JPEG images at lower quality (1-100).
-err := foliopdf.CompressPDF("photos.pdf", "smaller.pdf",
-    foliopdf.CompressImageQuality(60),
+err := presspdf.CompressPDF("photos.pdf", "smaller.pdf",
+    presspdf.CompressImageQuality(60),
 )
 
 // Disable deduplication.
-err := foliopdf.CompressPDF("input.pdf", "output.pdf",
-    foliopdf.CompressDedup(false),
+err := presspdf.CompressPDF("input.pdf", "output.pdf",
+    presspdf.CompressDedup(false),
 )
 ```
 
@@ -269,17 +269,17 @@ Convert PDF pages to PNG or JPEG images. This feature requires an external rende
 
 ```go
 // Convert all pages to PNG.
-paths, err := foliopdf.ConvertToImages("doc.pdf", "images/")
+paths, err := presspdf.ConvertToImages("doc.pdf", "images/")
 
 // Convert specific pages to JPEG at 300 DPI.
-paths, err := foliopdf.ConvertToImages("doc.pdf", "images/",
-    foliopdf.WithFormat(foliopdf.JPEG),
-    foliopdf.WithDPI(300),
-    foliopdf.WithPages(1, 3, 5),
+paths, err := presspdf.ConvertToImages("doc.pdf", "images/",
+    presspdf.WithFormat(presspdf.JPEG),
+    presspdf.WithDPI(300),
+    presspdf.WithPages(1, 3, 5),
 )
 
 // Single page to in-memory image.
-img, err := foliopdf.ConvertPage("doc.pdf", 1)
+img, err := presspdf.ConvertPage("doc.pdf", 1)
 ```
 
 Supported renderers (tried in order): `pdftoppm` (poppler-utils), `mutool` (mupdf-tools), `gs` (ghostscript).

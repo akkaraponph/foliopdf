@@ -5,17 +5,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 func TestRegister(t *testing.T) {
-	doc := foliopdf.New(foliopdf.WithCompression(false))
+	doc := presspdf.New(presspdf.WithCompression(false))
 	if err := Register(doc); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
 	doc.SetFont("sarabun", "", 14)
-	page := doc.AddPage(foliopdf.A4)
+	page := doc.AddPage(presspdf.A4)
 	page.TextAt(20, 30, "สวัสดี Hello")
 
 	var buf bytes.Buffer
@@ -37,7 +37,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestAllStyles(t *testing.T) {
-	doc := foliopdf.New(foliopdf.WithCompression(false))
+	doc := presspdf.New(presspdf.WithCompression(false))
 	if err := Register(doc); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestAllStyles(t *testing.T) {
 		{"BI", "ตัวหนาเอียง BoldItalic"},
 	}
 
-	page := doc.AddPage(foliopdf.A4)
+	page := doc.AddPage(presspdf.A4)
 	y := 20.0
 	for _, st := range styles {
 		doc.SetFont("sarabun", st.style, 14)

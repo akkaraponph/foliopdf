@@ -9,7 +9,7 @@ This guide walks you through creating your first PDF with Folio.
 ## Installation
 
 ```bash
-go get github.com/akkaraponph/foliopdf
+go get github.com/akkaraponph/presspdf
 ```
 
 ## Your first PDF
@@ -19,16 +19,16 @@ Every Folio program follows the same pattern: create a document, add pages, draw
 ```go
 package main
 
-import "github.com/akkaraponph/foliopdf"
+import "github.com/akkaraponph/presspdf"
 
 func main() {
     // 1. Create a document
-    doc := foliopdf.New()
+    doc := presspdf.New()
     doc.SetTitle("My First PDF")
     doc.SetFont("helvetica", "", 12)
 
     // 2. Add a page
-    page := doc.AddPage(foliopdf.A4)
+    page := doc.AddPage(presspdf.A4)
 
     // 3. Draw content
     page.TextAt(20, 20, "Hello, World!")
@@ -58,9 +58,9 @@ Folio uses a **top-left origin** with millimeters as the default unit. The point
 A4 in millimeters is 210 wide x 297 tall. You can change units:
 
 ```go
-doc := foliopdf.New(foliopdf.WithUnit(foliopdf.UnitInch))  // inches
-doc := foliopdf.New(foliopdf.WithUnit(foliopdf.UnitPt))    // PDF points (1/72 inch)
-doc := foliopdf.New(foliopdf.WithUnit(foliopdf.UnitCM))    // centimeters
+doc := presspdf.New(presspdf.WithUnit(presspdf.UnitInch))  // inches
+doc := presspdf.New(presspdf.WithUnit(presspdf.UnitPt))    // PDF points (1/72 inch)
+doc := presspdf.New(presspdf.WithUnit(presspdf.UnitCM))    // centimeters
 ```
 
 ## Adding text
@@ -154,17 +154,17 @@ All values are 0-255 RGB.
 ## Multiple pages
 
 ```go
-page1 := doc.AddPage(foliopdf.A4)
+page1 := doc.AddPage(presspdf.A4)
 page1.TextAt(20, 20, "Page 1")
 
-page2 := doc.AddPage(foliopdf.Letter)  // different size is fine
+page2 := doc.AddPage(presspdf.Letter)  // different size is fine
 page2.TextAt(20, 20, "Page 2")
 ```
 
 Available sizes: `A3`, `A4`, `A5`, `Letter`, `Legal`. For landscape:
 
 ```go
-page := doc.AddPage(foliopdf.A4.Landscape())
+page := doc.AddPage(presspdf.A4.Landscape())
 ```
 
 ## Images
@@ -186,9 +186,9 @@ Images are deduplicated by content hash — register the same image twice and it
 Folio accumulates errors instead of returning them on every call. This lets you write clean, linear code:
 
 ```go
-doc := foliopdf.New()
+doc := presspdf.New()
 doc.SetFont("nonexistent", "", 12)  // error stored internally
-page := doc.AddPage(foliopdf.A4)       // returns a no-op page
+page := doc.AddPage(presspdf.A4)       // returns a no-op page
 page.TextAt(10, 10, "test")         // silently skipped
 
 // Check at the end

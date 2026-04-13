@@ -1,11 +1,11 @@
-package foliopdf
+package presspdf
 
 import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
 
-	"github.com/akkaraponph/foliopdf/internal/state"
+	"github.com/akkaraponph/presspdf/internal/state"
 )
 
 // SignOptions configures the digital signature.

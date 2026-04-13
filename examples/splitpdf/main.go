@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/akkaraponph/foliopdf"
+	"github.com/akkaraponph/presspdf"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 
 	// Split every page into a separate PDF (pure Go, no external tools).
 	outputDir := "output/pages"
-	paths, err := foliopdf.SplitPDF(pdfPath, outputDir)
+	paths, err := presspdf.SplitPDF(pdfPath, outputDir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,10 +23,10 @@ func main() {
 
 	// Split by custom page ranges.
 	rangeDir := "output/ranges"
-	paths, err = foliopdf.SplitPDF(pdfPath, rangeDir,
-		foliopdf.WithRanges(
-			foliopdf.PageRange{From: 1, To: 1},
-			foliopdf.PageRange{From: 2, To: 3},
+	paths, err = presspdf.SplitPDF(pdfPath, rangeDir,
+		presspdf.WithRanges(
+			presspdf.PageRange{From: 1, To: 1},
+			presspdf.PageRange{From: 2, To: 3},
 		),
 	)
 	if err != nil {

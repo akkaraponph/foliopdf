@@ -403,33 +403,33 @@ type CellStyle struct {
 
 ```go
 // Simple table (unchanged).
-tbl := foliopdf.NewTable(doc, page)
+tbl := presspdf.NewTable(doc, page)
 tbl.SetWidths(40, 100, 40)
 tbl.Header("#", "Name", "Price")
 tbl.Row("1", "Widget", "9.99")
 
 // Complex table with colspan and rowspan.
-tbl := foliopdf.NewTable(doc, page)
+tbl := presspdf.NewTable(doc, page)
 tbl.SetWidths(40, 40, 40, 40)
 tbl.SetCellPadding(2)
 
-tbl.AddHeader(foliopdf.TableCell{Text: "Report", ColSpan: 4, Align: "C"})
+tbl.AddHeader(presspdf.TableCell{Text: "Report", ColSpan: 4, Align: "C"})
 tbl.AddHeader(
-    foliopdf.TableCell{Text: "Region"},
-    foliopdf.TableCell{Text: "Q1"},
-    foliopdf.TableCell{Text: "Q2"},
-    foliopdf.TableCell{Text: "Total"},
+    presspdf.TableCell{Text: "Region"},
+    presspdf.TableCell{Text: "Q1"},
+    presspdf.TableCell{Text: "Q2"},
+    presspdf.TableCell{Text: "Total"},
 )
 tbl.AddRow(
-    foliopdf.TableCell{Text: "North", RowSpan: 2},
-    foliopdf.TableCell{Text: "100"},
-    foliopdf.TableCell{Text: "150"},
-    foliopdf.TableCell{Text: "250"},
+    presspdf.TableCell{Text: "North", RowSpan: 2},
+    presspdf.TableCell{Text: "100"},
+    presspdf.TableCell{Text: "150"},
+    presspdf.TableCell{Text: "250"},
 )
 tbl.AddRow(
-    foliopdf.TableCell{Text: "200"},
-    foliopdf.TableCell{Text: "180"},
-    foliopdf.TableCell{Text: "380"},
+    presspdf.TableCell{Text: "200"},
+    presspdf.TableCell{Text: "180"},
+    presspdf.TableCell{Text: "380"},
 )
 tbl.Render()
 ```
@@ -489,13 +489,13 @@ Options:
 
 ```go
 // Split every page into a separate file.
-paths, err := foliopdf.SplitPDF("input.pdf", "output/")
+paths, err := presspdf.SplitPDF("input.pdf", "output/")
 
 // Split by custom ranges.
-paths, err := foliopdf.SplitPDF("input.pdf", "output/",
-    foliopdf.WithRanges(
-        foliopdf.PageRange{From: 1, To: 3},
-        foliopdf.PageRange{From: 4, To: 10},
+paths, err := presspdf.SplitPDF("input.pdf", "output/",
+    presspdf.WithRanges(
+        presspdf.PageRange{From: 1, To: 3},
+        presspdf.PageRange{From: 4, To: 10},
     ),
 )
 ```
@@ -509,7 +509,7 @@ func MergePDF(outputPath string, inputPaths ...string) error
 Combines multiple PDFs into a single file. Pages appear in input order.
 
 ```go
-err := foliopdf.MergePDF("combined.pdf", "doc1.pdf", "doc2.pdf", "doc3.pdf")
+err := presspdf.MergePDF("combined.pdf", "doc1.pdf", "doc2.pdf", "doc3.pdf")
 ```
 
 ### Watermark PDF
@@ -547,29 +547,29 @@ Templates can be combined with other options to override individual settings.
 
 ```go
 // Template watermark.
-foliopdf.WatermarkPDF("in.pdf", "out.pdf", foliopdf.WatermarkTemplate("draft"))
+presspdf.WatermarkPDF("in.pdf", "out.pdf", presspdf.WatermarkTemplate("draft"))
 
 // Custom text watermark with pattern.
-foliopdf.WatermarkPDF("in.pdf", "out.pdf",
-    foliopdf.WatermarkText("INTERNAL"),
-    foliopdf.WatermarkPattern(200, 200),
-    foliopdf.WatermarkFontSize(36),
-    foliopdf.WatermarkOpacity(0.1),
-    foliopdf.WatermarkColor(200, 0, 0),
+presspdf.WatermarkPDF("in.pdf", "out.pdf",
+    presspdf.WatermarkText("INTERNAL"),
+    presspdf.WatermarkPattern(200, 200),
+    presspdf.WatermarkFontSize(36),
+    presspdf.WatermarkOpacity(0.1),
+    presspdf.WatermarkColor(200, 0, 0),
 )
 
 // Image watermark.
-foliopdf.WatermarkPDF("in.pdf", "out.pdf",
-    foliopdf.WatermarkImage("logo.png"),
-    foliopdf.WatermarkOpacity(0.15),
-    foliopdf.WatermarkScale(0.5),
+presspdf.WatermarkPDF("in.pdf", "out.pdf",
+    presspdf.WatermarkImage("logo.png"),
+    presspdf.WatermarkOpacity(0.15),
+    presspdf.WatermarkScale(0.5),
 )
 
 // Template + override.
-foliopdf.WatermarkPDF("in.pdf", "out.pdf",
-    foliopdf.WatermarkTemplate("confidential"),
-    foliopdf.WatermarkOpacity(0.5),
-    foliopdf.WatermarkRotation(30),
+presspdf.WatermarkPDF("in.pdf", "out.pdf",
+    presspdf.WatermarkTemplate("confidential"),
+    presspdf.WatermarkOpacity(0.5),
+    presspdf.WatermarkRotation(30),
 )
 ```
 
@@ -589,13 +589,13 @@ Options:
 
 ```go
 // Auto-fit: each page matches its image size.
-foliopdf.ImagesToPDF("album.pdf", []string{"a.jpg", "b.png", "c.jpg"})
+presspdf.ImagesToPDF("album.pdf", []string{"a.jpg", "b.png", "c.jpg"})
 
 // Fixed A4 pages with margins.
-foliopdf.ImagesToPDF("album.pdf", images,
-    foliopdf.ImagePageSize(foliopdf.A4),
-    foliopdf.ImageMargin(36),
-    foliopdf.ImageFit("fit"),
+presspdf.ImagesToPDF("album.pdf", images,
+    presspdf.ImagePageSize(presspdf.A4),
+    presspdf.ImageMargin(36),
+    presspdf.ImageFit("fit"),
 )
 ```
 
@@ -611,13 +611,13 @@ Supports PDF Standard Security Handler V=1, R=2 (40-bit RC4).
 
 ```go
 // Decrypt with user password.
-foliopdf.DecryptPDF("locked.pdf", "unlocked.pdf", "mypassword")
+presspdf.DecryptPDF("locked.pdf", "unlocked.pdf", "mypassword")
 
 // Decrypt with owner password.
-foliopdf.DecryptPDF("locked.pdf", "unlocked.pdf", "ownerpass")
+presspdf.DecryptPDF("locked.pdf", "unlocked.pdf", "ownerpass")
 
 // Unencrypted PDF — copied without changes.
-foliopdf.DecryptPDF("plain.pdf", "output.pdf", "")
+presspdf.DecryptPDF("plain.pdf", "output.pdf", "")
 ```
 
 ### Compress PDF
@@ -634,16 +634,16 @@ Options:
 
 ```go
 // Basic compression.
-foliopdf.CompressPDF("input.pdf", "output.pdf")
+presspdf.CompressPDF("input.pdf", "output.pdf")
 
 // Aggressive image compression.
-foliopdf.CompressPDF("input.pdf", "output.pdf",
-    foliopdf.CompressImageQuality(60),
+presspdf.CompressPDF("input.pdf", "output.pdf",
+    presspdf.CompressImageQuality(60),
 )
 
 // Without deduplication.
-foliopdf.CompressPDF("input.pdf", "output.pdf",
-    foliopdf.CompressDedup(false),
+presspdf.CompressPDF("input.pdf", "output.pdf",
+    presspdf.CompressDedup(false),
 )
 ```
 
@@ -684,7 +684,7 @@ Pre-defined sizes: `A3`, `A4`, `A5`, `Letter`, `Legal` and their landscape varia
 ### fonts/sarabun
 
 ```go
-func Register(doc *foliopdf.Document) error
+func Register(doc *presspdf.Document) error
 ```
 
 Registers Sarabun (Thai font) in all 4 styles: Regular, Bold, Italic, BoldItalic. Font family name: `"sarabun"`.
@@ -692,7 +692,7 @@ Registers Sarabun (Thai font) in all 4 styles: Regular, Bold, Italic, BoldItalic
 ### fonts/dejavu
 
 ```go
-func Register(doc *foliopdf.Document) error
+func Register(doc *presspdf.Document) error
 ```
 
 Registers DejaVu Sans Condensed in all 4 styles. Font family name: `"dejavu"`.
@@ -702,7 +702,7 @@ Registers DejaVu Sans Condensed in all 4 styles. Font family name: `"dejavu"`.
 ## thai
 
 ```go
-func Setup(doc *foliopdf.Document)
+func Setup(doc *presspdf.Document)
 func Segment(text string) []string
 ```
 

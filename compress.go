@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // CompressOption configures PDF compression.
@@ -48,21 +48,21 @@ func CompressPDF(inputPath, outputPath string, opts ...CompressOption) error {
 
 	if dir := filepath.Dir(outputPath); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("folio: create output dir: %w", err)
+			return fmt.Errorf("presspdf: create output dir: %w", err)
 		}
 	}
 
 	data, err := os.ReadFile(inputPath)
 	if err != nil {
-		return fmt.Errorf("folio: read PDF: %w", err)
+		return fmt.Errorf("presspdf: read PDF: %w", err)
 	}
 	r, err := pdfcore.ReadPDF(data)
 	if err != nil {
-		return fmt.Errorf("folio: parse PDF: %w", err)
+		return fmt.Errorf("presspdf: parse PDF: %w", err)
 	}
 	pageRefs, err := r.PageRefs()
 	if err != nil {
-		return fmt.Errorf("folio: read pages: %w", err)
+		return fmt.Errorf("presspdf: read pages: %w", err)
 	}
 
 	// Collect all page dependencies.

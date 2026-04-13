@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 // Layout orchestration helpers for vertical flow, pagination, and
 // block composition. These sit on top of the existing drawing

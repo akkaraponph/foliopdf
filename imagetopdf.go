@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/akkaraponph/foliopdf/internal/state"
+	"github.com/akkaraponph/presspdf/internal/state"
 )
 
 // ImageToPDFOption configures image-to-PDF conversion.
@@ -50,7 +50,7 @@ func ImageFit(mode string) ImageToPDFOption {
 // This is a pure Go implementation — no external tools required.
 func ImagesToPDF(outputPath string, imagePaths []string, opts ...ImageToPDFOption) error {
 	if len(imagePaths) == 0 {
-		return fmt.Errorf("folio: no images provided")
+		return fmt.Errorf("presspdf: no images provided")
 	}
 
 	cfg := &imgPDFConfig{dpi: 96, fit: "fit"}
@@ -61,7 +61,7 @@ func ImagesToPDF(outputPath string, imagePaths []string, opts ...ImageToPDFOptio
 	// Ensure output directory exists.
 	if dir := filepath.Dir(outputPath); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("folio: create output dir: %w", err)
+			return fmt.Errorf("presspdf: create output dir: %w", err)
 		}
 	}
 
@@ -69,7 +69,7 @@ func ImagesToPDF(outputPath string, imagePaths []string, opts ...ImageToPDFOptio
 	for _, p := range imagePaths {
 		ext := strings.ToLower(filepath.Ext(p))
 		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-			return fmt.Errorf("folio: unsupported format %s (use JPEG or PNG)", ext)
+			return fmt.Errorf("presspdf: unsupported format %s (use JPEG or PNG)", ext)
 		}
 	}
 
@@ -81,12 +81,12 @@ func ImagesToPDF(outputPath string, imagePaths []string, opts ...ImageToPDFOptio
 		// Register image.
 		f, err := os.Open(imgPath)
 		if err != nil {
-			return fmt.Errorf("folio: open %s: %w", imgPath, err)
+			return fmt.Errorf("presspdf: open %s: %w", imgPath, err)
 		}
 		err = doc.RegisterImage(name, f)
 		f.Close()
 		if err != nil {
-			return fmt.Errorf("folio: register %s: %w", imgPath, err)
+			return fmt.Errorf("presspdf: register %s: %w", imgPath, err)
 		}
 
 		// Get pixel dimensions from the registry.
@@ -136,7 +136,7 @@ func ImagesToPDF(outputPath string, imagePaths []string, opts ...ImageToPDFOptio
 	}
 
 	if err := doc.Save(outputPath); err != nil {
-		return fmt.Errorf("folio: save PDF: %w", err)
+		return fmt.Errorf("presspdf: save PDF: %w", err)
 	}
 	return nil
 }

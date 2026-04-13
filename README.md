@@ -28,7 +28,7 @@
 ## Install
 
 ```bash
-go get github.com/akkaraponph/foliopdf
+go get github.com/akkaraponph/presspdf
 ```
 
 Requires Go 1.26+.
@@ -38,13 +38,13 @@ Requires Go 1.26+.
 ```go
 package main
 
-import "github.com/akkaraponph/foliopdf"
+import "github.com/akkaraponph/presspdf"
 
 func main() {
-    doc := foliopdf.New()
+    doc := presspdf.New()
     doc.SetFont("helvetica", "B", 20)
 
-    page := doc.AddPage(foliopdf.A4)
+    page := doc.AddPage(presspdf.A4)
     page.TextAt(40, 30, "Hello, Folio!")
 
     doc.Save("hello.pdf")
@@ -105,14 +105,14 @@ doc.SetAlpha(0.5)                 // 50% opacity
 ```go
 // Linear gradient
 page.LinearGradient(20, 20, 170, 50, 20, 20, 190, 20,
-    foliopdf.ColorStop(0, 255, 0, 0),
-    foliopdf.ColorStop(1, 0, 0, 255),
+    presspdf.ColorStop(0, 255, 0, 0),
+    presspdf.ColorStop(1, 0, 0, 255),
 )
 
 // Radial gradient
 page.RadialGradient(20, 80, 170, 50, 105, 105, 60,
-    foliopdf.ColorStop(0, 255, 255, 0),
-    foliopdf.ColorStop(1, 0, 128, 0),
+    presspdf.ColorStop(0, 255, 255, 0),
+    presspdf.ColorStop(1, 0, 128, 0),
 )
 ```
 
@@ -162,8 +162,8 @@ page.Write(6, "continuously.")
 **Simple API** — draws rows immediately:
 
 ```go
-tbl := foliopdf.NewTable(doc, page, 20, []float64{20, 80, 40}, 8)
-tbl.SetHeaderStyle(foliopdf.CellStyle{FontStyle: "B", Fill: true, FillColor: [3]int{200, 220, 255}})
+tbl := presspdf.NewTable(doc, page, 20, []float64{20, 80, 40}, 8)
+tbl.SetHeaderStyle(presspdf.CellStyle{FontStyle: "B", Fill: true, FillColor: [3]int{200, 220, 255}})
 tbl.Header("#", "Product", "Price")
 tbl.Row("1", "Widget", "$9.99")
 tbl.Row("2", "Gadget", "$19.99")
@@ -172,13 +172,13 @@ tbl.Row("2", "Gadget", "$19.99")
 **Complex API** — buffered rendering with colspan, rowspan, multi-line cells:
 
 ```go
-tbl := foliopdf.NewTable(doc, page, 20, []float64{30, 60, 50, 50}, 8)
-tbl.AddHeader(foliopdf.TableCell{Text: "Quarterly Report", ColSpan: 4, Align: "C"})
+tbl := presspdf.NewTable(doc, page, 20, []float64{30, 60, 50, 50}, 8)
+tbl.AddHeader(presspdf.TableCell{Text: "Quarterly Report", ColSpan: 4, Align: "C"})
 tbl.AddRow(
-    foliopdf.TableCell{Text: "Region", RowSpan: 2},
-    foliopdf.TableCell{Text: "Q1"},
-    foliopdf.TableCell{Text: "Q2"},
-    foliopdf.TableCell{Text: "Total"},
+    presspdf.TableCell{Text: "Region", RowSpan: 2},
+    presspdf.TableCell{Text: "Q1"},
+    presspdf.TableCell{Text: "Q2"},
+    presspdf.TableCell{Text: "Total"},
 )
 tbl.Render()
 ```
@@ -191,7 +191,7 @@ type Product struct {
     Price float64
 }
 products := []Product{{"Widget", 9.99}, {"Gadget", 19.99}}
-at := foliopdf.AutoTableFromStructs(doc, page, products)
+at := presspdf.AutoTableFromStructs(doc, page, products)
 at.Render()
 ```
 
@@ -227,33 +227,33 @@ page.Markdown(`
 **Bold** and *italic* text.
 - List item
 [Link](https://example.com)
-`, foliopdf.WithBookmarks())
+`, presspdf.WithBookmarks())
 ```
 
 ### Page Layout
 
 ```go
 // Page sizes and orientation
-page := doc.AddPage(foliopdf.A4)
-page := doc.AddPage(foliopdf.A4.Landscape())
-page := doc.AddPage(foliopdf.Letter)
+page := doc.AddPage(presspdf.A4)
+page := doc.AddPage(presspdf.A4.Landscape())
+page := doc.AddPage(presspdf.Letter)
 
 // Margins
 doc.SetMargins(15, 15, 15)
 doc.SetAutoPageBreak(true, 20)
 
 // Headers and footers
-doc.SetHeaderFunc(func(p *foliopdf.Page) {
+doc.SetHeaderFunc(func(p *presspdf.Page) {
     p.TextAt(20, 10, "My Document")
     p.Line(20, 14, 190, 14)
 })
-doc.SetFooterFunc(func(p *foliopdf.Page) {
+doc.SetFooterFunc(func(p *presspdf.Page) {
     p.SetY(-15)
     p.Cell(0, 10, fmt.Sprintf("Page %d", doc.PageNo()), "", "C", false)
 })
 
 // Multi-column layout
-cols := foliopdf.NewColumnLayout(doc, page, 2, 5)
+cols := presspdf.NewColumnLayout(doc, page, 2, 5)
 cols.Begin()
 page.MultiCell(0, 5, leftText, "", "L", false)
 cols.NextColumn()
@@ -282,7 +282,7 @@ doc.AddBookmark("Chapter 1", 0, page, 20)
 doc.AddBookmark("Section 1.1", 1, page, 60)
 
 // Table of contents with dot leaders and page numbers
-toc := foliopdf.NewTOC(doc)
+toc := presspdf.NewTOC(doc)
 toc.Add("Chapter 1", 0, chapterPage, 20)
 toc.Add("Section 1.1", 1, sectionPage, 60)
 toc.Render(tocPage, 6)
@@ -307,7 +307,7 @@ page.FormDropdown("color", 60, 90, 100, 12, []string{"Red", "Green", "Blue"})
 ### Page Templates
 
 ```go
-tpl := doc.BeginTemplate(foliopdf.A4)
+tpl := doc.BeginTemplate(presspdf.A4)
 tpl.TextAt(20, 10, "CONFIDENTIAL")
 tpl.Line(20, 14, 190, 14)
 doc.EndTemplate(tpl)
@@ -318,7 +318,7 @@ page.UseTemplate(tpl, 0, 0, 1.0) // stamp onto any page
 ### Digital Signatures
 
 ```go
-doc.Sign(cert, privateKey, page, 20, 250, 80, 30, foliopdf.SignOptions{
+doc.Sign(cert, privateKey, page, 20, 250, 80, 30, presspdf.SignOptions{
     Name:     "John Doe",
     Reason:   "Approval",
     Location: "Bangkok",
@@ -328,14 +328,14 @@ doc.Sign(cert, privateKey, page, 20, 250, 80, 30, foliopdf.SignOptions{
 ### Encryption
 
 ```go
-doc.SetProtection("userpass", "ownerpass", foliopdf.PermPrint|foliopdf.PermCopy)
+doc.SetProtection("userpass", "ownerpass", presspdf.PermPrint|presspdf.PermCopy)
 ```
 
 ### PDF/A Compliance
 
 ```go
-doc := foliopdf.New(foliopdf.WithPDFA("1b")) // PDF/A-1b
-doc := foliopdf.New(foliopdf.WithPDFA("2b")) // PDF/A-2b
+doc := presspdf.New(presspdf.WithPDFA("1b")) // PDF/A-1b
+doc := presspdf.New(presspdf.WithPDFA("2b")) // PDF/A-2b
 ```
 
 ### PDF Tools
@@ -344,42 +344,42 @@ Work with any existing PDF — not just files created by Folio.
 
 ```go
 // Merge multiple PDFs
-foliopdf.MergePDF("combined.pdf", "doc1.pdf", "doc2.pdf", "doc3.pdf")
+presspdf.MergePDF("combined.pdf", "doc1.pdf", "doc2.pdf", "doc3.pdf")
 
 // Split into individual pages
-foliopdf.SplitPDF("report.pdf", "output/")
+presspdf.SplitPDF("report.pdf", "output/")
 
 // Split by page ranges
-foliopdf.SplitPDF("report.pdf", "output/",
-    foliopdf.WithRanges(foliopdf.PageRange{From: 1, To: 5}),
+presspdf.SplitPDF("report.pdf", "output/",
+    presspdf.WithRanges(presspdf.PageRange{From: 1, To: 5}),
 )
 
 // Compress an existing PDF
-foliopdf.CompressPDF("input.pdf", "smaller.pdf")
+presspdf.CompressPDF("input.pdf", "smaller.pdf")
 
 // Add watermark
-foliopdf.WatermarkPDF("input.pdf", "output.pdf",
-    foliopdf.WatermarkText("DRAFT"),
-    foliopdf.WatermarkOpacity(0.3),
-    foliopdf.WatermarkRotation(45),
+presspdf.WatermarkPDF("input.pdf", "output.pdf",
+    presspdf.WatermarkText("DRAFT"),
+    presspdf.WatermarkOpacity(0.3),
+    presspdf.WatermarkRotation(45),
 )
 
 // Remove password protection
-foliopdf.DecryptPDF("encrypted.pdf", "decrypted.pdf", "password")
+presspdf.DecryptPDF("encrypted.pdf", "decrypted.pdf", "password")
 
 // Convert images to PDF
-foliopdf.ImagesToPDF("album.pdf", "photo1.jpg", "photo2.jpg")
+presspdf.ImagesToPDF("album.pdf", "photo1.jpg", "photo2.jpg")
 
 // Convert PDF pages to images
-foliopdf.ConvertPDF("document.pdf", "output/", foliopdf.WithFormat(foliopdf.PNG))
+presspdf.ConvertPDF("document.pdf", "output/", presspdf.WithFormat(presspdf.PNG))
 ```
 
 ### Thai Language Support
 
 ```go
 import (
-    "github.com/akkaraponph/foliopdf/fonts/sarabun"
-    "github.com/akkaraponph/foliopdf/thai"
+    "github.com/akkaraponph/presspdf/fonts/sarabun"
+    "github.com/akkaraponph/presspdf/thai"
 )
 
 doc.AddUTF8Font("sarabun", "", sarabun.Regular())
@@ -393,10 +393,10 @@ page.MultiCell(170, 6, "ภาษาไทยตัดคำอัตโนม�
 ### Measurement Units
 
 ```go
-foliopdf.New(foliopdf.WithUnit(foliopdf.UnitMM))   // millimeters (default)
-foliopdf.New(foliopdf.WithUnit(foliopdf.UnitPt))   // points (1/72 inch)
-foliopdf.New(foliopdf.WithUnit(foliopdf.UnitCM))   // centimeters
-foliopdf.New(foliopdf.WithUnit(foliopdf.UnitInch)) // inches
+presspdf.New(presspdf.WithUnit(presspdf.UnitMM))   // millimeters (default)
+presspdf.New(presspdf.WithUnit(presspdf.UnitPt))   // points (1/72 inch)
+presspdf.New(presspdf.WithUnit(presspdf.UnitCM))   // centimeters
+presspdf.New(presspdf.WithUnit(presspdf.UnitInch)) // inches
 ```
 
 ### Output
@@ -456,7 +456,7 @@ Folio uses a clean 4-layer architecture where each layer has a single responsibi
 
 ```
 ┌─────────────────────────────────────────────┐
-│  foliopdf (public API)                      │
+│  presspdf (public API)                      │
 ├─────────────────────────────────────────────┤
 │  internal/state      │ Unit conversion,     │
 │                      │ color math           │

@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"encoding/binary"

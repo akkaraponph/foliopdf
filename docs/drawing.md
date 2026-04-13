@@ -110,8 +110,8 @@ page.TextRotatedAt(105, 148, 45, "Rotated 45 degrees")
 page.LinearGradient(
     20, 20, 80, 40,      // rectangle: x, y, w, h
     0, 0, 1, 0,          // direction: left to right
-    foliopdf.GradientStop{Pos: 0, R: 255, G: 0, B: 0},     // red
-    foliopdf.GradientStop{Pos: 1, R: 0, G: 0, B: 255},     // blue
+    presspdf.GradientStop{Pos: 0, R: 255, G: 0, B: 0},     // red
+    presspdf.GradientStop{Pos: 1, R: 0, G: 0, B: 255},     // blue
 )
 ```
 
@@ -123,8 +123,8 @@ Direction is normalized: (0,0) to (1,0) = left-to-right, (0,0) to (0,1) = top-to
 page.RadialGradient(
     20, 80, 60, 60,      // rectangle: x, y, w, h
     0.5, 0.5, 0.5,       // center x, center y, radius (normalized)
-    foliopdf.GradientStop{Pos: 0, R: 255, G: 255, B: 0},   // yellow center
-    foliopdf.GradientStop{Pos: 1, R: 200, G: 50, B: 0},    // dark orange edge
+    presspdf.GradientStop{Pos: 0, R: 255, G: 255, B: 0},   // yellow center
+    presspdf.GradientStop{Pos: 1, R: 200, G: 50, B: 0},    // dark orange edge
 )
 ```
 

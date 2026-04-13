@@ -100,7 +100,7 @@ func FileID(title, producer string) []byte {
 	h.Write([]byte(title))
 	h.Write([]byte(producer))
 	// Add some variability.
-	h.Write([]byte("folio-pdf"))
+	h.Write([]byte("presspdf"))
 	return h.Sum(nil)
 }
 

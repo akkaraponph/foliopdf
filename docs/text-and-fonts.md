@@ -46,7 +46,7 @@ Folio ships two font families ready to use:
 ### Sarabun (Thai + Latin)
 
 ```go
-import "github.com/akkaraponph/foliopdf/fonts/sarabun"
+import "github.com/akkaraponph/presspdf/fonts/sarabun"
 
 sarabun.Register(doc) // registers Regular, Bold, Italic, BoldItalic
 doc.SetFont("sarabun", "B", 14)
@@ -55,7 +55,7 @@ doc.SetFont("sarabun", "B", 14)
 ### DejaVu Sans Condensed (Latin + extended)
 
 ```go
-import "github.com/akkaraponph/foliopdf/fonts/dejavu"
+import "github.com/akkaraponph/presspdf/fonts/dejavu"
 
 dejavu.Register(doc)
 doc.SetFont("dejavu", "", 12)
@@ -67,16 +67,16 @@ Thai text needs word segmentation for proper line wrapping (Thai doesn't use spa
 
 ```go
 import (
-    "github.com/akkaraponph/foliopdf/fonts/sarabun"
-    "github.com/akkaraponph/foliopdf/thai"
+    "github.com/akkaraponph/presspdf/fonts/sarabun"
+    "github.com/akkaraponph/presspdf/thai"
 )
 
-doc := foliopdf.New()
+doc := presspdf.New()
 sarabun.Register(doc)
 thai.Setup(doc)  // install word breaker
 
 doc.SetFont("sarabun", "", 14)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 page.SetXY(20, 20)
 page.MultiCell(170, 7,
     "สวัสดีครับ นี่คือตัวอย่างภาษาไทยใน Folio",

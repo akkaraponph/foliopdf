@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import "strings"
 
@@ -37,9 +37,9 @@ type TableCell struct {
 //
 // Complex (buffered, supports colspan/rowspan/multi-line):
 //
-//	tbl.AddHeader(folio.TableCell{Text: "Report", ColSpan: 3, Align: "C"})
-//	tbl.AddRow(folio.TableCell{Text: "1", RowSpan: 2}, folio.TableCell{Text: "Item"}, folio.TableCell{Text: "100"})
-//	tbl.AddRow(folio.TableCell{Text: "Sub-item"}, folio.TableCell{Text: "50"})
+//	tbl.AddHeader(presspdf.TableCell{Text: "Report", ColSpan: 3, Align: "C"})
+//	tbl.AddRow(presspdf.TableCell{Text: "1", RowSpan: 2}, presspdf.TableCell{Text: "Item"}, presspdf.TableCell{Text: "100"})
+//	tbl.AddRow(presspdf.TableCell{Text: "Sub-item"}, presspdf.TableCell{Text: "50"})
 //	tbl.Render()
 type Table struct {
 	doc  *Document

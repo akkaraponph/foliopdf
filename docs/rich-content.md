@@ -10,7 +10,7 @@ Render an HTML subset directly onto the page:
 
 ```go
 doc.SetFont("helvetica", "", 12)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 
 page.HTML(`<h1>Document Title</h1>
 <p>This is a paragraph with <b>bold</b>, <i>italic</i>,
@@ -68,7 +68,7 @@ Render a Markdown subset:
 
 ```go
 doc.SetFont("helvetica", "", 12)
-page := doc.AddPage(foliopdf.A4)
+page := doc.AddPage(presspdf.A4)
 
 page.Markdown(`# Main Heading
 
@@ -106,8 +106,8 @@ Visit [GitHub](https://github.com) for more.
 
 ```go
 page.Markdown(md,
-    foliopdf.WithBookmarks(),     // auto-create PDF bookmarks from headings
-    foliopdf.WithLineHeight(5.5), // custom line height
+    presspdf.WithBookmarks(),     // auto-create PDF bookmarks from headings
+    presspdf.WithLineHeight(5.5), // custom line height
 )
 ```
 

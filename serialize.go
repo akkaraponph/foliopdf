@@ -1,19 +1,19 @@
-package foliopdf
+package presspdf
 
 import (
 	"fmt"
 	"sort"
 	"time"
 
-	pdfcrypto "github.com/akkaraponph/foliopdf/internal/crypto"
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
-	"github.com/akkaraponph/foliopdf/internal/resources"
+	pdfcrypto "github.com/akkaraponph/presspdf/internal/crypto"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/resources"
 )
 
 // serialize builds the complete PDF byte stream.
 func (d *Document) serialize() (*pdfcore.Writer, error) {
 	if len(d.pages) == 0 {
-		return nil, fmt.Errorf("folio: no pages")
+		return nil, fmt.Errorf("presspdf: no pages")
 	}
 
 	w := pdfcore.NewWriter()
@@ -41,21 +41,21 @@ func (d *Document) serialize() (*pdfcore.Writer, error) {
 			var err error
 			encKey, err = pdfcrypto.GenerateFileEncryptionKey()
 			if err != nil {
-				return nil, fmt.Errorf("folio: generate encryption key: %w", err)
+				return nil, fmt.Errorf("presspdf: generate encryption key: %w", err)
 			}
 			// Compute U value and UE (encrypted file key).
 			var ueKey [32]byte
 			uValue, ueKey = pdfcrypto.ComputeUserHashV5(d.userPw)
 			ueEncrypted, err = pdfcrypto.EncryptAESCBC(ueKey[:], encKey)
 			if err != nil {
-				return nil, fmt.Errorf("folio: encrypt UE: %w", err)
+				return nil, fmt.Errorf("presspdf: encrypt UE: %w", err)
 			}
 			// Compute O value and OE (encrypted file key).
 			var oeKey [32]byte
 			oValue, oeKey = pdfcrypto.ComputeOwnerHashV5(d.ownerPw, uValue[:])
 			oeEncrypted, err = pdfcrypto.EncryptAESCBC(oeKey[:], encKey)
 			if err != nil {
-				return nil, fmt.Errorf("folio: encrypt OE: %w", err)
+				return nil, fmt.Errorf("presspdf: encrypt OE: %w", err)
 			}
 			w.SetEncryption(encKey, pdfcrypto.EncryptDataAES256)
 		} else {

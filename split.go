@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // PageRange represents a range of pages to extract (1-indexed, inclusive).
@@ -44,21 +44,21 @@ func SplitPDF(pdfPath, outputDir string, opts ...SplitOption) ([]string, error) 
 
 	data, err := os.ReadFile(pdfPath)
 	if err != nil {
-		return nil, fmt.Errorf("folio: read PDF: %w", err)
+		return nil, fmt.Errorf("presspdf: read PDF: %w", err)
 	}
 
 	r, err := pdfcore.ReadPDF(data)
 	if err != nil {
-		return nil, fmt.Errorf("folio: parse PDF: %w", err)
+		return nil, fmt.Errorf("presspdf: parse PDF: %w", err)
 	}
 
 	pageRefs, err := r.PageRefs()
 	if err != nil {
-		return nil, fmt.Errorf("folio: read page tree: %w", err)
+		return nil, fmt.Errorf("presspdf: read page tree: %w", err)
 	}
 
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return nil, fmt.Errorf("folio: create output dir: %w", err)
+		return nil, fmt.Errorf("presspdf: create output dir: %w", err)
 	}
 
 	// Build ranges.
@@ -81,7 +81,7 @@ func SplitPDF(pdfPath, outputDir string, opts ...SplitOption) ([]string, error) 
 		outPath := filepath.Join(outputDir, name)
 
 		if err := writeSplitPDF(r, pageRefs, pr, outPath); err != nil {
-			return nil, fmt.Errorf("folio: write %s: %w", name, err)
+			return nil, fmt.Errorf("presspdf: write %s: %w", name, err)
 		}
 		paths = append(paths, outPath)
 	}

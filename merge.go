@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // MergePDF combines multiple PDF files into a single PDF written to
@@ -16,13 +16,13 @@ import (
 // This is a pure Go implementation — no external tools required.
 func MergePDF(outputPath string, inputPaths ...string) error {
 	if len(inputPaths) == 0 {
-		return fmt.Errorf("folio: no input files")
+		return fmt.Errorf("presspdf: no input files")
 	}
 
 	// Ensure output directory exists.
 	if dir := filepath.Dir(outputPath); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("folio: create output dir: %w", err)
+			return fmt.Errorf("presspdf: create output dir: %w", err)
 		}
 	}
 
@@ -40,15 +40,15 @@ func MergePDF(outputPath string, inputPaths ...string) error {
 	for _, path := range inputPaths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("folio: read %s: %w", path, err)
+			return fmt.Errorf("presspdf: read %s: %w", path, err)
 		}
 		r, err := pdfcore.ReadPDF(data)
 		if err != nil {
-			return fmt.Errorf("folio: parse %s: %w", path, err)
+			return fmt.Errorf("presspdf: parse %s: %w", path, err)
 		}
 		pageRefs, err := r.PageRefs()
 		if err != nil {
-			return fmt.Errorf("folio: pages in %s: %w", path, err)
+			return fmt.Errorf("presspdf: pages in %s: %w", path, err)
 		}
 
 		// Use the highest PDF version among inputs.
@@ -62,7 +62,7 @@ func MergePDF(outputPath string, inputPaths ...string) error {
 		for i, ref := range pageRefs {
 			attrs, err := r.InheritedPageAttrs(ref.Num)
 			if err != nil {
-				return fmt.Errorf("folio: page attrs in %s: %w", path, err)
+				return fmt.Errorf("presspdf: page attrs in %s: %w", path, err)
 			}
 			enhanced[i] = attrs
 			roots = append(roots, ref.Num)
@@ -73,7 +73,7 @@ func MergePDF(outputPath string, inputPaths ...string) error {
 
 		deps, err := r.CollectDeps(roots...)
 		if err != nil {
-			return fmt.Errorf("folio: deps in %s: %w", path, err)
+			return fmt.Errorf("presspdf: deps in %s: %w", path, err)
 		}
 
 		sources = append(sources, sourceInfo{

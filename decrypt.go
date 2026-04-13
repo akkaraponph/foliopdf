@@ -1,4 +1,4 @@
-package foliopdf
+package presspdf
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/akkaraponph/foliopdf/internal/pdfcore"
+	"github.com/akkaraponph/presspdf/internal/pdfcore"
 )
 
 // DecryptPDF removes password protection from a PDF file.
@@ -20,17 +20,17 @@ import (
 func DecryptPDF(inputPath, outputPath, password string) error {
 	if dir := filepath.Dir(outputPath); dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("folio: create output dir: %w", err)
+			return fmt.Errorf("presspdf: create output dir: %w", err)
 		}
 	}
 
 	data, err := os.ReadFile(inputPath)
 	if err != nil {
-		return fmt.Errorf("folio: read PDF: %w", err)
+		return fmt.Errorf("presspdf: read PDF: %w", err)
 	}
 	r, err := pdfcore.ReadPDF(data)
 	if err != nil {
-		return fmt.Errorf("folio: parse PDF: %w", err)
+		return fmt.Errorf("presspdf: parse PDF: %w", err)
 	}
 
 	trailer := r.Trailer()
@@ -50,21 +50,21 @@ func DecryptPDF(inputPath, outputPath, password string) error {
 	if hasEncrypt {
 		obj, err := r.Object(encRef.Num)
 		if err != nil {
-			return fmt.Errorf("folio: read encrypt dict: %w", err)
+			return fmt.Errorf("presspdf: read encrypt dict: %w", err)
 		}
 		encDict = pdfcore.ToDict(obj)
 	} else {
 		encDict = trailer["/Encrypt"].(map[string]interface{})
 	}
 	if encDict == nil {
-		return fmt.Errorf("folio: encrypt dict is not a dictionary")
+		return fmt.Errorf("presspdf: encrypt dict is not a dictionary")
 	}
 
 	// Parse encryption parameters.
 	v := pdfcore.ToInt(encDict["/V"])
 	revision := pdfcore.ToInt(encDict["/R"])
 	if v != 1 || revision != 2 {
-		return fmt.Errorf("folio: unsupported encryption V=%d R=%d (only V=1 R=2 supported)", v, revision)
+		return fmt.Errorf("presspdf: unsupported encryption V=%d R=%d (only V=1 R=2 supported)", v, revision)
 	}
 
 	ownerHash := parseHashBytes(encDict["/O"])
@@ -82,7 +82,7 @@ func DecryptPDF(inputPath, outputPath, password string) error {
 	// Try password as user password first, then as owner password.
 	encKey, err := authenticatePassword(password, ownerHash, userHash, permissions, fileID)
 	if err != nil {
-		return fmt.Errorf("folio: %w", err)
+		return fmt.Errorf("presspdf: %w", err)
 	}
 
 	// Now rewrite the PDF with decrypted content.
@@ -226,7 +226,7 @@ func decryptObject(obj interface{}, encKey []byte, objNum, genNum int) interface
 func writeDecryptedPDF(r *pdfcore.Reader, encKey []byte, outputPath string, encIsRef bool, encObjNum int) error {
 	pageRefs, err := r.PageRefs()
 	if err != nil {
-		return fmt.Errorf("folio: read pages: %w", err)
+		return fmt.Errorf("presspdf: read pages: %w", err)
 	}
 
 	// Collect enhanced page attributes and dependencies.
