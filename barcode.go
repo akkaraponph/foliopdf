@@ -7,7 +7,9 @@ import (
 	"github.com/akkaraponph/presspdf/internal/state"
 )
 
-// QR code error correction levels.
+// QR code error correction levels for use with [Page.QRCode].
+// Higher levels allow more of the code to be damaged and still scan
+// correctly, at the cost of larger codes.
 const (
 	ECLow      = 0 // ~7% recovery
 	ECMedium   = 1 // ~15% recovery

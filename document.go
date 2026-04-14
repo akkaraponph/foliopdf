@@ -11,7 +11,12 @@ import (
 	"github.com/akkaraponph/presspdf/internal/state"
 )
 
-// Document is the root object for creating a PDF.
+// Document is the root object for creating a PDF. Create one with [New],
+// configure fonts and metadata, add pages with [AddPage], and output with
+// [Save], [WriteTo], or [Bytes].
+//
+// Errors are accumulated internally — call [Document.Err] to check, or
+// simply check the error returned by the output methods.
 type Document struct {
 	// metadata
 	title    string
@@ -802,12 +807,13 @@ func (d *Document) SetProtectionAES256(userPw, ownerPw string, permissions int) 
 	d.permissions = int32(permissions) | int32(-4)
 }
 
-// Permission flag constants for PDF standard security handler.
+// Permission flags for [Document.SetProtection] and [Document.SetProtectionAES256].
+// Combine with bitwise OR (e.g., PermPrint|PermCopy).
 const (
-	PermPrint    = 1 << 2
-	PermModify   = 1 << 3
-	PermCopy     = 1 << 4
-	PermAnnotate = 1 << 5
+	PermPrint    = 1 << 2 // allow printing the document
+	PermModify   = 1 << 3 // allow modifying document contents
+	PermCopy     = 1 << 4 // allow copying or extracting text
+	PermAnnotate = 1 << 5 // allow adding or modifying annotations
 	PermAll      = PermPrint | PermModify | PermCopy | PermAnnotate
 )
 

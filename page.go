@@ -10,7 +10,12 @@ import (
 	"github.com/akkaraponph/presspdf/internal/state"
 )
 
-// Page represents a single PDF page with drawing methods.
+// Page represents a single PDF page with methods for drawing text,
+// shapes, images, barcodes, and other content. A Page is created by
+// [Document.AddPage] and remains valid for the lifetime of the document.
+//
+// If automatic page breaks are enabled, a stale *Page transparently
+// forwards drawing operations to the newest page.
 type Page struct {
 	doc    *Document
 	stream content.Stream

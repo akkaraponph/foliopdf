@@ -32,6 +32,7 @@ type ToolError struct {
 	Output []byte
 }
 
+// Error returns a message describing the tool failure, including any output.
 func (e *ToolError) Error() string {
 	msg := fmt.Sprintf("presspdf: %s failed: %v", e.Tool, e.Err)
 	if len(e.Output) > 0 {
@@ -40,6 +41,7 @@ func (e *ToolError) Error() string {
 	return msg
 }
 
+// Unwrap returns the underlying error for use with errors.Is/As.
 func (e *ToolError) Unwrap() error { return e.Err }
 
 // FindTool searches the system PATH for the first available tool from
@@ -60,6 +62,7 @@ type ToolNotFoundError struct {
 	Tried []string
 }
 
+// Error returns a message listing which tool binaries were tried.
 func (e *ToolNotFoundError) Error() string {
 	return fmt.Sprintf("presspdf: no tool found on PATH (tried: %s)", strings.Join(e.Tried, ", "))
 }

@@ -14,9 +14,10 @@ import (
 // ImageFormat specifies the output image format for PDF conversion.
 type ImageFormat string
 
+// Supported image formats for PDF-to-image conversion.
 const (
-	PNG  ImageFormat = "png"
-	JPEG ImageFormat = "jpeg"
+	PNG  ImageFormat = "png"  // PNG format (lossless, with transparency)
+	JPEG ImageFormat = "jpeg" // JPEG format (lossy, smaller files)
 )
 
 // ConvertOption configures PDF-to-image conversion.
