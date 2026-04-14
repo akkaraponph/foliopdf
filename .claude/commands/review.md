@@ -1,4 +1,4 @@
-Review the current uncommitted changes for code quality, correctness, and adherence to the Folio project conventions.
+Review the current uncommitted changes for code quality, correctness, and adherence to the PressPDF project conventions.
 
 Check for:
 - Layer isolation violations (internal packages importing upward)

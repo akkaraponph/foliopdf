@@ -4,7 +4,7 @@ description: Runs tests, generates demo PDFs, and verifies PDF output correctnes
 model: sonnet
 ---
 
-You are a test runner and PDF verifier for the Folio library.
+You are a test runner and PDF verifier for the PressPDF library.
 
 ## Your responsibilities
 
@@ -23,7 +23,7 @@ go test ./... -v
 go test -run TestName -v
 
 # Generate demo PDF
-go run ./cmd/demo && open /tmp/folio_demo.pdf
+go run ./cmd/demo && open /tmp/presspdf_demo.pdf
 
 # Generate all showcase PDFs
 go run ./examples/showcase

@@ -13,12 +13,12 @@ import (
 
 func main() {
 	doc := presspdf.New(presspdf.WithCompression(false))
-	doc.SetTitle("Folio Demo")
+	doc.SetTitle("PressPDF Demo")
 	doc.SetAuthor("Bob")
 	doc.SetFont("helvetica", "", 16)
 
 	page := doc.AddPage(presspdf.A4)
-	page.TextAt(40, 30, "Hello Folio!")
+	page.TextAt(40, 30, "Hello PressPDF!")
 
 	doc.SetFont("helvetica", "B", 12)
 	page.TextAt(40, 45, "This is bold text")

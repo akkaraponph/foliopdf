@@ -34,7 +34,7 @@ func (w *writer) needsBreak(h float64) {
 func main() {
 	doc := presspdf.New(presspdf.WithCompression(true))
 	doc.SetTitle("ประสิทธิภาพและความเหมาะสมของภาษาโปรแกรม Go (Golang)")
-	doc.SetAuthor("Folio Thai Article Example")
+	doc.SetAuthor("PressPDF Thai Article Example")
 	doc.SetMargins(20, 15, 20)
 
 	if err := sarabun.Register(doc); err != nil {
@@ -318,7 +318,7 @@ func main() {
 	}
 
 	// ---- Save ----
-	path := "/tmp/folio_thai_article.pdf"
+	path := "/tmp/presspdf_thai_article.pdf"
 	if err := doc.Save(path); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

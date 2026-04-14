@@ -292,17 +292,17 @@ func WatermarkPDF(inputPath, outputPath string, opts ...WatermarkOption) error {
 
 		if cfg.text != "" {
 			fonts := resolveSubDict(res, "/Font", r)
-			fonts["/FolioWmF"] = pdfcore.Ref{Num: wmFontNum}
+			fonts["/PPWmF"] = pdfcore.Ref{Num: wmFontNum}
 			res["/Font"] = fonts
 		}
 
 		gs := resolveSubDict(res, "/ExtGState", r)
-		gs["/FolioWmGS"] = pdfcore.Ref{Num: wmGSNum}
+		gs["/PPWmGS"] = pdfcore.Ref{Num: wmGSNum}
 		res["/ExtGState"] = gs
 
 		if wmImg != nil {
 			xo := resolveSubDict(res, "/XObject", r)
-			xo["/FolioWmIm"] = pdfcore.Ref{Num: wmImgNum}
+			xo["/PPWmIm"] = pdfcore.Ref{Num: wmImgNum}
 			res["/XObject"] = xo
 		}
 
@@ -444,13 +444,13 @@ func writeWmAt(buf *bytes.Buffer, cfg *watermarkConfig, cx, cy float64, img *wmI
 	sin := math.Sin(rad)
 
 	buf.WriteString("q\n")
-	buf.WriteString("/FolioWmGS gs\n")
+	buf.WriteString("/PPWmGS gs\n")
 	fmt.Fprintf(buf, "%.4f %.4f %.4f %.4f %.4f %.4f cm\n", cos, sin, -sin, cos, cx, cy)
 
 	if cfg.text != "" {
 		tw := float64(len(cfg.text)) * cfg.fontSize * 0.5
 		buf.WriteString("BT\n")
-		fmt.Fprintf(buf, "/FolioWmF %.1f Tf\n", cfg.fontSize)
+		fmt.Fprintf(buf, "/PPWmF %.1f Tf\n", cfg.fontSize)
 		fmt.Fprintf(buf, "%.4f %.4f %.4f rg\n", cfg.r, cfg.g, cfg.b)
 		fmt.Fprintf(buf, "%.4f %.4f Td\n", -tw/2, -cfg.fontSize/3)
 		fmt.Fprintf(buf, "(%s) Tj\n", pdfEscape(cfg.text))
@@ -461,7 +461,7 @@ func writeWmAt(buf *bytes.Buffer, cfg *watermarkConfig, cx, cy float64, img *wmI
 		iw := float64(img.width) * cfg.scale
 		ih := float64(img.height) * cfg.scale
 		fmt.Fprintf(buf, "%.4f 0 0 %.4f %.4f %.4f cm\n", iw, ih, -iw/2, -ih/2)
-		buf.WriteString("/FolioWmIm Do\n")
+		buf.WriteString("/PPWmIm Do\n")
 	}
 
 	buf.WriteString("Q\n")

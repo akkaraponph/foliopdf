@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Images & Barcodes
@@ -37,7 +37,7 @@ Currently only JPEG is supported. PNG support is planned.
 General-purpose barcode for alphanumeric data:
 
 ```go
-page.Barcode128(20, 20, 80, 20, "FOLIO-2026")
+page.Barcode128(20, 20, 80, 20, "PRESSPDF-2026")
 //              x   y   w   h   data
 ```
 
@@ -120,4 +120,4 @@ One of these must be installed:
 | `mutool` | mupdf-tools | `brew install mupdf-tools` / `apt install mupdf-tools` |
 | `gs` | ghostscript | `brew install ghostscript` / `apt install ghostscript` |
 
-Folio auto-detects whichever is available on PATH.
+PressPDF auto-detects whichever is available on PATH.

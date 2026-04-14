@@ -11,7 +11,7 @@ import (
 //
 // Usage:
 //
-//	toc := folio.NewTOC(doc)
+//	toc := presspdf.NewTOC(doc)
 //	toc.Add("Chapter 1", 0, chapterPage, chapterY)
 //	toc.Add("Section 1.1", 1, sectionPage, sectionY)
 //	toc.Render(tocPage, 6)

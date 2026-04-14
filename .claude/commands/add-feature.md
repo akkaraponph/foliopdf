@@ -1,4 +1,4 @@
-Help me add a new feature to the Folio PDF library.
+Help me add a new feature to the PressPDF library.
 
 Ask me what feature I want to add, then follow the architecture rules:
 
@@ -10,7 +10,7 @@ Ask me what feature I want to add, then follow the architecture rules:
 Rules:
 - No external dependencies
 - Don't break layer isolation (internal packages must not import upward)
-- Add test in `folio_test.go`
+- Add test in `presspdf_test.go`
 - Follow error accumulation pattern (check `d.err` at method entry)
 - Convert user coordinates to PDF points at call time
 

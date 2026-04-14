@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Getting Started
 
-This guide walks you through creating your first PDF with Folio.
+This guide walks you through creating your first PDF with PressPDF.
 
 ## Installation
 
@@ -14,7 +14,7 @@ go get github.com/akkaraponph/presspdf
 
 ## Your first PDF
 
-Every Folio program follows the same pattern: create a document, add pages, draw content, save.
+Every PressPDF program follows the same pattern: create a document, add pages, draw content, save.
 
 ```go
 package main
@@ -44,7 +44,7 @@ That's it. Run `go run main.go` and open `output.pdf`.
 
 ## Coordinate system
 
-Folio uses a **top-left origin** with millimeters as the default unit. The point (0, 0) is the top-left corner of the page.
+PressPDF uses a **top-left origin** with millimeters as the default unit. The point (0, 0) is the top-left corner of the page.
 
 ```
 (0,0) ──────────────────── x
@@ -183,7 +183,7 @@ Images are deduplicated by content hash — register the same image twice and it
 
 ## Error handling
 
-Folio accumulates errors instead of returning them on every call. This lets you write clean, linear code:
+PressPDF accumulates errors instead of returning them on every call. This lets you write clean, linear code:
 
 ```go
 doc := presspdf.New()

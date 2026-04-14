@@ -1,6 +1,6 @@
 // Example: Table Pattern Catalog
 //
-// Demonstrates every table pattern the Folio library can produce:
+// Demonstrates every table pattern the PressPDF library can produce:
 //
 //   Page 1 — Simple Table & Comparison Table
 //   Page 2 — Grouped Rows Table & Multi-Level Header Table
@@ -79,8 +79,8 @@ var (
 
 func main() {
 	doc := presspdf.New(presspdf.WithUnit(presspdf.UnitMM))
-	doc.SetTitle("Folio Table Pattern Catalog")
-	doc.SetAuthor("Folio Library")
+	doc.SetTitle("PressPDF Table Pattern Catalog")
+	doc.SetAuthor("PressPDF Library")
 	doc.SetMargins(lM, tM, lM)
 
 	page1Simple(doc)
@@ -89,7 +89,7 @@ func main() {
 	page4Irregular(doc)
 	page5Visual(doc)
 
-	out := "/tmp/folio_table_patterns.pdf"
+	out := "/tmp/presspdf_table_patterns.pdf"
 	if err := doc.Save(out); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

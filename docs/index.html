@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Folio - Go PDF Library</title>
+<title>PressPDF - Go PDF Library</title>
 <style>
   :root {
     --bg: #fafafa;
@@ -226,7 +226,7 @@
 <body>
 
 <nav>
-  <div class="logo"><img src="assets/logo-presspdf.png" alt="Folio" style="width:36px;height:36px;vertical-align:middle;margin-right:8px;">Folio <span>PDF for Go</span></div>
+  <div class="logo"><img src="assets/logo-presspdf.png" alt="PressPDF" style="width:36px;height:36px;vertical-align:middle;margin-right:8px;">PressPDF <span>PDF for Go</span></div>
   <a href="#getting-started">Getting Started</a>
   <a href="#hello-world">Hello World</a>
 
@@ -274,7 +274,7 @@
 
 <main>
 
-<h1>Folio</h1>
+<h1>PressPDF</h1>
 <p class="subtitle">
   A layered, pure Go library for creating and manipulating PDF files.<br>
   Zero external dependencies. Clean API. Production ready.
@@ -939,11 +939,11 @@ presspdf.PageSize{WidthPt: <span class="nu">500</span>, HeightPt: <span class="n
 
 <!-- ARCHITECTURE -->
 <h2 id="architecture">Architecture</h2>
-<p>Folio uses a 4-layer architecture with clear separation of concerns:</p>
+<p>PressPDF uses a 4-layer architecture with clear separation of concerns:</p>
 
 <table>
   <tr><th>Layer</th><th>Package</th><th>Responsibility</th></tr>
-  <tr><td>Public API</td><td><code>folio</code></td><td>User-facing types and functions</td></tr>
+  <tr><td>Public API</td><td><code>presspdf</code></td><td>User-facing types and functions</td></tr>
   <tr><td>State</td><td><code>internal/state</code>, <code>internal/resources</code></td><td>Document state, font/image registries</td></tr>
   <tr><td>Content</td><td><code>internal/content</code></td><td>PDF content stream operations</td></tr>
   <tr><td>Core</td><td><code>internal/pdfcore</code></td><td>PDF serialization, reader/parser</td></tr>
@@ -953,7 +953,7 @@ presspdf.PageSize{WidthPt: <span class="nu">500</span>, HeightPt: <span class="n
 
 <hr>
 <p style="color: var(--muted); font-size: 13px; text-align: center; margin-top: 40px;">
-  Folio &mdash; Pure Go PDF library by Akkarapon Phikulsri
+  PressPDF &mdash; Pure Go PDF library by Akkarapon Phikulsri
 </p>
 
 </main>

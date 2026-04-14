@@ -69,8 +69,8 @@ type writer struct {
 func main() {
 	doc := presspdf.New(presspdf.WithCompression(true))
 	doc.SetTitle("ใบกำกับภาษี / Tax Invoice")
-	doc.SetAuthor("Folio Studio")
-	doc.SetCreator("folio examples/invoice")
+	doc.SetAuthor("PressPDF Studio")
+	doc.SetCreator("presspdf examples/invoice")
 	doc.SetMargins(lMargin, tMargin, rMargin)
 
 	if err := sarabun.Register(doc); err != nil {
@@ -112,7 +112,7 @@ func main() {
 	w.drawNotes()
 	w.drawSignatures()
 
-	out := "/tmp/folio_thai_invoice.pdf"
+	out := "/tmp/presspdf_thai_invoice.pdf"
 	if err := doc.Save(out); err != nil {
 		fail("save: %v", err)
 	}
@@ -136,7 +136,7 @@ func (w *writer) drawHeaderBar() {
 	w.doc.SetTextColor(white[0], white[1], white[2])
 	w.doc.SetFont("sarabun", "B", 16)
 	w.page.SetXY(lMargin+25, y+4)
-	w.page.Cell(w.bodyWidth-25, 8, "Folio Studio Co., Ltd.", "", "L", false, 1)
+	w.page.Cell(w.bodyWidth-25, 8, "PressPDF Studio Co., Ltd.", "", "L", false, 1)
 
 	w.doc.SetFont("sarabun", "", 10)
 	w.page.SetX(lMargin + 25)
@@ -193,7 +193,7 @@ func (w *writer) drawPartyBlock() {
 
 	w.drawPartyColumn(lMargin, startY, colW, blockH,
 		"ผู้ขาย / Seller",
-		"Folio Studio Co., Ltd.",
+		"PressPDF Studio Co., Ltd.",
 		"123/45 ซอยสุขุมวิท 21\nแขวงคลองเตยเหนือ เขตวัฒนา\nกรุงเทพฯ 10110",
 		"0-1055-12345-67-8",
 		"+66 2 123 4567",

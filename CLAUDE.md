@@ -1,8 +1,8 @@
-# Folio — Claude Code Instructions
+# PressPDF — Claude Code Instructions
 
 ## Project overview
 
-Folio is a layered PDF generation library for Go with zero external dependencies. Module: `github.com/akkaraponph/presspdf`. Go 1.26+.
+PressPDF is a layered PDF generation library for Go with zero external dependencies. Module: `github.com/akkaraponph/presspdf`. Go 1.26+.
 
 ## Architecture
 

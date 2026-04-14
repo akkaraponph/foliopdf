@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # PDF Tools
 
-Folio includes pure Go tools for manipulating existing PDF files. These work with any valid PDF — not just files created by Folio. No external binaries required.
+PressPDF includes pure Go tools for manipulating existing PDF files. These work with any valid PDF — not just files created by PressPDF. No external binaries required.
 
 ## Split PDF
 

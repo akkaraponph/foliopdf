@@ -62,9 +62,9 @@ func main() {
 	sectionHeader(doc, page, "EXPERIENCE")
 
 	jobEntry(doc, page,
-		"Senior Software Engineer", "Folio Co., Ltd.", "2022 - Present",
+		"Senior Software Engineer", "PressPDF Co., Ltd.", "2022 - Present",
 		[]string{
-			"Designed and built Folio, a layered PDF generation library in Go with 4-layer architecture",
+			"Designed and built PressPDF, a layered PDF generation library in Go with 4-layer architecture",
 			"Led backend team of 5 engineers, established code review process and CI/CD pipelines",
 			"Reduced PDF generation latency by 60% through resource deduplication and stream compression",
 			"Migrated monolithic service to microservices architecture serving 50K+ daily active users",
@@ -113,7 +113,7 @@ func main() {
 	// ── Projects ──
 	sectionHeader(doc, page, "PROJECTS")
 
-	projectEntry(doc, page, "Folio", "github.com/akkaraponph/presspdf",
+	projectEntry(doc, page, "PressPDF", "github.com/akkaraponph/presspdf",
 		"Layered PDF generation library for Go. Clean 4-layer architecture with core font support, "+
 			"JPEG image embedding, cell/multicell with word wrapping, and resource deduplication.")
 

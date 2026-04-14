@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner-presspdf.png" alt="Folio" width="600">
+  <img src="docs/assets/banner-presspdf.png" alt="PressPDF" width="600">
 </p>
 
 <p align="center">
@@ -16,7 +16,7 @@
 
 ---
 
-## Why Folio?
+## Why PressPDF?
 
 - **Zero dependencies** — built entirely on the Go standard library
 - **Clean 4-layer architecture** — easy to understand, easy to extend
@@ -45,7 +45,7 @@ func main() {
     doc.SetFont("helvetica", "B", 20)
 
     page := doc.AddPage(presspdf.A4)
-    page.TextAt(40, 30, "Hello, Folio!")
+    page.TextAt(40, 30, "Hello, PressPDF!")
 
     doc.Save("hello.pdf")
 }
@@ -205,7 +205,7 @@ page.DrawImageRect("photo", 20, 20, 80, 60)
 ### Barcodes
 
 ```go
-page.Barcode128(20, 200, 100, 30, "FOLIO-2024")
+page.Barcode128(20, 200, 100, 30, "PRESSPDF-2024")
 page.BarcodeEAN13(20, 240, 80, 30, "590123412345")
 page.QRCode(140, 200, 40, "https://example.com")
 ```
@@ -340,7 +340,7 @@ doc := presspdf.New(presspdf.WithPDFA("2b")) // PDF/A-2b
 
 ### PDF Tools
 
-Work with any existing PDF — not just files created by Folio.
+Work with any existing PDF — not just files created by PressPDF.
 
 ```go
 // Merge multiple PDFs
@@ -452,7 +452,7 @@ See [`examples/`](examples/) for all runnable examples.
 
 ## Architecture
 
-Folio uses a clean 4-layer architecture where each layer has a single responsibility and depends only on layers below it:
+PressPDF uses a clean 4-layer architecture where each layer has a single responsibility and depends only on layers below it:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -472,7 +472,7 @@ Folio uses a clean 4-layer architecture where each layer has a single responsibi
 └─────────────────────────────────────────────┘
 ```
 
-See [Architecture](docs/architecture.md) for details on internals and extending Folio.
+See [Architecture](docs/architecture.md) for details on internals and extending PressPDF.
 
 ## License
 

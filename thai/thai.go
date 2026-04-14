@@ -36,7 +36,7 @@ func Setup(doc *presspdf.Document) {
 }
 
 // Segment splits Thai text into word-boundary tokens. This can be
-// used directly if you need the tokens outside of folio's text layout.
+// used directly if you need the tokens outside of presspdf's text layout.
 func Segment(text string) []string {
 	return wc.Segment(text)
 }

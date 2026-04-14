@@ -1,8 +1,8 @@
-# Copilot Instructions — Folio
+# Copilot Instructions — PressPDF
 
 ## What is this project?
 
-Folio is a layered PDF generation library for Go (`github.com/akkaraponph/presspdf`). Zero external dependencies. Go 1.26+.
+PressPDF is a layered PDF generation library for Go (`github.com/akkaraponph/presspdf`). Zero external dependencies. Go 1.26+.
 
 ## Architecture — 4 layers
 

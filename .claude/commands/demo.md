@@ -1,7 +1,7 @@
 Build and run the demo to generate a sample PDF, then open it for visual verification.
 
 ```bash
-go run ./cmd/demo && open /tmp/folio_demo.pdf
+go run ./cmd/demo && open /tmp/presspdf_demo.pdf
 ```
 
 Also run the showcase to generate all feature demos:

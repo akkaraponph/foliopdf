@@ -77,7 +77,7 @@ func main() {
 	bottomY := incomeBottom + 3
 	drawGuidelinesTable(doc, page, col1X, bottomY)
 
-	out := "/tmp/folio_ratesheet.pdf"
+	out := "/tmp/presspdf_ratesheet.pdf"
 	if err := doc.Save(out); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

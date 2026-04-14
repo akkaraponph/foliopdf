@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Architecture
 
-This guide is for contributors and anyone curious about how Folio works internally.
+This guide is for contributors and anyone curious about how PressPDF works internally.
 
 ## The four layers
 
-Folio is built as four independent layers. Each has a single job and depends only on layers below it.
+PressPDF is built as four independent layers. Each has a single job and depends only on layers below it.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -42,7 +42,7 @@ This separation means you can add a new drawing primitive without touching seria
 ## File map
 
 ```
-folio/
+presspdf/
 ├── doc.go              # package documentation
 ├── options.go          # PageSize constants, Option funcs
 ├── document.go         # Document struct and methods
@@ -176,7 +176,7 @@ PDF operators emitted by `internal/content/stream.go`:
 
 ## Error handling
 
-Folio uses error accumulation. The `Document` stores a single `err` field. Every method checks it first and returns early if set. This lets users write linear code without `if err != nil` on every line:
+PressPDF uses error accumulation. The `Document` stores a single `err` field. Every method checks it first and returns early if set. This lets users write linear code without `if err != nil` on every line:
 
 ```go
 doc := presspdf.New()

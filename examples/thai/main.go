@@ -11,7 +11,7 @@ import (
 func main() {
 	doc := presspdf.New(presspdf.WithCompression(false))
 	doc.SetTitle("Thai Language Demo")
-	doc.SetAuthor("Folio")
+	doc.SetAuthor("PressPDF")
 	doc.SetMargins(15, 15, 15)
 
 	// Register all Sarabun styles
@@ -25,7 +25,7 @@ func main() {
 	// Title
 	doc.SetFont("sarabun", "B", 24)
 	page.SetXY(15, 15)
-	page.Cell(180, 12, "ภาษาไทยใน Folio", "", "C", false, 1)
+	page.Cell(180, 12, "ภาษาไทยใน PressPDF", "", "C", false, 1)
 
 	// Subtitle
 	doc.SetFont("sarabun", "", 14)
@@ -38,7 +38,7 @@ func main() {
 	doc.SetFont("sarabun", "", 12)
 	page.SetXY(15, page.GetY())
 	page.MultiCell(180, 6,
-		"สวัสดีครับ นี่คือตัวอย่างการใช้งานภาษาไทยในไลบรารี Folio "+
+		"สวัสดีครับ นี่คือตัวอย่างการใช้งานภาษาไทยในไลบรารี PressPDF "+
 			"ซึ่งรองรับฟอนต์ TrueType แบบ Unicode ผ่าน CIDFont Type2 "+
 			"ทำให้สามารถแสดงผลภาษาไทยได้อย่างสมบูรณ์ รวมถึงสระ วรรณยุกต์ "+
 			"และเครื่องหมายต่างๆ",
@@ -85,7 +85,7 @@ func main() {
 	doc.SetTextColor(0, 0, 0)
 	page.SetXY(15, page.GetY())
 	page.MultiCell(180, 6,
-		"Folio เป็น PDF library ที่เขียนด้วยภาษา Go "+
+		"PressPDF เป็น PDF library ที่เขียนด้วยภาษา Go "+
 			"มี architecture แบบ 4 layers ทำให้โค้ดเป็นระเบียบ "+
 			"และง่ายต่อการ extend ฟีเจอร์ใหม่ๆ "+
 			"เช่น Thai language support ที่คุณเห็นอยู่ตอนนี้",
@@ -103,7 +103,7 @@ func main() {
 	page.Cell(90, 6, "เลขไทย: ๐ ๑ ๒ ๓ ๔ ๕ ๖ ๗ ๘ ๙", "", "L", false, 0)
 	page.Cell(90, 6, "เลขอารบิก: 0 1 2 3 4 5 6 7 8 9", "", "L", false, 1)
 
-	path := "/tmp/folio_thai.pdf"
+	path := "/tmp/presspdf_thai.pdf"
 	if err := doc.Save(path); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

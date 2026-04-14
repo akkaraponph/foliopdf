@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Drawing

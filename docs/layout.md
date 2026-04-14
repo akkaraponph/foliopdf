@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
 # Layout
@@ -73,7 +73,7 @@ doc.SetFooterFunc(func(p *presspdf.Page) {
 
 ## The cursor
 
-Folio tracks a cursor position (X, Y) on the current page. `Cell`, `MultiCell`, and `Write` use and advance the cursor.
+PressPDF tracks a cursor position (X, Y) on the current page. `Cell`, `MultiCell`, and `Write` use and advance the cursor.
 
 ```go
 page.SetXY(20, 50)   // move cursor
@@ -141,7 +141,7 @@ page.KeepTogether(func() {
 })
 ```
 
-Folio does a measurement pass first. If the content fits, it draws on the current page. Otherwise it forces a page break before drawing.
+PressPDF does a measurement pass first. If the content fits, it draws on the current page. Otherwise it forces a page break before drawing.
 
 ### Paragraph
 

@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/logo-presspdf.png" alt="Folio" width="120">
+  <img src="assets/logo-presspdf.png" alt="PressPDF" width="120">
 </p>
 
-# Folio API Reference
+# PressPDF API Reference
 
-Complete reference for the public API. All types and functions are in the `folio` package unless noted otherwise.
+Complete reference for the public API. All types and functions are in the `presspdf` package unless noted otherwise.
 
 ---
 
@@ -708,4 +708,4 @@ func Segment(text string) []string
 
 `Setup` installs the Thai word breaker so `MultiCell`, `Write`, and other wrapping functions break lines at Thai word boundaries.
 
-`Segment` provides direct access to the word segmentation for use outside of folio's text layout.
+`Segment` provides direct access to the word segmentation for use outside of presspdf's text layout.
