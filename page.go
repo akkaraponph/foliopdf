@@ -2335,7 +2335,7 @@ func (p *Page) emitText(fe *resources.FontEntry, text string) {
 
 	// Split text into segments: normal runs and raised tone marks.
 	// Raised marks use the Ts (text rise) operator to shift upward.
-	rise := 0.23 * p.effectiveFontSizePt()
+	rise := 0.25 * p.effectiveFontSizePt()
 	i := 0
 	inRise := false
 	for i < len(runes) {
