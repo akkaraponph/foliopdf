@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A layered PDF generation library for Go. Zero external dependencies.
+  A full-featured PDF generation library for Go.
 </p>
 
 <p align="center">
@@ -18,7 +18,6 @@
 
 ## Why PressPDF?
 
-- **Zero dependencies** — built entirely on the Go standard library
 - **Clean 4-layer architecture** — easy to understand, easy to extend
 - **Full Unicode** — TrueType font embedding with CIDFont Type 2
 - **Thai language built-in** — dictionary-based word segmentation (~15K words)
