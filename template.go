@@ -168,7 +168,7 @@ func (t *Template) TextAt(x, y float64, text string) {
 		fe.AddUsedRunes(text)
 		t.stream.ShowTextHex(textToHex(text))
 	} else {
-		t.stream.ShowText(pdfEscape(text))
+		t.stream.ShowText(pdfEscape(unicodeToWinAnsi(text)))
 	}
 	t.stream.EndText()
 }

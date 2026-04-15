@@ -7124,6 +7124,569 @@ func TestCSSColorParser(t *testing.T) {
 	}
 }
 
+func TestHTMLStrikethrough(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p><s>Struck</s> and <del>Deleted</del></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Struck)") {
+		t.Error("expected strikethrough text")
+	}
+	if !strings.Contains(out, "(Deleted)") {
+		t.Error("expected deleted text")
+	}
+}
+
+func TestHTMLDiv(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<div>Block content</div>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Block content)") {
+		t.Error("expected div text")
+	}
+}
+
+func TestHTMLSpan(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p>Hello <span style="color: red">world</span></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(world)") {
+		t.Error("expected span text")
+	}
+	if !strings.Contains(out, "1.000 0.000 0.000 rg") {
+		t.Error("expected red color for span")
+	}
+}
+
+func TestHTMLBlockquote(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<blockquote>Quoted text</blockquote>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Quoted text)") {
+		t.Error("expected blockquote text")
+	}
+}
+
+func TestHTMLPre(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<pre>func main() {\n    fmt.Println(\"hello\")\n}</pre>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(func main\\(\\))") {
+		// Courier font should be used
+		if !strings.Contains(out, "Courier") && !strings.Contains(out, "func") {
+			t.Error("expected pre content")
+		}
+	}
+}
+
+func TestHTMLCode(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Use <code>fmt.Println</code> to print</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(fmt.Println)") {
+		t.Error("expected code text")
+	}
+}
+
+func TestHTMLSmall(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Normal <small>small text</small></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(small text)") {
+		t.Error("expected small text")
+	}
+}
+
+func TestHTMLSup(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>E=mc<sup>2</sup></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(2)") {
+		t.Error("expected superscript text")
+	}
+}
+
+func TestHTMLSub(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>H<sub>2</sub>O</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(2)") {
+		t.Error("expected subscript text")
+	}
+}
+
+func TestHTMLCenter(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<center>Centered text</center>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Centered text)") {
+		t.Error("expected centered text")
+	}
+}
+
+func TestHTMLFontTag(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p><font color="blue" size="4">Blue text</font></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Blue text)") {
+		t.Error("expected font text")
+	}
+	if !strings.Contains(out, "0.000 0.000 1.000 rg") {
+		t.Error("expected blue color")
+	}
+}
+
+func TestHTMLNestedBoldItalic(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p><b><i>Bold and Italic</i></b></p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Bold and Italic)") {
+		t.Error("expected nested bold italic text")
+	}
+	// The text should use Helvetica-BoldOblique (BI style).
+	if !strings.Contains(out, "Helvetica-BoldOblique") {
+		t.Error("expected BoldOblique font for nested bold+italic")
+	}
+}
+
+func TestHTMLNestedLists(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<ul>
+		<li>Item 1
+			<ul>
+				<li>Sub-item A</li>
+				<li>Sub-item B</li>
+			</ul>
+		</li>
+		<li>Item 2</li>
+	</ul>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	// Text may include trailing whitespace from HTML indentation.
+	found := false
+	for _, needle := range []string{"(Item 1)", "(Item 1 )"} {
+		if strings.Contains(out, needle) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected top-level list item")
+	}
+	if !strings.Contains(out, "(Sub-item A)") {
+		t.Error("expected nested list item A")
+	}
+	if !strings.Contains(out, "(Sub-item B)") {
+		t.Error("expected nested list item B")
+	}
+}
+
+func TestHTMLStyleTag(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`
+		<style>
+			.highlight { color: red; }
+			#title { font-size: 20pt; }
+		</style>
+		<p class="highlight">Red text</p>
+		<p id="title">Big title</p>
+	`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Red text)") {
+		t.Error("expected class-styled text")
+	}
+	if !strings.Contains(out, "1.000 0.000 0.000 rg") {
+		t.Error("expected red color from class")
+	}
+	if !strings.Contains(out, "(Big title)") {
+		t.Error("expected ID-styled text")
+	}
+}
+
+func TestHTMLCSSBackgroundColor(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p style="background-color: yellow">Highlighted</p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Highlighted)") {
+		t.Error("expected highlighted text")
+	}
+}
+
+func TestHTMLCSSTextAlign(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p style="text-align: center">Centered paragraph</p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Centered paragraph)") {
+		t.Error("expected centered text")
+	}
+}
+
+func TestHTMLCSSTextDecoration(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p><span style="text-decoration: underline">Underlined</span> and <span style="text-decoration: line-through">struck</span></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Underlined)") {
+		t.Error("expected underlined text")
+	}
+	if !strings.Contains(out, "(struck)") {
+		t.Error("expected struck text")
+	}
+}
+
+func TestHTMLCSSFontWeight(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p><span style="font-weight: bold">Heavy text</span></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Heavy text)") {
+		t.Error("expected bold text")
+	}
+	if !strings.Contains(out, "Helvetica-Bold") {
+		t.Error("expected bold font from CSS")
+	}
+}
+
+func TestHTMLCSSFontStyle(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<p><span style="font-style: italic">Slanted text</span></p>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Slanted text)") {
+		t.Error("expected italic text")
+	}
+	if !strings.Contains(out, "Helvetica-Oblique") {
+		t.Error("expected italic font from CSS")
+	}
+}
+
+func TestHTMLRGBColor(t *testing.T) {
+	r, g, b, ok := parseCSSColor("rgb(100, 200, 50)")
+	if !ok || r != 100 || g != 200 || b != 50 {
+		t.Errorf("rgb() parsing failed: got (%d,%d,%d,%v)", r, g, b, ok)
+	}
+}
+
+func TestHTMLNamedColors(t *testing.T) {
+	tests := []struct {
+		name    string
+		r, g, b int
+	}{
+		{"orange", 255, 165, 0},
+		{"purple", 128, 0, 128},
+		{"navy", 0, 0, 128},
+		{"teal", 0, 128, 128},
+	}
+	for _, tc := range tests {
+		r, g, b, ok := parseCSSColor(tc.name)
+		if !ok || r != tc.r || g != tc.g || b != tc.b {
+			t.Errorf("parseCSSColor(%q) = (%d,%d,%d,%v), want (%d,%d,%d,true)",
+				tc.name, r, g, b, ok, tc.r, tc.g, tc.b)
+		}
+	}
+}
+
+func TestHTMLComment(t *testing.T) {
+	nodes := parseHTML("<!-- comment --><p>Text</p>")
+	if len(nodes) != 1 || nodes[0].tag != "p" {
+		t.Error("expected comment to be skipped")
+	}
+	if extractText(nodes[0]) != "Text" {
+		t.Error("expected text after comment")
+	}
+}
+
+func TestHTMLMoreEntities(t *testing.T) {
+	nodes := parseHTML("<p>&mdash; &ndash; &copy;</p>")
+	if len(nodes) == 0 || len(nodes[0].children) == 0 {
+		t.Fatal("expected parsed content")
+	}
+	text := nodes[0].children[0].text
+	if !strings.Contains(text, "\u2014") {
+		t.Errorf("expected mdash, got %q", text)
+	}
+	if !strings.Contains(text, "\u2013") {
+		t.Errorf("expected ndash, got %q", text)
+	}
+	if !strings.Contains(text, "\u00a9") {
+		t.Errorf("expected copyright, got %q", text)
+	}
+}
+
+func TestHTMLNumericEntity(t *testing.T) {
+	nodes := parseHTML("<p>&#65; &#x42;</p>")
+	if len(nodes) == 0 || len(nodes[0].children) == 0 {
+		t.Fatal("expected parsed content")
+	}
+	text := nodes[0].children[0].text
+	if !strings.Contains(text, "A") || !strings.Contains(text, "B") {
+		t.Errorf("expected 'A' and 'B' from numeric entities, got %q", text)
+	}
+}
+
+func TestHTMLWithWidth(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Constrained width</p>", WithHTMLWidth(100))
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Constrained width)") {
+		t.Error("expected text with custom width")
+	}
+}
+
+func TestHTMLWithLineHeight(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>Custom line height</p>", WithHTMLLineHeight(8))
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Custom line height)") {
+		t.Error("expected text with custom line height")
+	}
+}
+
+func TestCSSLengthParser(t *testing.T) {
+	tests := []struct {
+		input string
+		want  float64
+	}{
+		{"10px", 10 * 0.264583},
+		{"5mm", 5},
+		{"12pt", 12 * 0.352778},
+		{"2em", 2 * 4.233},
+		{"10", 10},
+	}
+	for _, tc := range tests {
+		got := parseCSSLength(tc.input)
+		diff := got - tc.want
+		if diff < -0.01 || diff > 0.01 {
+			t.Errorf("parseCSSLength(%q) = %f, want %f", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestHTMLMarkTag(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML("<p>This is <mark>highlighted</mark> text</p>")
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(highlighted)") {
+		t.Error("expected highlighted text")
+	}
+}
+
+func TestHTMLTableWithThead(t *testing.T) {
+	doc := New(WithCompression(false))
+	doc.SetFont("helvetica", "", 12)
+	p := doc.AddPage(A4)
+
+	p.HTML(`<table>
+		<thead><tr><th>Header</th></tr></thead>
+		<tbody><tr><td>Data</td></tr></tbody>
+	</table>`)
+
+	data, err := doc.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := string(data)
+	if !strings.Contains(out, "(Header)") {
+		t.Error("expected table header")
+	}
+	if !strings.Contains(out, "(Data)") {
+		t.Error("expected table data")
+	}
+}
+
+func TestParseInlineStyleFull(t *testing.T) {
+	cs := parseInlineStyle("color: red; font-size: 14pt; text-align: center; font-weight: bold; text-decoration: underline; background-color: #ff0")
+	if !cs.hasColor || cs.color != [3]int{255, 0, 0} {
+		t.Error("expected red color")
+	}
+	if cs.fontSize != 14 {
+		t.Errorf("expected font-size 14, got %f", cs.fontSize)
+	}
+	if cs.textAlign != "center" {
+		t.Errorf("expected text-align center, got %q", cs.textAlign)
+	}
+	if cs.fontWeight != "bold" {
+		t.Errorf("expected font-weight bold, got %q", cs.fontWeight)
+	}
+	if cs.textDecoration != "underline" {
+		t.Errorf("expected text-decoration underline, got %q", cs.textDecoration)
+	}
+	if !cs.hasBgColor {
+		t.Error("expected background color")
+	}
+}
+
 // --------------- F14: Markdown Renderer ---------------
 
 func TestMarkdownHeadings(t *testing.T) {

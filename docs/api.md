@@ -199,7 +199,7 @@ Inline text with markup tags for formatting.
 ```go
 func (p *Page) HTML(html string, opts ...HTMLOption)
 ```
-Renders an HTML subset: `<h1>`-`<h6>`, `<p>`, `<b>`, `<i>`, `<u>`, `<br>`, `<hr>`, `<ul>`, `<ol>`, `<li>`, `<table>`, `<tr>`, `<td>`, `<a href>`. Inline CSS: `color`, `font-size`, `text-align`, `background-color`.
+Renders HTML onto the page. Supported tags: `<h1>`-`<h6>`, `<p>`, `<div>`, `<span>`, `<b>`/`<strong>`, `<i>`/`<em>`, `<u>`, `<s>`/`<del>`, `<small>`, `<mark>`, `<code>`, `<pre>`, `<blockquote>`, `<center>`, `<sup>`, `<sub>`, `<br>`, `<hr>`, `<ul>`/`<ol>`/`<li>` (nested), `<table>`/`<thead>`/`<tbody>`/`<tr>`/`<td>`/`<th>`, `<a href>`, `<font>`, `<style>`. CSS properties: `color`, `background-color`, `font-size`, `font-family`, `font-weight`, `font-style`, `text-decoration`, `text-align`, `line-height`, `margin-top`, `margin-bottom`, `padding-left`. Options: `WithHTMLWidth`, `WithHTMLLineHeight`.
 
 ```go
 func (p *Page) Markdown(md string, opts ...MarkdownOption)

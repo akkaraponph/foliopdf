@@ -2318,7 +2318,7 @@ func (p *Page) emitText(fe *resources.FontEntry, text string) {
 	}
 
 	if fe.Type != "TTF" {
-		p.stream.ShowText(pdfEscape(text))
+		p.stream.ShowText(pdfEscape(unicodeToWinAnsi(text)))
 		return
 	}
 
